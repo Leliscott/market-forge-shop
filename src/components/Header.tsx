@@ -22,7 +22,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ showSearch = true }) => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, profile, isAuthenticated, logout } = useAuth();
   const { totalItems } = useCart();
   const { notifications, unreadCount, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
@@ -139,13 +139,13 @@ const Header: React.FC<HeaderProps> = ({ showSearch = true }) => {
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>
                       <div className="flex flex-col">
-                        <span>{user?.name}</span>
-                        <span className="text-xs text-muted-foreground">{user?.role}</span>
+                        <span>{profile?.name}</span>
+                        <span className="text-xs text-muted-foreground">{profile?.role}</span>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     
-                    {user?.role === 'seller' && (
+                    {profile?.role === 'seller' && (
                       <>
                         <DropdownMenuItem asChild>
                           <Link to="/seller/dashboard">Seller Dashboard</Link>
