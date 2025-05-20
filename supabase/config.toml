@@ -3,3 +3,6 @@ project_id = "xmacsqjdknfpfxzmwjrk"
 
 [functions.share-store]
 verify_jwt = true
+
+[storage]
+file_size_limit = "5MB"

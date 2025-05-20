@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { NotificationProvider } from "@/context/NotificationContext";
+import CookieConsent from "@/components/CookieConsent";
 
 // Pages
 import Index from "./pages/Index";
@@ -58,6 +59,7 @@ const App = () => (
                 <Route path="/profile" element={<UserProfile />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              <CookieConsent />
             </TooltipProvider>
           </NotificationProvider>
         </CartProvider>

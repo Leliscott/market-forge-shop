@@ -32,7 +32,7 @@ const TermsAndConditions = () => {
           <h2>1. Introduction</h2>
           <p>
             Welcome to ShopMarket. These terms and conditions outline the rules and regulations
-            for the use of our platform.
+            for the use of our platform in South Africa.
           </p>
           
           <h2>2. Definitions</h2>
@@ -46,7 +46,7 @@ const TermsAndConditions = () => {
           <h2>3. Acceptance of Terms</h2>
           <p>
             By accessing and using our platform, you accept and agree to be bound by these Terms and Conditions
-            and comply with all applicable laws and regulations. If you do not agree with any of these terms,
+            and comply with all applicable laws and regulations of the Republic of South Africa. If you do not agree with any of these terms,
             you are prohibited from using or accessing this platform.
           </p>
           
@@ -73,20 +73,22 @@ const TermsAndConditions = () => {
             <li>Ship products in a timely manner after purchase</li>
             <li>Respond promptly to customer inquiries</li>
             <li>Maintain inventory information that is up to date</li>
-            <li>Comply with all applicable laws and regulations</li>
+            <li>Comply with all applicable South African laws and regulations, including the Consumer Protection Act and Electronic Communications and Transactions Act</li>
+            <li>Properly disclose all pricing in South African Rand (ZAR), inclusive of VAT where applicable</li>
           </ul>
           
           <h2>7. Intellectual Property</h2>
           <p>
             The platform and its original content, features, and functionality are and will remain the exclusive
             property of ShopMarket and its licensors. The platform is protected by copyright, trademark, and other
-            laws of both the United States and foreign countries.
+            laws of the Republic of South Africa and foreign countries.
           </p>
           
-          <h2>8. Privacy Policy</h2>
+          <h2>8. Privacy Policy and Cookies</h2>
           <p>
             Your use of our platform is also subject to our Privacy Policy, which outlines how we collect,
-            use, disclose, and safeguard your information.
+            use, disclose, and safeguard your information. By using our platform, you consent to the collection 
+            and use of cookies in accordance with our Cookie Policy.
           </p>
           
           <h2>9. Limitation of Liability</h2>
@@ -99,19 +101,26 @@ const TermsAndConditions = () => {
           
           <h2>10. Governing Law</h2>
           <p>
-            These Terms shall be governed and construed in accordance with the laws of the United States,
+            These Terms shall be governed and construed in accordance with the laws of the Republic of South Africa,
             without regard to its conflict of law provisions.
           </p>
           
-          <h2>11. Changes to Terms</h2>
+          <h2>11. VAT and Taxation</h2>
+          <p>
+            All prices displayed on the platform are in South African Rand (ZAR) and include Value Added Tax (VAT) 
+            where applicable. Sellers are responsible for ensuring compliance with all South African Revenue Service 
+            (SARS) requirements regarding taxation.
+          </p>
+          
+          <h2>12. Changes to Terms</h2>
           <p>
             We reserve the right to modify or replace these Terms at any time. If a revision is material,
             we will try to provide at least 30 days' notice prior to any new terms taking effect.
           </p>
           
-          <h2>12. Contact Us</h2>
+          <h2>13. Contact Us</h2>
           <p>
-            If you have any questions about these Terms, please contact us.
+            If you have any questions about these Terms, please contact us at support@shopmarket.co.za.
           </p>
         </div>
         

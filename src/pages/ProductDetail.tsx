@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Star, Store, ChevronLeft, Check, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,21 +8,136 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import ProductCard from '@/components/ProductCard';
+import WhatsAppContact from '@/components/WhatsAppContact';
 import { useCart } from '@/context/CartContext';
-import { getProductById, getStoreById, getRelatedProducts } from '@/utils/mockData';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  store_id: string;
+  stock?: number;
+  features?: string[];
+  rating?: number;
+}
+
+interface Store {
+  id: string;
+  name: string;
+  description: string;
+  owner_id: string;
+  phone?: string;
+}
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const [quantity, setQuantity] = React.useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [store, setStore] = useState<Store | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   
-  const product = id ? getProductById(id) : null;
-  const store = product ? getStoreById(product.storeId) : null;
-  const relatedProducts = id ? getRelatedProducts(id) : [];
+  // Fetch product data
+  useEffect(() => {
+    const fetchProductData = async () => {
+      if (!id) return;
+      
+      setLoading(true);
+      try {
+        // Fetch product details
+        const { data: productData, error: productError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (productError) throw productError;
+        if (!productData) throw new Error('Product not found');
+        
+        // Add some defaults for backward compatibility
+        const enhancedProduct = {
+          ...productData,
+          stock: 10, // Default stock value
+          rating: 4.5, // Default rating
+          features: [
+            'High quality materials',
+            'Fast shipping',
+            'Secure payment processing',
+            'Customer satisfaction guaranteed'
+          ]
+        };
+        
+        setProduct(enhancedProduct);
+        
+        // Fetch store details
+        const { data: storeData, error: storeError } = await supabase
+          .from('stores')
+          .select('*')
+          .eq('id', productData.store_id)
+          .single();
+        
+        if (storeError) throw storeError;
+        
+        setStore(storeData);
+        
+        // Fetch related products (same store, different product)
+        const { data: relatedData, error: relatedError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('store_id', productData.store_id)
+          .neq('id', id)
+          .limit(4);
+        
+        if (relatedError) throw relatedError;
+        
+        setRelatedProducts(relatedData || []);
+        
+      } catch (err: any) {
+        console.error('Error fetching product:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchProductData();
+  }, [id]);
   
-  if (!product || !store) {
+  const handleAddToCart = () => {
+    if (!product) return;
+    
+    addToCart({
+      productId: product.id,
+      storeId: product.store_id,
+      name: product.name,
+      price: product.price,
+      image: product.image
+    }, quantity);
+  };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-lg text-muted-foreground">Loading product...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+  
+  // Show error state
+  if (error || !product || !store) {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
@@ -31,7 +146,7 @@ const ProductDetail = () => {
             <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground" />
             <h2 className="mt-4 text-2xl font-bold">Product not found</h2>
             <p className="mt-2 text-muted-foreground">
-              The product you're looking for doesn't exist or has been removed.
+              {error || "The product you're looking for doesn't exist or has been removed."}
             </p>
             <Button
               variant="outline"
@@ -47,16 +162,6 @@ const ProductDetail = () => {
     );
   }
   
-  const handleAddToCart = () => {
-    addToCart({
-      productId: product.id,
-      storeId: product.storeId,
-      name: product.name,
-      price: product.price,
-      image: product.image
-    }, quantity);
-  };
-
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
@@ -105,7 +210,7 @@ const ProductDetail = () => {
                       <Star
                         key={i}
                         className={`w-4 h-4 ${
-                          i < Math.floor(product.rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+                          i < Math.floor(product.rating || 0) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
                         }`}
                       />
                     ))}
@@ -115,12 +220,12 @@ const ProductDetail = () => {
               </div>
               
               <div className="text-3xl font-bold text-primary">
-                ${product.price.toFixed(2)}
+                R{product.price.toFixed(2)}
               </div>
               
               {/* Stock status */}
               <div className="flex items-center space-x-2">
-                {product.stock > 0 ? (
+                {(product.stock || 0) > 0 ? (
                   <>
                     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                       <Check className="w-3 h-3 mr-1" />
@@ -152,8 +257,8 @@ const ProductDetail = () => {
                     variant="ghost"
                     size="icon"
                     className="rounded-none"
-                    onClick={() => setQuantity(prev => Math.min(prev + 1, product.stock))}
-                    disabled={quantity >= product.stock}
+                    onClick={() => setQuantity(prev => Math.min(prev + 1, product.stock || 10))}
+                    disabled={quantity >= (product.stock || 10)}
                   >
                     +
                   </Button>
@@ -162,11 +267,19 @@ const ProductDetail = () => {
                 <Button
                   className="flex-1 gap-2"
                   onClick={handleAddToCart}
-                  disabled={product.stock === 0}
+                  disabled={(product.stock || 0) === 0}
                 >
                   <ShoppingCart className="w-4 h-4" />
                   Add to Cart
                 </Button>
+              </div>
+              
+              {/* Contact seller via WhatsApp */}
+              <div className="pt-4">
+                <WhatsAppContact 
+                  phoneNumber={store.phone || "0610000000"} 
+                  productName={product.name} 
+                />
               </div>
               
               <Separator />
@@ -203,7 +316,31 @@ const ProductDetail = () => {
               
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {relatedProducts.map(product => (
-                  <ProductCard key={product.id} product={product} />
+                  <div key={product.id} className="border rounded-lg overflow-hidden bg-white">
+                    <div className="aspect-[4/3] overflow-hidden">
+                      <img 
+                        src={product.image || '/placeholder.svg'} 
+                        alt={product.name}
+                        className="w-full h-full object-cover transition-transform hover:scale-105"
+                      />
+                    </div>
+                    
+                    <div className="p-4">
+                      <h3 className="font-medium truncate">{product.name}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+                      
+                      <div className="mt-3 flex items-center justify-between">
+                        <span className="font-bold text-primary">R{product.price.toFixed(2)}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                        >
+                          <Link to={`/product/${product.id}`}>View</Link>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

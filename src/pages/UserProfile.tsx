@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import LocationPicker from '@/components/LocationPicker';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { Label } from '@/components/ui/label';
@@ -24,12 +25,14 @@ const UserProfile = () => {
     location: '',
   });
   
-  // Redirect if not authenticated
+  // Redirect if not authenticated or user hasn't accepted terms
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: '/profile' } });
+    } else if (profile && !profile.accepted_terms) {
+      navigate('/terms');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, profile, navigate]);
   
   // Initialize form data with profile info when available
   useEffect(() => {
@@ -46,6 +49,13 @@ const UserProfile = () => {
     setProfileData(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+  
+  const handleLocationChange = (location: string) => {
+    setProfileData(prev => ({
+      ...prev,
+      location
     }));
   };
   
@@ -143,19 +153,10 @@ const UserProfile = () => {
                       />
                     </div>
                     
-                    <div className="space-y-2">
-                      <Label htmlFor="location" className="flex items-center">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        Location
-                      </Label>
-                      <Input
-                        id="location"
-                        name="location"
-                        value={profileData.location}
-                        onChange={handleInputChange}
-                        placeholder="City, Country"
-                      />
-                    </div>
+                    <LocationPicker 
+                      onLocationSelect={handleLocationChange}
+                      defaultLocation={profileData.location}
+                    />
                     
                     <div className="pt-2">
                       <div className="flex items-center justify-between">
