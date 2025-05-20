@@ -24,18 +24,21 @@ import CreateStore from "./pages/CreateStore";
 import ManageProducts from "./pages/ManageProducts";
 import EditProduct from "./pages/EditProduct";
 import Orders from "./pages/Orders";
+import AuthCallback from "./pages/AuthCallback";
+import TermsAndConditions from "./pages/TermsAndConditions";
+import UserProfile from "./pages/UserProfile";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <CartProvider>
-        <NotificationProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+        <CartProvider>
+          <NotificationProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
@@ -50,13 +53,16 @@ const App = () => (
                 <Route path="/seller/products" element={<ManageProducts />} />
                 <Route path="/seller/products/edit/:id" element={<EditProduct />} />
                 <Route path="/seller/orders" element={<Orders />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/terms" element={<TermsAndConditions />} />
+                <Route path="/profile" element={<UserProfile />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </NotificationProvider>
-      </CartProvider>
-    </AuthProvider>
+            </TooltipProvider>
+          </NotificationProvider>
+        </CartProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 

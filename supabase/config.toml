@@ -1,1 +1,5 @@
+
 project_id = "xmacsqjdknfpfxzmwjrk"
+
+[functions.share-store]
+verify_jwt = true

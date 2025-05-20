@@ -1,12 +1,17 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from '@/integrations/supabase/client';
+import { Session, User } from '@supabase/supabase-js';
+import { useNavigate } from 'react-router-dom';
 
-interface User {
+interface Profile {
   id: string;
   name: string;
   email: string;
   role: 'buyer' | 'seller';
+  location?: string;
+  accepted_terms: boolean;
 }
 
 interface Store {
@@ -18,12 +23,15 @@ interface Store {
 
 interface AuthContextType {
   user: User | null;
+  profile: Profile | null;
   isAuthenticated: boolean;
   userStore: Store | null;
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, password: string, role: 'buyer' | 'seller') => Promise<boolean>;
   logout: () => void;
-  createStore: (storeDetails: Omit<Store, 'id'>) => void;
+  createStore: (storeDetails: Omit<Store, 'id'>) => Promise<Store | null>;
+  updateProfile: (profileData: Partial<Profile>) => Promise<boolean>;
+  session: Session | null;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -32,72 +40,121 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [userStore, setUserStore] = useState<Store | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
-  // Check for stored auth on initial load
   useEffect(() => {
-    const storedUser = localStorage.getItem('marketplace_user');
-    const storedStore = localStorage.getItem('marketplace_store');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
-      if (storedStore) {
-        setUserStore(JSON.parse(storedStore));
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setIsAuthenticated(!!session);
+
+        if (session?.user) {
+          await fetchUserProfile(session.user.id);
+          if (profile?.role === 'seller') {
+            await fetchUserStore(session.user.id);
+          }
+        } else {
+          setProfile(null);
+          setUserStore(null);
+        }
       }
-    }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsAuthenticated(!!session);
+      
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      }
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    // This is a mock implementation - in a real app, this would call an API
+  // Fetch user profile from database
+  const fetchUserProfile = async (userId: string) => {
     try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return;
+      }
+
+      setProfile(data as Profile);
       
-      // Mock users for demo purposes
-      const mockUsers = [
-        { id: '1', name: 'John Seller', email: 'seller@example.com', password: 'password', role: 'seller' as const },
-        { id: '2', name: 'Jane Buyer', email: 'buyer@example.com', password: 'password', role: 'buyer' as const }
-      ];
-      
-      const foundUser = mockUsers.find(u => u.email === email && u.password === password);
-      
-      if (foundUser) {
-        const { password, ...userWithoutPassword } = foundUser;
-        setUser(userWithoutPassword);
-        setIsAuthenticated(true);
-        localStorage.setItem('marketplace_user', JSON.stringify(userWithoutPassword));
-        
-        // If user is a seller, also set mock store data
-        if (foundUser.role === 'seller') {
-          const mockStore = {
-            id: '1',
-            name: 'John\'s Amazing Store',
-            description: 'The best products for everyone',
-            logo: '/placeholder.svg'
-          };
-          setUserStore(mockStore);
-          localStorage.setItem('marketplace_store', JSON.stringify(mockStore));
+      if (data.role === 'seller') {
+        await fetchUserStore(userId);
+      }
+
+    } catch (error) {
+      console.error('Error in fetchUserProfile:', error);
+    }
+  };
+
+  // Fetch user store if they are a seller
+  const fetchUserStore = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('stores')
+        .select('*')
+        .eq('owner_id', userId)
+        .single();
+
+      if (error) {
+        if (error.code !== 'PGRST116') { // No rows returned
+          console.error('Error fetching store:', error);
         }
-        
-        toast({
-          title: "Login successful",
-          description: `Welcome back, ${foundUser.name}!`,
-        });
-        return true;
-      } else {
+        return;
+      }
+
+      setUserStore(data as Store);
+    } catch (error) {
+      console.error('Error in fetchUserStore:', error);
+    }
+  };
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
         toast({
           title: "Login failed",
-          description: "Invalid email or password",
+          description: error.message,
           variant: "destructive"
         });
         return false;
       }
-    } catch (error) {
+
+      toast({
+        title: "Login successful",
+        description: `Welcome back!`,
+      });
+      return true;
+    } catch (error: any) {
       toast({
         title: "Login error",
-        description: "An unexpected error occurred",
+        description: error.message || "An unexpected error occurred",
         variant: "destructive"
       });
       return false;
@@ -110,70 +167,174 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     password: string, 
     role: 'buyer' | 'seller'
   ): Promise<boolean> => {
-    // This is a mock implementation - in a real app, this would call an API
     try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      const newUser = {
-        id: Math.random().toString(36).substr(2, 9),
-        name,
+      const { data, error } = await supabase.auth.signUp({
         email,
-        role
-      };
-      
-      setUser(newUser);
-      setIsAuthenticated(true);
-      localStorage.setItem('marketplace_user', JSON.stringify(newUser));
-      
+        password,
+        options: {
+          data: {
+            name,
+            role
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "Registration failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        return false;
+      }
+
       toast({
         title: "Registration successful",
-        description: `Welcome to our marketplace, ${name}!`,
+        description: "Please check your email to confirm your account.",
       });
       return true;
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Registration error",
-        description: "An unexpected error occurred",
+        description: error.message || "An unexpected error occurred",
         variant: "destructive"
       });
       return false;
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
+      toast({
+        title: "Logout failed",
+        description: error.message,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setUser(null);
+    setProfile(null);
     setUserStore(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('marketplace_user');
-    localStorage.removeItem('marketplace_store');
+    setSession(null);
+    
     toast({
       title: "Logged out",
       description: "You've been successfully logged out.",
     });
+    
+    navigate('/');
   };
 
-  const createStore = (storeDetails: Omit<Store, 'id'>) => {
-    const newStore = {
-      ...storeDetails,
-      id: Math.random().toString(36).substr(2, 9)
-    };
-    setUserStore(newStore);
-    localStorage.setItem('marketplace_store', JSON.stringify(newStore));
-    toast({
-      title: "Store created",
-      description: `"${storeDetails.name}" has been successfully created!`,
-    });
+  const createStore = async (storeDetails: Omit<Store, 'id'>): Promise<Store | null> => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a store.",
+        variant: "destructive"
+      });
+      return null;
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('stores')
+        .insert([
+          { 
+            ...storeDetails,
+            owner_id: user.id 
+          }
+        ])
+        .select()
+        .single();
+      
+      if (error) {
+        toast({
+          title: "Store creation failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        return null;
+      }
+      
+      const newStore = data as Store;
+      setUserStore(newStore);
+      
+      toast({
+        title: "Store created",
+        description: `"${storeDetails.name}" has been successfully created!`,
+      });
+      
+      return newStore;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive"
+      });
+      return null;
+    }
+  };
+
+  const updateProfile = async (profileData: Partial<Profile>): Promise<boolean> => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to update your profile.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(profileData)
+        .eq('id', user.id);
+
+      if (error) {
+        toast({
+          title: "Profile update failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Update local profile state
+      setProfile(prev => prev ? { ...prev, ...profileData } : null);
+
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been successfully updated!",
+      });
+      
+      return true;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive"
+      });
+      return false;
+    }
   };
 
   const value = {
     user,
+    profile,
+    session,
     isAuthenticated,
     userStore,
     login,
     register,
     logout,
-    createStore
+    createStore,
+    updateProfile
   };
 
   return (
