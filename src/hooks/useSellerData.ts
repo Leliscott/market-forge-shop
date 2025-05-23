@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +7,7 @@ export interface Order {
   id: string;
   user_id: string;
   store_id: string;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: string; // Changed from union type to string to match what comes from the database
   total_amount: number;
   shipping_address: string | null;
   created_at: string;
@@ -246,7 +245,7 @@ export const useSellerData = () => {
     }
   }, [orders]);
 
-  const updateOrderStatus = async (orderId: string, status: Order['status']) => {
+  const updateOrderStatus = async (orderId: string, status: string) => {
     try {
       const { error } = await supabase
         .from('orders')
