@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { NotificationProvider } from "@/context/NotificationContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import CookieConsent from "@/components/CookieConsent";
 
 // Pages
@@ -35,37 +36,39 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <CartProvider>
-          <NotificationProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/terms" element={<TermsAndConditions />} />
-                <Route path="/marketplace" element={<Marketplace />} />
-                <Route path="/product/:id" element={<ProductDetail />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/store/:storeId" element={<StoreView />} />
-                <Route path="/seller/dashboard" element={<SellerDashboard />} />
-                <Route path="/seller/create-store" element={<CreateStore />} />
-                <Route path="/seller/products" element={<ManageProducts />} />
-                <Route path="/seller/products/edit/:id" element={<EditProduct />} />
-                <Route path="/seller/orders" element={<Orders />} />
-                <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/profile" element={<UserProfile />} />
-                <Route path="/agent/dashboard" element={<AgentDashboard />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-              <CookieConsent />
-            </TooltipProvider>
-          </NotificationProvider>
-        </CartProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <CartProvider>
+            <NotificationProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/terms" element={<TermsAndConditions />} />
+                  <Route path="/marketplace" element={<Marketplace />} />
+                  <Route path="/product/:id" element={<ProductDetail />} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/store/:storeId" element={<StoreView />} />
+                  <Route path="/seller/dashboard" element={<SellerDashboard />} />
+                  <Route path="/seller/create-store" element={<CreateStore />} />
+                  <Route path="/seller/products" element={<ManageProducts />} />
+                  <Route path="/seller/products/edit/:id" element={<EditProduct />} />
+                  <Route path="/seller/orders" element={<Orders />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
+                  <Route path="/profile" element={<UserProfile />} />
+                  <Route path="/agent/dashboard" element={<AgentDashboard />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+                <CookieConsent />
+              </TooltipProvider>
+            </NotificationProvider>
+          </CartProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

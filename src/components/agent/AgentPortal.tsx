@@ -219,7 +219,7 @@ const AgentPortal: React.FC = () => {
 
   return (
     <>
-      <div className="mt-12 mb-2 py-4 border-t border-b text-center">
+      <div className="mt-12 mb-2 py-4 border-t border-b text-center dark:border-gray-700">
         <div 
           className="text-xs text-muted-foreground cursor-pointer"
           onClick={handleDoubleTap}
@@ -229,10 +229,10 @@ const AgentPortal: React.FC = () => {
       </div>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent>
+        <DialogContent className="dark:bg-gray-800">
           <DialogHeader>
-            <DialogTitle>Agent Portal</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="dark:text-white">Agent Portal</DialogTitle>
+            <DialogDescription className="dark:text-gray-300">
               {forgotIdMode 
                 ? 'Enter your email to retrieve your Agent ID' 
                 : 'Enter your credentials to access the agent dashboard.'
@@ -242,7 +242,7 @@ const AgentPortal: React.FC = () => {
           
           {idSent ? (
             <div className="space-y-4">
-              <p className="text-sm text-green-600">Agent ID has been sent to your email address.</p>
+              <p className="text-sm text-green-600 dark:text-green-400">Agent ID has been sent to your email address.</p>
               <Button 
                 onClick={() => {
                   setIdSent(false);
@@ -261,9 +261,9 @@ const AgentPortal: React.FC = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel className="dark:text-gray-200">Email</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter your email" {...field} />
+                        <Input placeholder="Enter your email" {...field} className="dark:bg-gray-700 dark:text-white dark:border-gray-600" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -278,7 +278,7 @@ const AgentPortal: React.FC = () => {
                   type="button"
                   variant="ghost" 
                   onClick={() => setForgotIdMode(false)}
-                  className="w-full"
+                  className="w-full dark:text-gray-200 dark:hover:text-white"
                 >
                   Back to Login
                 </Button>
@@ -292,9 +292,9 @@ const AgentPortal: React.FC = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel className="dark:text-gray-200">Email</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter your email" {...field} />
+                        <Input placeholder="Enter your email" {...field} className="dark:bg-gray-700 dark:text-white dark:border-gray-600" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -306,9 +306,9 @@ const AgentPortal: React.FC = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel className="dark:text-gray-200">Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
+                        <Input type="password" placeholder="••••••••" {...field} className="dark:bg-gray-700 dark:text-white dark:border-gray-600" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -320,9 +320,9 @@ const AgentPortal: React.FC = () => {
                   name="cellphone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Cellphone</FormLabel>
+                      <FormLabel className="dark:text-gray-200">Cellphone</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter your cellphone number" {...field} />
+                        <Input placeholder="Enter your cellphone number" {...field} className="dark:bg-gray-700 dark:text-white dark:border-gray-600" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -334,9 +334,9 @@ const AgentPortal: React.FC = () => {
                   name="agentId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Agent ID (leave empty for new registration)</FormLabel>
+                      <FormLabel className="dark:text-gray-200">Agent ID (leave empty for new registration)</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter your Agent ID if you have one" {...field} />
+                        <Input placeholder="Enter your Agent ID if you have one" {...field} className="dark:bg-gray-700 dark:text-white dark:border-gray-600" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -351,7 +351,7 @@ const AgentPortal: React.FC = () => {
                   type="button"
                   variant="ghost" 
                   onClick={() => setForgotIdMode(true)}
-                  className="w-full text-sm"
+                  className="w-full text-sm dark:text-gray-200 dark:hover:text-white"
                 >
                   Forgot Agent ID?
                 </Button>
