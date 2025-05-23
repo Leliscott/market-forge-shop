@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,11 +14,63 @@ import ProductDetails from '@/components/product/ProductDetails';
 import RelatedProducts from '@/components/product/RelatedProducts';
 import ProductError from '@/components/product/ProductError';
 import { useProduct } from '@/hooks/useProduct';
+import { formatCurrency } from '@/utils/constants';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { loading, error, product, store, relatedProducts } = useProduct(id);
+  
+  // Update meta tags when product data is loaded
+  useEffect(() => {
+    if (product && store) {
+      // Update page title
+      document.title = `${product.name} - ${store.name} | Market Forge Shop`;
+      
+      // Update or create meta tags for Open Graph
+      const updateMetaTag = (property: string, content: string) => {
+        let metaTag = document.querySelector(`meta[property="${property}"]`);
+        if (!metaTag) {
+          metaTag = document.createElement('meta');
+          metaTag.setAttribute('property', property);
+          document.head.appendChild(metaTag);
+        }
+        metaTag.setAttribute('content', content);
+      };
+
+      const updateMetaName = (name: string, content: string) => {
+        let metaTag = document.querySelector(`meta[name="${name}"]`);
+        if (!metaTag) {
+          metaTag = document.createElement('meta');
+          metaTag.setAttribute('name', name);
+          document.head.appendChild(metaTag);
+        }
+        metaTag.setAttribute('content', content);
+      };
+
+      // Set Open Graph tags
+      updateMetaTag('og:title', `${product.name} - ${formatCurrency(product.price)}`);
+      updateMetaTag('og:description', product.description || `Check out this amazing product from ${store.name}`);
+      updateMetaTag('og:image', product.image || '/placeholder.svg');
+      updateMetaTag('og:url', window.location.href);
+      updateMetaTag('og:type', 'product');
+      updateMetaTag('og:site_name', 'Market Forge Shop');
+
+      // Set Twitter Card tags
+      updateMetaName('twitter:card', 'summary_large_image');
+      updateMetaName('twitter:title', `${product.name} - ${formatCurrency(product.price)}`);
+      updateMetaName('twitter:description', product.description || `Check out this amazing product from ${store.name}`);
+      updateMetaName('twitter:image', product.image || '/placeholder.svg');
+
+      // Set additional meta tags
+      updateMetaName('description', product.description || `${product.name} available at ${store.name}. Price: ${formatCurrency(product.price)}`);
+    }
+
+    // Cleanup function to reset title when component unmounts
+    return () => {
+      document.title = 'Market Forge Shop';
+    };
+  }, [product, store]);
   
   // Show loading state
   if (loading) {
