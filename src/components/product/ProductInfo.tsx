@@ -1,8 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Store, Check, CheckCircle } from 'lucide-react';
+import { Star, Store, Check, CheckCircle, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/utils/constants';
@@ -104,6 +105,17 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ name, price, stock = 0, ratin
             Out of Stock
           </Badge>
         )}
+      </div>
+
+      {/* Visit Store button */}
+      <div className="pt-4">
+        <Button variant="outline" asChild className="w-full gap-2">
+          <Link to={`/store/${store.id}`}>
+            <Store className="w-4 h-4" />
+            Visit Store
+            <ExternalLink className="w-4 h-4" />
+          </Link>
+        </Button>
       </div>
     </div>
   );

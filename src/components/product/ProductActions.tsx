@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import WhatsAppContact from '@/components/WhatsAppContact';
 import { useCart } from '@/context/CartContext';
+import { useProductShare } from '@/hooks/useProductShare';
 
 interface ProductActionsProps {
   product: {
@@ -22,6 +23,7 @@ interface ProductActionsProps {
 
 const ProductActions: React.FC<ProductActionsProps> = ({ product, store }) => {
   const { addToCart } = useCart();
+  const { shareProduct, isSharing } = useProductShare();
   const [quantity, setQuantity] = useState(1);
 
   const handleAddToCart = () => {
@@ -34,6 +36,10 @@ const ProductActions: React.FC<ProductActionsProps> = ({ product, store }) => {
       price: product.price,
       image: product.image
     }, quantity);
+  };
+
+  const handleShare = () => {
+    shareProduct(product.id, product.name);
   };
 
   return (
@@ -69,6 +75,19 @@ const ProductActions: React.FC<ProductActionsProps> = ({ product, store }) => {
         >
           <ShoppingCart className="w-4 h-4" />
           Add to Cart
+        </Button>
+      </div>
+
+      {/* Share button */}
+      <div className="flex justify-center">
+        <Button
+          variant="outline"
+          onClick={handleShare}
+          disabled={isSharing}
+          className="gap-2"
+        >
+          <Share2 className="w-4 h-4" />
+          {isSharing ? 'Sharing...' : 'Share Product'}
         </Button>
       </div>
       
