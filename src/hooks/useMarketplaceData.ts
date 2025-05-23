@@ -62,14 +62,27 @@ export const useMarketplaceData = () => {
           category: product.category || 'Uncategorized'
         }));
 
-        // Transform stores data
-        const transformedStores: Store[] = (storesData || []).map(store => ({
-          id: store.id,
-          name: store.name,
-          description: store.description || '',
-          logo: store.logo || '/placeholder.svg',
-          productCount: Array.isArray(store.products) ? store.products.length : store.products?.count || 0
-        }));
+        // Transform stores data with proper product count handling
+        const transformedStores: Store[] = (storesData || []).map(store => {
+          let productCount = 0;
+          
+          // Handle the products count from the aggregation
+          if (store.products && Array.isArray(store.products) && store.products.length > 0) {
+            // If it's an array with count objects
+            productCount = store.products[0]?.count || 0;
+          } else if (typeof store.products === 'number') {
+            // If it's already a number
+            productCount = store.products;
+          }
+
+          return {
+            id: store.id,
+            name: store.name,
+            description: store.description || '',
+            logo: store.logo || '/placeholder.svg',
+            productCount: productCount
+          };
+        });
 
         setProducts(transformedProducts);
         setStores(transformedStores);

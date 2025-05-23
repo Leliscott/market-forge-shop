@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -7,7 +6,7 @@ import {
 } from 'recharts';
 import { 
   ShoppingBag, DollarSign, Users, ArrowUpRight, 
-  ArrowDownRight, Store, Package, Plus, Clock
+  ArrowDownRight, Store, Package, Plus, Clock, Shield, CheckCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,12 +19,16 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import NewStockView from '@/components/seller/NewStockView';
 import DashboardSkeleton from '@/components/seller/DashboardSkeleton';
+import VerificationDialog from '@/components/seller/VerificationDialog';
 import { useAuth } from '@/context/AuthContext';
 import { useSellerData } from '@/hooks/useSellerData';
+import { useVerificationStatus } from '@/hooks/useVerificationStatus';
 
 const SellerDashboard: React.FC = () => {
   const { userStore } = useAuth();
   const { orders, stats, newProducts, isLoading, isStatsLoading, updateOrderStatus } = useSellerData();
+  const verificationStatus = useVerificationStatus(userStore?.id);
+  const [showVerificationDialog, setShowVerificationDialog] = useState(false);
 
   // Generate revenue chart data from actual orders
   const generateRevenueData = () => {
@@ -75,6 +78,38 @@ const SellerDashboard: React.FC = () => {
     }
   };
 
+  const getVerificationBadge = () => {
+    if (verificationStatus.isLoading) {
+      return <Skeleton className="h-8 w-24" />;
+    }
+
+    if (verificationStatus.isVerified) {
+      return (
+        <Badge className="bg-green-100 text-green-800 border-green-200">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Verified
+        </Badge>
+      );
+    }
+
+    if (verificationStatus.hasApplication) {
+      const statusColors = {
+        pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+        approved: 'bg-green-100 text-green-800 border-green-200',
+        rejected: 'bg-red-100 text-red-800 border-red-200'
+      };
+
+      return (
+        <Badge className={statusColors[verificationStatus.status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}>
+          <Clock className="w-3 h-3 mr-1" />
+          {verificationStatus.status === 'pending' ? 'Under Review' : verificationStatus.status}
+        </Badge>
+      );
+    }
+
+    return null;
+  };
+
   if (isLoading) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -95,7 +130,10 @@ const SellerDashboard: React.FC = () => {
         <div className="container px-4 py-8 mx-auto">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-3xl font-bold">Seller Dashboard</h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold">Seller Dashboard</h1>
+                {getVerificationBadge()}
+              </div>
               <p className="text-muted-foreground">
                 {userStore ? `Managing ${userStore.name}` : 'Manage your store, products, and orders'}
               </p>
@@ -111,6 +149,17 @@ const SellerDashboard: React.FC = () => {
                 </Button>
               ) : (
                 <>
+                  {!verificationStatus.isVerified && !verificationStatus.hasApplication && !verificationStatus.isLoading && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowVerificationDialog(true)}
+                      className="border-green-200 text-green-700 hover:bg-green-50"
+                    >
+                      <Shield className="mr-2 h-4 w-4" />
+                      Get Verified
+                    </Button>
+                  )}
+                  
                   <Button variant="outline" asChild>
                     <Link to="/seller/store-settings">
                       <Store className="mr-2 h-4 w-4" />
@@ -162,6 +211,44 @@ const SellerDashboard: React.FC = () => {
                         Add Your First Product
                       </Link>
                     </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Verification info card */}
+              {!verificationStatus.isVerified && userStore && (
+                <Card className="mb-8 border-blue-200 bg-blue-50">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-4">
+                      <Shield className="h-8 w-8 text-blue-600 mt-1" />
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-blue-800 mb-2">
+                          {verificationStatus.hasApplication ? 'Verification in Progress' : 'Get Verified to Build Trust'}
+                        </h3>
+                        {verificationStatus.hasApplication ? (
+                          <p className="text-blue-700 mb-4">
+                            Your verification application is {verificationStatus.status}. 
+                            {verificationStatus.status === 'pending' && ' Our agents are reviewing your documents.'}
+                            {verificationStatus.status === 'rejected' && ' Please submit a new application with updated documents.'}
+                          </p>
+                        ) : (
+                          <p className="text-blue-700 mb-4">
+                            Become a verified merchant to earn customer trust and get a verification badge on all your products. 
+                            The process is quick and helps customers know they're buying from a legitimate seller.
+                          </p>
+                        )}
+                        
+                        {!verificationStatus.hasApplication && (
+                          <Button 
+                            onClick={() => setShowVerificationDialog(true)}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            <Shield className="mr-2 h-4 w-4" />
+                            Start Verification
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -468,6 +555,16 @@ const SellerDashboard: React.FC = () => {
       </main>
       
       <Footer />
+      
+      {/* Verification Dialog */}
+      {userStore && (
+        <VerificationDialog
+          isOpen={showVerificationDialog}
+          onClose={() => setShowVerificationDialog(false)}
+          storeName={userStore.name}
+          storeId={userStore.id}
+        />
+      )}
     </div>
   );
 };
