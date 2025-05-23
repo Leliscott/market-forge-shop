@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,148 +18,32 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
 import StoreCard from '@/components/StoreCard';
-
-interface Product {
-  id: string;
-  storeId: string;
-  name: string;
-  price: number;
-  image: string;
-  description: string;
-  category: string;
-}
-
-interface Store {
-  id: string;
-  name: string;
-  description: string;
-  logo: string;
-  bannerImage?: string;
-  productCount: number;
-}
-
-// Mock data - In a real app, this would come from an API
-const mockProducts: Product[] = [
-  {
-    id: 'p1',
-    storeId: 'store1',
-    name: 'Wireless Earbuds',
-    price: 59.99,
-    image: 'https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80',
-    description: 'High-quality wireless earbuds with noise cancellation',
-    category: 'Audio'
-  },
-  {
-    id: 'p2',
-    storeId: 'store1',
-    name: 'Smartphone Stand',
-    price: 24.99,
-    image: 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80',
-    description: 'Adjustable stand for smartphones and tablets',
-    category: 'Accessories'
-  },
-  {
-    id: 'p3',
-    storeId: 'store2',
-    name: 'USB-C Cable Pack',
-    price: 15.99,
-    image: 'https://images.unsplash.com/photo-1612815292890-fd55c355d8ce?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-    description: 'Pack of 3 durable USB-C charging cables',
-    category: 'Cables'
-  },
-  {
-    id: 'p4',
-    storeId: 'store3',
-    name: 'Portable Power Bank',
-    price: 49.99,
-    image: 'https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-    description: '20000mAh fast-charging portable power bank',
-    category: 'Power'
-  },
-  {
-    id: 'p5',
-    storeId: 'store1',
-    name: 'Screen Protector',
-    price: 12.99,
-    image: '/placeholder.svg',
-    description: 'Tempered glass screen protector for smartphones',
-    category: 'Accessories'
-  },
-  {
-    id: 'p6',
-    storeId: 'store2',
-    name: 'Wireless Charger',
-    price: 29.99,
-    image: '/placeholder.svg',
-    description: 'Fast wireless charging pad compatible with all devices',
-    category: 'Power'
-  },
-  {
-    id: 'p7',
-    storeId: 'store3',
-    name: 'Bluetooth Speaker',
-    price: 79.99,
-    image: '/placeholder.svg',
-    description: 'Portable Bluetooth speaker with amazing sound quality',
-    category: 'Audio'
-  },
-  {
-    id: 'p8',
-    storeId: 'store1',
-    name: 'Laptop Sleeve',
-    price: 19.99,
-    image: '/placeholder.svg',
-    description: 'Protective sleeve for laptops up to 15 inches',
-    category: 'Accessories'
-  }
-];
-
-const mockStores: Store[] = [
-  {
-    id: 'store1',
-    name: 'Tech Haven',
-    description: 'Your one-stop shop for quality electronics and tech accessories at affordable prices.',
-    logo: '/placeholder.svg',
-    bannerImage: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-    productCount: 12
-  },
-  {
-    id: 'store2',
-    name: 'Gadget Galaxy',
-    description: 'Discover the latest gadgets and tech innovations for your modern lifestyle.',
-    logo: '/placeholder.svg',
-    productCount: 8
-  },
-  {
-    id: 'store3',
-    name: 'Digital Dreams',
-    description: 'Premium digital products and accessories with exceptional customer service.',
-    logo: '/placeholder.svg',
-    bannerImage: 'https://images.unsplash.com/photo-1614624532983-4ce03382d63d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1631&q=80',
-    productCount: 15
-  },
-  {
-    id: 'store4',
-    name: 'Smart Solutions',
-    description: 'Smart home devices and solutions to make your life easier and more connected.',
-    logo: '/placeholder.svg',
-    productCount: 6
-  }
-];
+import { useMarketplaceData } from '@/hooks/useMarketplaceData';
 
 const categories = [
-  'Audio',
-  'Accessories',
-  'Cables',
-  'Power',
-  'Smartphones',
-  'Computers'
+  'Electronics',
+  'Clothing',
+  'Home & Garden',
+  'Beauty & Personal Care',
+  'Sports & Outdoors',
+  'Toys & Games',
+  'Books',
+  'Automotive',
+  'Jewelry',
+  'Food & Beverages',
+  'Office Supplies',
+  'Health & Wellness',
+  'Art & Crafts',
+  'Pet Supplies',
+  'Music & Instruments',
+  'Other'
 ];
 
 const Marketplace = () => {
+  const { products, stores, isLoading, error } = useMarketplaceData();
   const [searchTerm, setSearchTerm] = useState('');
   const [view, setView] = useState<'products' | 'stores'>('products');
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   
   const handleCategoryToggle = (category: string) => {
@@ -175,11 +59,11 @@ const Marketplace = () => {
   };
   
   const clearFilters = () => {
-    setPriceRange([0, 100]);
+    setPriceRange([0, 1000]);
     setSelectedCategories([]);
   };
   
-  const filteredProducts = mockProducts.filter(product => {
+  const filteredProducts = products.filter(product => {
     const matchesSearch = 
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       product.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -195,10 +79,43 @@ const Marketplace = () => {
     return matchesSearch && matchesCategory && matchesPrice;
   });
   
-  const filteredStores = mockStores.filter(store => 
+  const filteredStores = stores.filter(store => 
     store.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     store.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-1">
+          <div className="container px-4 py-8 mx-auto">
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-1">
+          <div className="container px-4 py-8 mx-auto">
+            <div className="text-center py-12">
+              <h2 className="text-xl font-medium mb-2">Error loading marketplace</h2>
+              <p className="text-muted-foreground">{error}</p>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
   
   return (
     <div className="flex flex-col min-h-screen">
@@ -302,9 +219,9 @@ const Marketplace = () => {
                         </span>
                       </div>
                       <Slider
-                        defaultValue={[0, 100]}
-                        max={100}
-                        step={1}
+                        defaultValue={[0, 1000]}
+                        max={1000}
+                        step={10}
                         value={[priceRange[0], priceRange[1]]}
                         onValueChange={handlePriceChange}
                         className="py-4"
@@ -326,17 +243,17 @@ const Marketplace = () => {
           </div>
           
           {/* Active Filters */}
-          {view === 'products' && (selectedCategories.length > 0 || priceRange[0] > 0 || priceRange[1] < 100) && (
+          {view === 'products' && (selectedCategories.length > 0 || priceRange[0] > 0 || priceRange[1] < 1000) && (
             <div className="mb-6">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm text-muted-foreground">Active filters:</span>
                 
-                {priceRange[0] > 0 || priceRange[1] < 100 ? (
+                {priceRange[0] > 0 || priceRange[1] < 1000 ? (
                   <div className="inline-flex items-center bg-muted text-sm px-2 py-1 rounded-md">
                     ${priceRange[0]} - ${priceRange[1]}
                     <button
                       className="ml-1"
-                      onClick={() => setPriceRange([0, 100])}
+                      onClick={() => setPriceRange([0, 1000])}
                     >
                       <X className="h-3 w-3" />
                     </button>

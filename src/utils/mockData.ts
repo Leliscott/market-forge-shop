@@ -26,16 +26,6 @@ export const getRelatedProducts = (productId: string, products: any[], limit = 4
     .slice(0, limit);
 };
 
-// Mock categories for the marketplace
-export const mockCategories = [
-  { id: 'electronics', name: 'Electronics' },
-  { id: 'clothing', name: 'Clothing' },
-  { id: 'home', name: 'Home & Garden' },
-  { id: 'beauty', name: 'Beauty & Personal Care' },
-  { id: 'sports', name: 'Sports & Outdoors' },
-  { id: 'toys', name: 'Toys & Games' }
-];
-
 // Product categories (to be used in forms)
 export const productCategories = [
   'Electronics',
@@ -55,9 +45,3 @@ export const productCategories = [
   'Music & Instruments',
   'Other'
 ];
-
-// Sample products (temporary until we fully switch to database)
-export const mockProducts = [];
-
-// Sample stores (temporary until we fully switch to database)
-export const mockStores = [];
