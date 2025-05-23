@@ -112,7 +112,7 @@ const SellerDashboard: React.FC = () => {
               ) : (
                 <>
                   <Button variant="outline" asChild>
-                    <Link to="/seller/create-store">
+                    <Link to="/seller/store-settings">
                       <Store className="mr-2 h-4 w-4" />
                       Store Settings
                     </Link>

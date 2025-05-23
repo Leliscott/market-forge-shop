@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,15 +8,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { storeFormSchema, StoreFormValues, defaultValues } from './StoreFormSchema';
 import StoreBasicInfoForm from './StoreBasicInfoForm';
 import StoreContactInfoForm from './StoreContactInfoForm';
 import StoreImageUploader from './StoreImageUploader';
 
-const StoreForm: React.FC = () => {
+interface StoreFormProps {
+  isEditing?: boolean;
+}
+
+const StoreForm: React.FC<StoreFormProps> = ({ isEditing = false }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, createStore } = useAuth();
+  const { user, createStore, userStore } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -28,6 +34,24 @@ const StoreForm: React.FC = () => {
     defaultValues,
     mode: "onChange",
   });
+
+  // Load existing store data when editing
+  useEffect(() => {
+    if (isEditing && userStore) {
+      form.reset({
+        name: userStore.name || '',
+        description: userStore.description || '',
+        email: '',
+        phone: '',
+        website: '',
+        category: '',
+      });
+      
+      if (userStore.logo) {
+        setLogoPreview(userStore.logo);
+      }
+    }
+  }, [isEditing, userStore, form]);
   
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -71,7 +95,7 @@ const StoreForm: React.FC = () => {
     if (!user) {
       toast({
         title: "Error",
-        description: "You must be logged in to create a store",
+        description: "You must be logged in to manage a store",
         variant: "destructive"
       });
       return;
@@ -80,32 +104,54 @@ const StoreForm: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      // Use the createStore method from AuthContext which properly integrates with the auth system
-      const storeData = await createStore({
-        name: data.name,
-        description: data.description,
-        logo: logoPreview || '',
-        owner_id: user.id,
-        verified: false
-      });
-      
-      if (storeData) {
-        console.log('Store created successfully:', storeData);
+      if (isEditing && userStore) {
+        // Update existing store
+        const { error } = await supabase
+          .from('stores')
+          .update({
+            name: data.name,
+            description: data.description,
+            logo: logoPreview || userStore.logo,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userStore.id);
+
+        if (error) throw error;
+
         toast({
-          title: "Store created successfully",
-          description: `Your store "${data.name}" has been created. Welcome to your seller dashboard!`,
+          title: "Store updated successfully",
+          description: `Your store "${data.name}" has been updated.`,
         });
         
-        // Navigate to seller dashboard where they can manage their new store
+        // Navigate back to seller dashboard
         navigate('/seller/dashboard');
       } else {
-        throw new Error('Failed to create store');
+        // Create new store
+        const storeData = await createStore({
+          name: data.name,
+          description: data.description,
+          logo: logoPreview || '',
+          owner_id: user.id,
+          verified: false
+        });
+        
+        if (storeData) {
+          console.log('Store created successfully:', storeData);
+          toast({
+            title: "Store created successfully",
+            description: `Your store "${data.name}" has been created. Welcome to your seller dashboard!`,
+          });
+          
+          navigate('/seller/dashboard');
+        } else {
+          throw new Error('Failed to create store');
+        }
       }
     } catch (error) {
-      console.error("Error creating store:", error);
+      console.error("Error managing store:", error);
       toast({
         title: "Error",
-        description: "Failed to create store. Please try again.",
+        description: `Failed to ${isEditing ? 'update' : 'create'} store. Please try again.`,
         variant: "destructive"
       });
     } finally {
@@ -158,7 +204,10 @@ const StoreForm: React.FC = () => {
                 type="submit"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Creating Store..." : "Create Store"}
+                {isSubmitting 
+                  ? (isEditing ? "Updating Store..." : "Creating Store...") 
+                  : (isEditing ? "Update Store" : "Create Store")
+                }
               </Button>
             </div>
           </form>

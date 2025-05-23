@@ -9,14 +9,17 @@ import { useAuth } from '@/context/AuthContext';
 
 const CreateStore: React.FC = () => {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, userStore } = useAuth();
   
   // Check if user has accepted terms
   useEffect(() => {
     if (profile && !profile.accepted_terms) {
       navigate('/terms');
+    } else if (userStore) {
+      // If user already has a store, redirect to settings
+      navigate('/seller/store-settings');
     }
-  }, [profile, navigate]);
+  }, [profile, userStore, navigate]);
   
   return (
     <div className="flex flex-col min-h-screen">
@@ -32,7 +35,7 @@ const CreateStore: React.FC = () => {
             </p>
           </div>
           
-          <StoreForm />
+          <StoreForm isEditing={false} />
         </div>
       </main>
       
