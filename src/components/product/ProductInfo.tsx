@@ -1,0 +1,72 @@
+
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Star, Store, Check } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+
+interface Store {
+  id: string;
+  name: string;
+}
+
+interface ProductInfoProps {
+  name: string;
+  price: number;
+  stock?: number;
+  rating?: number;
+  store: Store;
+}
+
+const ProductInfo: React.FC<ProductInfoProps> = ({ name, price, stock = 0, rating = 0, store }) => {
+  return (
+    <div className="space-y-6">
+      <div>
+        <Link 
+          to={`/store/${store.id}`}
+          className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary"
+        >
+          <Store className="w-4 h-4 mr-1" />
+          {store.name}
+        </Link>
+        <h1 className="mt-2 text-3xl font-bold">{name}</h1>
+        
+        <div className="flex items-center mt-2 space-x-2">
+          <div className="flex items-center">
+            {Array(5).fill(0).map((_, i) => (
+              <Star
+                key={i}
+                className={`w-4 h-4 ${
+                  i < Math.floor(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+                }`}
+              />
+            ))}
+          </div>
+          <span className="text-sm font-medium">{rating}</span>
+        </div>
+      </div>
+      
+      <div className="text-3xl font-bold text-primary">
+        R{price.toFixed(2)}
+      </div>
+      
+      {/* Stock status */}
+      <div className="flex items-center space-x-2">
+        {stock > 0 ? (
+          <>
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              <Check className="w-3 h-3 mr-1" />
+              In Stock
+            </Badge>
+            <span className="text-sm text-muted-foreground">{stock} available</span>
+          </>
+        ) : (
+          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+            Out of Stock
+          </Badge>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ProductInfo;
