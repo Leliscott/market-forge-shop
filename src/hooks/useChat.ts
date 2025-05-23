@@ -27,6 +27,7 @@ interface Chat {
   last_message?: {
     content: string;
     sender_id: string;
+    is_read: boolean;
   };
 }
 
@@ -68,30 +69,30 @@ export const useChat = () => {
             .from('profiles')
             .select('name, email')
             .eq('id', chat.customer_id)
-            .single();
+            .maybeSingle();
 
           // Get seller profile
           const { data: sellerProfile } = await supabase
             .from('profiles')
             .select('name, email')
             .eq('id', chat.seller_id)
-            .single();
+            .maybeSingle();
 
-          // Get last message
+          // Get last message with read status
           const { data: lastMessage } = await supabase
             .from('messages')
-            .select('content, sender_id')
+            .select('content, sender_id, is_read')
             .eq('chat_id', chat.id)
             .order('created_at', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
           return {
             ...chat,
             store: chat.stores,
-            customer_profile: customerProfile,
-            seller_profile: sellerProfile,
-            last_message: lastMessage
+            customer_profile: customerProfile || undefined,
+            seller_profile: sellerProfile || undefined,
+            last_message: lastMessage || undefined
           };
         })
       );
@@ -153,6 +154,26 @@ export const useChat = () => {
 
   useEffect(() => {
     fetchChats();
+  }, [user]);
+
+  // Set up real-time subscription for chat updates
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('chats_updates')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'messages'
+      }, () => {
+        fetchChats();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   return {
