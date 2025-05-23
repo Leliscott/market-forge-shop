@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { storeFormSchema, StoreFormValues, defaultValues } from './StoreFormSchema';
 import StoreBasicInfoForm from './StoreBasicInfoForm';
 import StoreContactInfoForm from './StoreContactInfoForm';
@@ -17,7 +16,7 @@ import StoreImageUploader from './StoreImageUploader';
 const StoreForm: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, createStore } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -82,26 +81,27 @@ const StoreForm: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      // Create store in Supabase
-      const { data: storeData, error: storeError } = await supabase
-        .from('stores')
-        .insert({
-          name: data.name,
-          description: data.description,
-          owner_id: user.id,
-          logo: logoPreview || '',
-        })
-        .select()
-        .single();
-      
-      if (storeError) throw storeError;
-      
-      toast({
-        title: "Store created successfully",
-        description: `Your store "${data.name}" has been created.`,
+      // Use the createStore method from AuthContext which properly integrates with the auth system
+      const storeData = await createStore({
+        name: data.name,
+        description: data.description,
+        logo: logoPreview || '',
+        owner_id: user.id,
+        verified: false
       });
       
-      navigate('/seller/dashboard');
+      if (storeData) {
+        console.log('Store created successfully:', storeData);
+        toast({
+          title: "Store created successfully",
+          description: `Your store "${data.name}" has been created. Welcome to your seller dashboard!`,
+        });
+        
+        // Navigate to seller dashboard where they can manage their new store
+        navigate('/seller/dashboard');
+      } else {
+        throw new Error('Failed to create store');
+      }
     } catch (error) {
       console.error("Error creating store:", error);
       toast({

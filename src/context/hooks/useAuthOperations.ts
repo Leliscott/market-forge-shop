@@ -149,11 +149,52 @@ export const useAuthOperations = () => {
       return null;
     }
     
-    const newStore = await createStoreInDb(user.id, storeDetails, toast);
-    if (newStore) {
-      setUserStore(newStore);
+    try {
+      console.log('Creating store with details:', storeDetails);
+      
+      // Create store in database
+      const { data: newStore, error } = await supabase
+        .from('stores')
+        .insert({
+          name: storeDetails.name,
+          description: storeDetails.description,
+          logo: storeDetails.logo || '',
+          owner_id: user.id,
+          verified: false
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Store creation error:', error);
+        toast({
+          title: "Error",
+          description: `Failed to create store: ${error.message}`,
+          variant: "destructive"
+        });
+        return null;
+      }
+
+      console.log('Store created successfully:', newStore);
+      
+      // Update local state immediately
+      setUserStore(newStore as Store);
+      
+      toast({
+        title: "Success",
+        description: `Store "${storeDetails.name}" created successfully!`,
+      });
+      
+      return newStore as Store;
+    } catch (error: any) {
+      console.error('Unexpected error creating store:', error);
+      toast({
+        title: "Error",
+        description: error.message || "An unexpected error occurred while creating the store",
+        variant: "destructive"
+      });
+      return null;
     }
-    return newStore;
   };
 
   const updateProfile = async (profileData: Partial<Profile>): Promise<boolean> => {

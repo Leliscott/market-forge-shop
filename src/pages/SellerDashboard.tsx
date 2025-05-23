@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -96,25 +95,33 @@ const SellerDashboard: React.FC = () => {
             <div>
               <h1 className="text-3xl font-bold">Seller Dashboard</h1>
               <p className="text-muted-foreground">
-                Manage your store, products, and orders
+                {userStore ? `Managing ${userStore.name}` : 'Manage your store, products, and orders'}
               </p>
             </div>
             
             <div className="flex flex-wrap gap-2">
-              <Button asChild>
-                <Link to="/seller/create-store">
-                  <Store className="mr-2 h-4 w-4" />
-                  {userStore ? 'Manage Store' : 'Create Store'}
-                </Link>
-              </Button>
-              
-              {userStore && (
+              {!userStore ? (
                 <Button asChild>
-                  <Link to="/seller/products/edit/new">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Product
+                  <Link to="/seller/create-store">
+                    <Store className="mr-2 h-4 w-4" />
+                    Create Store
                   </Link>
                 </Button>
+              ) : (
+                <>
+                  <Button variant="outline" asChild>
+                    <Link to="/seller/create-store">
+                      <Store className="mr-2 h-4 w-4" />
+                      Store Settings
+                    </Link>
+                  </Button>
+                  <Button asChild>
+                    <Link to="/seller/products/edit/new">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Product
+                    </Link>
+                  </Button>
+                </>
               )}
             </div>
           </div>
@@ -136,273 +143,295 @@ const SellerDashboard: React.FC = () => {
               </CardContent>
             </Card>
           ) : (
-            <Tabs defaultValue="overview">
-              <TabsList className="mb-8">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="orders">Orders</TabsTrigger>
-                <TabsTrigger value="new-stock">New Stock</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="overview">
-                {/* Summary Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Revenue</p>
-                          <p className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</p>
-                        </div>
-                        <div className="bg-primary/10 p-2 rounded-full">
-                          <DollarSign className="h-6 w-6 text-primary" />
-                        </div>
-                      </div>
-                      <div className="flex items-center mt-3 text-sm">
-                        {stats.revenueGrowth >= 0 ? (
-                          <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
-                        ) : (
-                          <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
-                        )}
-                        <span className={`font-medium ${stats.revenueGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                          {stats.revenueGrowth >= 0 ? '+' : ''}{stats.revenueGrowth.toFixed(1)}%
-                        </span>
-                        <span className="text-muted-foreground ml-2">from last month</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Orders</p>
-                          <p className="text-2xl font-bold">{stats.totalOrders}</p>
-                        </div>
-                        <div className="bg-blue-500/10 p-2 rounded-full">
-                          <ShoppingBag className="h-6 w-6 text-blue-500" />
-                        </div>
-                      </div>
-                      <div className="flex items-center mt-3 text-sm">
-                        {stats.ordersGrowth >= 0 ? (
-                          <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
-                        ) : (
-                          <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
-                        )}
-                        <span className={`font-medium ${stats.ordersGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                          {stats.ordersGrowth >= 0 ? '+' : ''}{stats.ordersGrowth.toFixed(1)}%
-                        </span>
-                        <span className="text-muted-foreground ml-2">from last month</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Products</p>
-                          <p className="text-2xl font-bold">{stats.totalProducts}</p>
-                        </div>
-                        <div className="bg-yellow-500/10 p-2 rounded-full">
-                          <Package className="h-6 w-6 text-yellow-500" />
-                        </div>
-                      </div>
-                      <div className="flex items-center mt-3 text-sm">
-                        <Button variant="outline" size="sm" asChild className="h-7">
-                          <Link to="/seller/products">
-                            View All
-                          </Link>
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Customers</p>
-                          <p className="text-2xl font-bold">{stats.totalCustomers}</p>
-                        </div>
-                        <div className="bg-purple-500/10 p-2 rounded-full">
-                          <Users className="h-6 w-6 text-purple-500" />
-                        </div>
-                      </div>
-                      <div className="flex items-center mt-3 text-sm">
-                        {stats.customersGrowth >= 0 ? (
-                          <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
-                        ) : (
-                          <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
-                        )}
-                        <span className={`font-medium ${stats.customersGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                          {stats.customersGrowth >= 0 ? '+' : ''}{stats.customersGrowth.toFixed(1)}%
-                        </span>
-                        <span className="text-muted-foreground ml-2">from last month</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+            <>
+              {/* Welcome message for new stores with no products */}
+              {stats.totalProducts === 0 && (
+                <Card className="mb-8 border-green-200 bg-green-50">
+                  <CardContent className="pt-6 text-center">
+                    <Package className="mx-auto h-12 w-12 text-green-600 mb-4" />
+                    <h2 className="text-xl font-semibold mb-2 text-green-800">Welcome to Your Store Dashboard!</h2>
+                    <p className="mb-6 text-green-700">
+                      Congratulations! Your store "{userStore.name}" has been created successfully. 
+                      Start by adding your first product to begin selling.
+                    </p>
+                    <Button asChild>
+                      <Link to="/seller/products/edit/new">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Your First Product
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Tabs defaultValue="overview">
+                <TabsList className="mb-8">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="orders">Orders</TabsTrigger>
+                  <TabsTrigger value="new-stock">New Stock</TabsTrigger>
+                </TabsList>
                 
-                {/* Revenue Chart */}
-                <div className="mb-8">
+                <TabsContent value="overview">
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Revenue</p>
+                            <p className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</p>
+                          </div>
+                          <div className="bg-primary/10 p-2 rounded-full">
+                            <DollarSign className="h-6 w-6 text-primary" />
+                          </div>
+                        </div>
+                        <div className="flex items-center mt-3 text-sm">
+                          {stats.revenueGrowth >= 0 ? (
+                            <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
+                          ) : (
+                            <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
+                          )}
+                          <span className={`font-medium ${stats.revenueGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {stats.revenueGrowth >= 0 ? '+' : ''}{stats.revenueGrowth.toFixed(1)}%
+                          </span>
+                          <span className="text-muted-foreground ml-2">from last month</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Orders</p>
+                            <p className="text-2xl font-bold">{stats.totalOrders}</p>
+                          </div>
+                          <div className="bg-blue-500/10 p-2 rounded-full">
+                            <ShoppingBag className="h-6 w-6 text-blue-500" />
+                          </div>
+                        </div>
+                        <div className="flex items-center mt-3 text-sm">
+                          {stats.ordersGrowth >= 0 ? (
+                            <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
+                          ) : (
+                            <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
+                          )}
+                          <span className={`font-medium ${stats.ordersGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {stats.ordersGrowth >= 0 ? '+' : ''}{stats.ordersGrowth.toFixed(1)}%
+                          </span>
+                          <span className="text-muted-foreground ml-2">from last month</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Products</p>
+                            <p className="text-2xl font-bold">{stats.totalProducts}</p>
+                          </div>
+                          <div className="bg-yellow-500/10 p-2 rounded-full">
+                            <Package className="h-6 w-6 text-yellow-500" />
+                          </div>
+                        </div>
+                        <div className="flex items-center mt-3 text-sm">
+                          <Button variant="outline" size="sm" asChild className="h-7">
+                            <Link to="/seller/products">
+                              View All
+                            </Link>
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Customers</p>
+                            <p className="text-2xl font-bold">{stats.totalCustomers}</p>
+                          </div>
+                          <div className="bg-purple-500/10 p-2 rounded-full">
+                            <Users className="h-6 w-6 text-purple-500" />
+                          </div>
+                        </div>
+                        <div className="flex items-center mt-3 text-sm">
+                          {stats.customersGrowth >= 0 ? (
+                            <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
+                          ) : (
+                            <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
+                          )}
+                          <span className={`font-medium ${stats.customersGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {stats.customersGrowth >= 0 ? '+' : ''}{stats.customersGrowth.toFixed(1)}%
+                          </span>
+                          <span className="text-muted-foreground ml-2">from last month</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  
+                  {/* Revenue Chart */}
+                  <div className="mb-8">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Revenue Overview</CardTitle>
+                        <CardDescription>Monthly revenue for the last 7 months</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <LineChart data={revenueData}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <Tooltip />
+                            <Line type="monotone" dataKey="revenue" stroke="#8884d8" activeDot={{ r: 8 }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  
+                  {/* Recent Orders */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Revenue Overview</CardTitle>
-                      <CardDescription>Monthly revenue for the last 7 months</CardDescription>
+                      <CardTitle>Recent Orders</CardTitle>
+                      <CardDescription>Your latest orders and their status</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={revenueData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Tooltip />
-                          <Line type="monotone" dataKey="revenue" stroke="#8884d8" activeDot={{ r: 8 }} />
-                        </LineChart>
-                      </ResponsiveContainer>
+                      {recentOrders.length > 0 ? (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Order ID</TableHead>
+                              <TableHead>Customer</TableHead>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Amount</TableHead>
+                              <TableHead>Status</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {recentOrders.map((order) => (
+                              <TableRow key={order.id}>
+                                <TableCell className="font-mono text-sm">
+                                  {order.id.slice(0, 8)}...
+                                </TableCell>
+                                <TableCell>
+                                  {order.customer_profile?.name || order.customer_profile?.email || 'Unknown'}
+                                </TableCell>
+                                <TableCell>
+                                  {new Date(order.created_at).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell>${order.total_amount.toFixed(2)}</TableCell>
+                                <TableCell>
+                                  <Badge className={getStatusBadgeColor(order.status)}>
+                                    {order.status}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No orders yet. Start selling to see your orders here!
+                        </div>
+                      )}
+                    </CardContent>
+                    {recentOrders.length > 0 && (
+                      <CardFooter>
+                        <Button variant="outline" asChild className="w-full">
+                          <Link to="/seller/orders">
+                            View All Orders
+                          </Link>
+                        </Button>
+                      </CardFooter>
+                    )}
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="orders">
+                  <div className="mb-6 flex justify-between items-center">
+                    <h2 className="text-2xl font-bold">Your Orders</h2>
+                    <div className="flex gap-2">
+                      <Button variant="outline">Filter</Button>
+                      <Button variant="outline">Export</Button>
+                    </div>
+                  </div>
+                  
+                  <Card>
+                    <CardContent className="p-0">
+                      {orders.length > 0 ? (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Order ID</TableHead>
+                              <TableHead>Customer</TableHead>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Amount</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {orders.map((order) => (
+                              <TableRow key={order.id}>
+                                <TableCell className="font-mono text-sm">
+                                  {order.id.slice(0, 8)}...
+                                </TableCell>
+                                <TableCell>
+                                  <div>
+                                    <div className="font-medium">
+                                      {order.customer_profile?.name || 'Unknown'}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {order.customer_profile?.email}
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  {new Date(order.created_at).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell>${order.total_amount.toFixed(2)}</TableCell>
+                                <TableCell>
+                                  <Select
+                                    value={order.status}
+                                    onValueChange={(value) => updateOrderStatus(order.id, value as any)}
+                                  >
+                                    <SelectTrigger className="w-32">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="pending">Pending</SelectItem>
+                                      <SelectItem value="processing">Processing</SelectItem>
+                                      <SelectItem value="shipped">Shipped</SelectItem>
+                                      <SelectItem value="delivered">Delivered</SelectItem>
+                                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </TableCell>
+                                <TableCell>
+                                  <Button variant="ghost" size="sm">View</Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      ) : (
+                        <div className="text-center py-12 text-muted-foreground">
+                          <ShoppingBag className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No orders yet. Start selling to see your orders here!</p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
-                </div>
+                </TabsContent>
                 
-                {/* Recent Orders */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Orders</CardTitle>
-                    <CardDescription>Your latest orders and their status</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {recentOrders.length > 0 ? (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Order ID</TableHead>
-                            <TableHead>Customer</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Status</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {recentOrders.map((order) => (
-                            <TableRow key={order.id}>
-                              <TableCell className="font-mono text-sm">
-                                {order.id.slice(0, 8)}...
-                              </TableCell>
-                              <TableCell>
-                                {order.customer_profile?.name || order.customer_profile?.email || 'Unknown'}
-                              </TableCell>
-                              <TableCell>
-                                {new Date(order.created_at).toLocaleDateString()}
-                              </TableCell>
-                              <TableCell>${order.total_amount.toFixed(2)}</TableCell>
-                              <TableCell>
-                                <Badge className={getStatusBadgeColor(order.status)}>
-                                  {order.status}
-                                </Badge>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        No orders yet. Start selling to see your orders here!
-                      </div>
-                    )}
-                  </CardContent>
-                  {recentOrders.length > 0 && (
-                    <CardFooter>
-                      <Button variant="outline" asChild className="w-full">
-                        <Link to="/seller/orders">
-                          View All Orders
-                        </Link>
-                      </Button>
-                    </CardFooter>
-                  )}
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="orders">
-                <div className="mb-6 flex justify-between items-center">
-                  <h2 className="text-2xl font-bold">Your Orders</h2>
-                  <div className="flex gap-2">
-                    <Button variant="outline">Filter</Button>
-                    <Button variant="outline">Export</Button>
-                  </div>
-                </div>
-                
-                <Card>
-                  <CardContent className="p-0">
-                    {orders.length > 0 ? (
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Order ID</TableHead>
-                            <TableHead>Customer</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {orders.map((order) => (
-                            <TableRow key={order.id}>
-                              <TableCell className="font-mono text-sm">
-                                {order.id.slice(0, 8)}...
-                              </TableCell>
-                              <TableCell>
-                                <div>
-                                  <div className="font-medium">
-                                    {order.customer_profile?.name || 'Unknown'}
-                                  </div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {order.customer_profile?.email}
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {new Date(order.created_at).toLocaleDateString()}
-                              </TableCell>
-                              <TableCell>${order.total_amount.toFixed(2)}</TableCell>
-                              <TableCell>
-                                <Select
-                                  value={order.status}
-                                  onValueChange={(value) => updateOrderStatus(order.id, value as any)}
-                                >
-                                  <SelectTrigger className="w-32">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                    <SelectItem value="processing">Processing</SelectItem>
-                                    <SelectItem value="shipped">Shipped</SelectItem>
-                                    <SelectItem value="delivered">Delivered</SelectItem>
-                                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </TableCell>
-                              <TableCell>
-                                <Button variant="ghost" size="sm">View</Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    ) : (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <ShoppingBag className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No orders yet. Start selling to see your orders here!</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="new-stock">
-                <NewStockView products={newProducts} isLoading={isLoading} />
-              </TabsContent>
-            </Tabs>
+                <TabsContent value="new-stock">
+                  <NewStockView products={newProducts} isLoading={isLoading} />
+                </TabsContent>
+              </Tabs>
+            </>
           )}
         </div>
       </main>
