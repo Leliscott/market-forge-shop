@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import WhatsAppContact from '@/components/WhatsAppContact';
 import { useCart } from '@/context/CartContext';
 import { useProductShare } from '@/hooks/useProductShare';
+import { useAuth } from '@/context/AuthContext';
 
 interface ProductActionsProps {
   product: {
@@ -24,6 +25,7 @@ interface ProductActionsProps {
 const ProductActions: React.FC<ProductActionsProps> = ({ product, store }) => {
   const { addToCart } = useCart();
   const { shareProduct, isSharing } = useProductShare();
+  const { profile } = useAuth();
   const [quantity, setQuantity] = useState(1);
 
   const handleAddToCart = () => {
@@ -41,6 +43,8 @@ const ProductActions: React.FC<ProductActionsProps> = ({ product, store }) => {
   const handleShare = () => {
     shareProduct(product.id, product.name);
   };
+
+  const isSeller = profile?.role === 'seller';
 
   return (
     <div className="space-y-6">
@@ -78,18 +82,20 @@ const ProductActions: React.FC<ProductActionsProps> = ({ product, store }) => {
         </Button>
       </div>
 
-      {/* Share button */}
-      <div className="flex justify-center">
-        <Button
-          variant="outline"
-          onClick={handleShare}
-          disabled={isSharing}
-          className="gap-2"
-        >
-          <Share2 className="w-4 h-4" />
-          {isSharing ? 'Sharing...' : 'Share Product'}
-        </Button>
-      </div>
+      {/* Share button - only visible for sellers */}
+      {isSeller && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={handleShare}
+            disabled={isSharing}
+            className="gap-2"
+          >
+            <Share2 className="w-4 h-4" />
+            {isSharing ? 'Sharing...' : 'Share Product'}
+          </Button>
+        </div>
+      )}
       
       {/* Contact seller via WhatsApp */}
       <div className="pt-4">
