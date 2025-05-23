@@ -1,15 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Package, Upload, X, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useToast } from '@/components/ui/use-toast';
+import ProductFormTabs from '@/components/products/ProductFormTabs';
 
 interface ProductFormData {
   name: string;
@@ -30,7 +27,7 @@ interface ProductFormData {
 const mockProduct = {
   id: '1',
   name: 'Wireless Earbuds',
-  price: '59.99',
+  price: '599.99',
   stock: '42',
   description: 'High-quality wireless earbuds with noise cancellation and long battery life. Perfect for on-the-go listening with crystal clear sound and comfortable fit.',
   category: 'Audio',
@@ -198,219 +195,14 @@ const EditProduct: React.FC = () => {
           </div>
           
           <form onSubmit={handleSubmit}>
-            <Tabs defaultValue="basic" className="mb-8">
-              <TabsList>
-                <TabsTrigger value="basic">Basic Information</TabsTrigger>
-                <TabsTrigger value="media">Media</TabsTrigger>
-                <TabsTrigger value="details">Details</TabsTrigger>
-              </TabsList>
-              
-              <Card className="mt-4 border-t-0 rounded-tl-none">
-                <CardContent className="p-6">
-                  <TabsContent value="basic" className="space-y-6">
-                    <div>
-                      <Label htmlFor="name">Product Name *</Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        placeholder="Enter product name"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="description">Description *</Label>
-                      <Textarea
-                        id="description"
-                        name="description"
-                        value={formData.description}
-                        onChange={handleInputChange}
-                        placeholder="Describe your product"
-                        required
-                        className="min-h-[150px]"
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="price">Price ($) *</Label>
-                        <Input
-                          id="price"
-                          name="price"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={formData.price}
-                          onChange={handleInputChange}
-                          placeholder="0.00"
-                          required
-                        />
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="stock">Stock Quantity *</Label>
-                        <Input
-                          id="stock"
-                          name="stock"
-                          type="number"
-                          min="0"
-                          step="1"
-                          value={formData.stock}
-                          onChange={handleInputChange}
-                          placeholder="0"
-                          required
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="category">Category *</Label>
-                      <select
-                        id="category"
-                        name="category"
-                        value={formData.category}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full p-2 border rounded-md"
-                      >
-                        <option value="">Select a category</option>
-                        {categories.map(category => (
-                          <option key={category} value={category}>
-                            {category}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="media">
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-lg font-medium mb-1">Product Images</h3>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          Add high-quality images of your product. First image will be the main one.
-                        </p>
-                        
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-6">
-                          {images.map((image, index) => (
-                            <div key={index} className="relative aspect-square border rounded-md overflow-hidden">
-                              <img
-                                src={image}
-                                alt={`Product image ${index + 1}`}
-                                className="w-full h-full object-cover"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => removeImage(index)}
-                                className="absolute top-2 right-2 bg-black/70 text-white rounded-full w-6 h-6 flex items-center justify-center"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                              {index === 0 && (
-                                <span className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs text-center py-1">
-                                  Main Image
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                          
-                          {images.length < 8 && (
-                            <div className="border-2 border-dashed rounded-md aspect-square flex flex-col items-center justify-center p-4">
-                              <input
-                                id="image-upload"
-                                type="file"
-                                accept="image/*"
-                                onChange={handleImageUpload}
-                                className="hidden"
-                              />
-                              <label htmlFor="image-upload" className="cursor-pointer text-center">
-                                <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                                <p className="text-sm font-medium">Add Image</p>
-                                <p className="text-xs text-muted-foreground mt-1">PNG, JPG or WebP</p>
-                              </label>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="details" className="space-y-6">
-                    <div>
-                      <Label htmlFor="sku">SKU (Stock Keeping Unit)</Label>
-                      <Input
-                        id="sku"
-                        name="sku"
-                        value={formData.sku}
-                        onChange={handleInputChange}
-                        placeholder="e.g. PROD-001"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="weight">Weight (kg)</Label>
-                      <Input
-                        id="weight"
-                        name="weight"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={formData.weight}
-                        onChange={handleInputChange}
-                        placeholder="0.00"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label>Dimensions (cm)</Label>
-                      <div className="grid grid-cols-3 gap-4 mt-2">
-                        <div>
-                          <Label htmlFor="dimensions.length" className="text-sm">Length</Label>
-                          <Input
-                            id="dimensions.length"
-                            name="dimensions.length"
-                            type="number"
-                            min="0"
-                            step="0.1"
-                            value={formData.dimensions.length}
-                            onChange={handleInputChange}
-                            placeholder="0"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="dimensions.width" className="text-sm">Width</Label>
-                          <Input
-                            id="dimensions.width"
-                            name="dimensions.width"
-                            type="number"
-                            min="0"
-                            step="0.1"
-                            value={formData.dimensions.width}
-                            onChange={handleInputChange}
-                            placeholder="0"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="dimensions.height" className="text-sm">Height</Label>
-                          <Input
-                            id="dimensions.height"
-                            name="dimensions.height"
-                            type="number"
-                            min="0"
-                            step="0.1"
-                            value={formData.dimensions.height}
-                            onChange={handleInputChange}
-                            placeholder="0"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </TabsContent>
-                </CardContent>
-              </Card>
-            </Tabs>
+            <ProductFormTabs
+              formData={formData}
+              onInputChange={handleInputChange}
+              images={images}
+              onImageUpload={handleImageUpload}
+              onRemoveImage={removeImage}
+              categories={categories}
+            />
             
             <div className="flex flex-col sm:flex-row gap-2 justify-end">
               <Button
