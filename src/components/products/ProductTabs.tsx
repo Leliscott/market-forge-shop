@@ -28,14 +28,24 @@ interface ProductTabsProps {
   viewMode: 'grid' | 'list';
   onDeleteProduct: (id: string) => void;
   searchTerm: string;
+  isLoading?: boolean;
 }
 
 const ProductTabs: React.FC<ProductTabsProps> = ({ 
   productsByStatus, 
   viewMode, 
   onDeleteProduct,
-  searchTerm 
+  searchTerm,
+  isLoading = false
 }) => {
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
     <Tabs defaultValue="all">
       <TabsList>

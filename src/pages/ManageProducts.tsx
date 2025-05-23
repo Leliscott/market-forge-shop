@@ -1,112 +1,97 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useToast } from '@/components/ui/use-toast';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProductFilters from '@/components/products/ProductFilters';
 import ProductTabs from '@/components/products/ProductTabs';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
-// Mock data
-const mockProducts = [
-  {
-    id: '1',
-    name: 'Wireless Earbuds',
-    price: 59.99,
-    stock: 42,
-    status: 'active',
-    image: 'https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80',
-    category: 'Electronics',
-    sold: 153,
-  },
-  {
-    id: '2',
-    name: 'Phone Stand',
-    price: 24.99,
-    stock: 78,
-    status: 'active',
-    image: 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80',
-    category: 'Accessories',
-    sold: 87,
-  },
-  {
-    id: '3',
-    name: 'USB-C Cable Pack',
-    price: 15.99,
-    stock: 156,
-    status: 'active',
-    image: 'https://images.unsplash.com/photo-1612815292890-fd55c355d8ce?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-    category: 'Cables',
-    sold: 65,
-  },
-  {
-    id: '4',
-    name: 'Portable Power Bank',
-    price: 49.99,
-    stock: 32,
-    status: 'active',
-    image: 'https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-    category: 'Power',
-    sold: 45,
-  },
-  {
-    id: '5',
-    name: 'Screen Protector',
-    price: 12.99,
-    stock: 0,
-    status: 'out_of_stock',
-    image: '/placeholder.svg',
-    category: 'Accessories',
-    sold: 32,
-  },
-  {
-    id: '6',
-    name: 'Wireless Charger',
-    price: 29.99,
-    stock: 5,
-    status: 'low_stock',
-    image: '/placeholder.svg',
-    category: 'Power',
-    sold: 28,
-  },
-  {
-    id: '7',
-    name: 'Bluetooth Speaker',
-    price: 79.99,
-    stock: 18,
-    status: 'active',
-    image: '/placeholder.svg',
-    category: 'Audio',
-    sold: 22,
-  },
-  {
-    id: '8',
-    name: 'Laptop Sleeve',
-    price: 19.99,
-    stock: 25,
-    status: 'active',
-    image: '/placeholder.svg',
-    category: 'Accessories',
-    sold: 17,
-  },
-];
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  stock_quantity: number;
+  image: string;
+  category: string;
+  created_at: string;
+}
 
 const ManageProducts: React.FC = () => {
+  const { userStore } = useAuth();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const handleSearch = (value: string) => {
     setSearchTerm(value);
   };
   
-  const filteredProducts = mockProducts.filter(product => 
+  // Function to fetch products from Supabase
+  const fetchProducts = async () => {
+    if (!userStore) {
+      setIsLoading(false);
+      setError('No store found. Please create a store first.');
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('store_id', userStore.id);
+      
+      if (error) throw error;
+      
+      // Transform the data to match our expected format
+      const transformedProducts = data.map(product => ({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        stock: product.stock_quantity,
+        status: product.stock_quantity === 0 ? 'out_of_stock' : 
+                product.stock_quantity < 10 ? 'low_stock' : 'active',
+        image: product.image || '/placeholder.svg',
+        category: product.category || 'Uncategorized',
+        sold: 0, // Default since we don't have this info yet
+      }));
+      
+      setProducts(transformedProducts);
+    } catch (err: any) {
+      console.error('Error fetching products:', err);
+      setError('Failed to load products. Please try again.');
+      toast({
+        title: "Error",
+        description: "Failed to load products. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch products when the component mounts
+  useEffect(() => {
+    fetchProducts();
+  }, [userStore]);
+  
+  // Filter products based on search term
+  const filteredProducts = products.filter(product => 
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase())
+    (product.category && product.category.toLowerCase().includes(searchTerm.toLowerCase()))
   );
   
+  // Organize products by status
   const productsByStatus = {
     all: filteredProducts,
     active: filteredProducts.filter(p => p.status === 'active'),
@@ -114,9 +99,76 @@ const ManageProducts: React.FC = () => {
     out_of_stock: filteredProducts.filter(p => p.status === 'out_of_stock'),
   };
 
+  // Handle product deletion
   const handleDeleteProduct = (productId: string) => {
     setConfirmDelete(productId);
   };
+  
+  const confirmDeleteProduct = async () => {
+    if (!confirmDelete) return;
+    
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', confirmDelete);
+      
+      if (error) throw error;
+      
+      // Update local state
+      setProducts(products.filter(product => product.id !== confirmDelete));
+      
+      toast({
+        title: "Success",
+        description: "Product deleted successfully",
+      });
+    } catch (err: any) {
+      console.error('Error deleting product:', err);
+      toast({
+        title: "Error",
+        description: "Failed to delete product. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setConfirmDelete(null);
+    }
+  };
+  
+  // Render loading state
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-1">
+          <div className="container px-4 py-8 mx-auto">
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+  
+  // Render error state
+  if (error && !userStore) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-1">
+          <div className="container px-4 py-8 mx-auto text-center">
+            <h1 className="text-3xl font-bold mb-4">No Store Found</h1>
+            <p className="mb-6 text-muted-foreground">You need to create a store before managing products.</p>
+            <Button asChild>
+              <Link to="/create-store">Create Store</Link>
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
   
   return (
     <div className="flex flex-col min-h-screen">
@@ -152,6 +204,7 @@ const ManageProducts: React.FC = () => {
             viewMode={viewMode}
             onDeleteProduct={handleDeleteProduct}
             searchTerm={searchTerm}
+            isLoading={isLoading}
           />
         </div>
       </main>
@@ -171,7 +224,7 @@ const ManageProducts: React.FC = () => {
             <Button variant="outline" onClick={() => setConfirmDelete(null)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={() => setConfirmDelete(null)}>
+            <Button variant="destructive" onClick={confirmDeleteProduct}>
               Delete
             </Button>
           </DialogFooter>

@@ -36,6 +36,26 @@ export const mockCategories = [
   { id: 'toys', name: 'Toys & Games' }
 ];
 
+// Product categories (to be used in forms)
+export const productCategories = [
+  'Electronics',
+  'Clothing',
+  'Home & Garden',
+  'Beauty & Personal Care',
+  'Sports & Outdoors',
+  'Toys & Games',
+  'Books',
+  'Automotive',
+  'Jewelry',
+  'Food & Beverages',
+  'Office Supplies',
+  'Health & Wellness',
+  'Art & Crafts',
+  'Pet Supplies',
+  'Music & Instruments',
+  'Other'
+];
+
 // Sample products (temporary until we fully switch to database)
 export const mockProducts = [];
 
