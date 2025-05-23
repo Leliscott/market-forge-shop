@@ -101,29 +101,42 @@ export const useAuthOperations = () => {
   };
 
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    
-    if (error) {
+    try {
+      // Clear local state first
+      setUser(null);
+      setProfile(null);
+      setUserStore(null);
+      setIsAuthenticated(false);
+      setSession(null);
+      
+      // Then sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Logout error:', error);
+        toast({
+          title: "Logout failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      
       toast({
-        title: "Logout failed",
-        description: error.message,
+        title: "Logged out",
+        description: "You've been successfully logged out.",
+      });
+      
+      // Navigate to home page
+      navigate('/');
+    } catch (error: any) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Logout error",
+        description: "An unexpected error occurred during logout",
         variant: "destructive"
       });
-      return;
     }
-    
-    setUser(null);
-    setProfile(null);
-    setUserStore(null);
-    setIsAuthenticated(false);
-    setSession(null);
-    
-    toast({
-      title: "Logged out",
-      description: "You've been successfully logged out.",
-    });
-    
-    navigate('/');
   };
 
   const createStore = async (storeDetails: Omit<Store, 'id'>): Promise<Store | null> => {
