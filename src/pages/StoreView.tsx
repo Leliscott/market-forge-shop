@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Store {
   id: string;
@@ -12,8 +13,8 @@ interface Store {
   description: string;
   logo: string;
   bannerImage?: string;
-  owner: string;
-  createdAt: string;
+  owner_id: string;
+  created_at: string;
 }
 
 interface Product {
@@ -26,56 +27,6 @@ interface Product {
   category: string;
 }
 
-// Mock data - In a real app, this would come from an API
-const mockStore: Store = {
-  id: "store1",
-  name: "Tech Haven",
-  description: "Your one-stop shop for quality electronics and tech accessories at affordable prices.",
-  logo: "/placeholder.svg",
-  bannerImage: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
-  owner: "Jane Smith",
-  createdAt: "2023-01-15",
-};
-
-const mockProducts: Product[] = [
-  {
-    id: "p1",
-    storeId: "store1",
-    name: "Wireless Earbuds",
-    price: 59.99,
-    image: "https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80",
-    description: "High-quality wireless earbuds with noise cancellation",
-    category: "Audio"
-  },
-  {
-    id: "p2",
-    storeId: "store1",
-    name: "Smartphone Stand",
-    price: 24.99,
-    image: "https://images.unsplash.com/photo-1586953208448-b95a79798f07?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80",
-    description: "Adjustable stand for smartphones and tablets",
-    category: "Accessories"
-  },
-  {
-    id: "p3",
-    storeId: "store1",
-    name: "USB-C Cable Pack",
-    price: 15.99,
-    image: "https://images.unsplash.com/photo-1612815292890-fd55c355d8ce?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
-    description: "Pack of 3 durable USB-C charging cables",
-    category: "Cables"
-  },
-  {
-    id: "p4",
-    storeId: "store1",
-    name: "Portable Power Bank",
-    price: 49.99,
-    image: "https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
-    description: "20000mAh fast-charging portable power bank",
-    category: "Power"
-  }
-];
-
 const StoreView: React.FC = () => {
   const { storeId } = useParams<{ storeId: string }>();
   const [store, setStore] = useState<Store | null>(null);
@@ -83,15 +34,37 @@ const StoreView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    // In a real app, fetch store and products from API
-    // For now, use mock data with a small delay to simulate loading
-    const timer = setTimeout(() => {
-      setStore(mockStore);
-      setProducts(mockProducts);
-      setLoading(false);
-    }, 500);
+    const fetchStoreData = async () => {
+      if (!storeId) return;
+      
+      try {
+        // Fetch store details
+        const { data: storeData, error: storeError } = await supabase
+          .from('stores')
+          .select('*')
+          .eq('id', storeId)
+          .single();
+        
+        if (storeError) throw storeError;
+        
+        // Fetch products for this store
+        const { data: productData, error: productError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('store_id', storeId);
+          
+        if (productError) throw productError;
+          
+        setStore(storeData);
+        setProducts(productData || []);
+      } catch (error) {
+        console.error('Error fetching store data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    return () => clearTimeout(timer);
+    fetchStoreData();
   }, [storeId]);
   
   if (loading) {
@@ -155,11 +128,17 @@ const StoreView: React.FC = () => {
             </TabsList>
             
             <TabsContent value="products">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {products.map(product => (
-                  <ProductCard key={product.id} product={product} storeView={true} />
-                ))}
-              </div>
+              {products.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {products.map(product => (
+                    <ProductCard key={product.id} product={product} storeView={true} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">This store has no products yet.</p>
+                </div>
+              )}
             </TabsContent>
             
             <TabsContent value="about">
@@ -167,7 +146,7 @@ const StoreView: React.FC = () => {
                 <h2 className="text-2xl font-bold mb-4">About {store.name}</h2>
                 <p className="mb-4">{store.description}</p>
                 <p className="text-sm text-muted-foreground">
-                  Store created on {new Date(store.createdAt).toLocaleDateString()}
+                  Store created on {new Date(store.created_at).toLocaleDateString()}
                 </p>
               </div>
             </TabsContent>

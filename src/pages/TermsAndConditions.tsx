@@ -6,18 +6,51 @@ import { Checkbox } from '@/components/ui/checkbox';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
 
 const TermsAndConditions = () => {
   const navigate = useNavigate();
   const { profile, updateProfile } = useAuth();
+  const { toast } = useToast();
   const [accepted, setAccepted] = React.useState(profile?.accepted_terms || false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const handleAccept = async () => {
-    if (!accepted) return;
+    if (!accepted) {
+      toast({
+        title: "Error",
+        description: "You must accept the terms and conditions to continue",
+        variant: "destructive"
+      });
+      return;
+    }
     
-    const success = await updateProfile({ accepted_terms: true });
-    if (success) {
-      navigate('/');
+    setIsSubmitting(true);
+    
+    try {
+      const success = await updateProfile({ accepted_terms: true });
+      if (success) {
+        toast({
+          title: "Success",
+          description: "You have successfully accepted our terms and conditions"
+        });
+        navigate('/');
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update your profile. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+      console.error("Error accepting terms:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -143,8 +176,8 @@ const TermsAndConditions = () => {
             <Button variant="outline" onClick={() => navigate(-1)}>
               Back
             </Button>
-            <Button onClick={handleAccept} disabled={!accepted}>
-              Accept and Continue
+            <Button onClick={handleAccept} disabled={isSubmitting}>
+              {isSubmitting ? "Processing..." : "Accept and Continue"}
             </Button>
           </div>
         </div>
