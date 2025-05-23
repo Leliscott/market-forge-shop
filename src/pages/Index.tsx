@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,10 +8,39 @@ import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
 import StoreCard from '@/components/StoreCard';
 import { mockProducts, mockStores, mockCategories } from '@/utils/mockData';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
-  const featuredProducts = mockProducts.slice(0, 4);
-  const featuredStores = mockStores.slice(0, 4);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [featuredStores, setFeaturedStores] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch featured products
+        const { data: productData } = await supabase
+          .from('products')
+          .select('*')
+          .limit(4);
+        
+        // Fetch featured stores
+        const { data: storeData } = await supabase
+          .from('stores')
+          .select('*')
+          .limit(4);
+        
+        if (productData) setFeaturedProducts(productData);
+        if (storeData) setFeaturedStores(storeData);
+      } catch (error) {
+        console.error('Error fetching featured data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -52,11 +81,31 @@ const Index = () => {
               </Button>
             </div>
             
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {featuredProducts.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <p>Loading products...</p>
+              </div>
+            ) : featuredProducts.length > 0 ? (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {featuredProducts.map(product => (
+                  <ProductCard 
+                    key={product.id} 
+                    product={{
+                      id: product.id,
+                      storeId: product.store_id,
+                      name: product.name,
+                      price: product.price,
+                      image: product.image,
+                      description: product.description
+                    }} 
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p>No products available yet.</p>
+              </div>
+            )}
           </div>
         </section>
         
@@ -94,11 +143,29 @@ const Index = () => {
               </Button>
             </div>
             
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {featuredStores.map(store => (
-                <StoreCard key={store.id} store={store} />
-              ))}
-            </div>
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <p>Loading stores...</p>
+              </div>
+            ) : featuredStores.length > 0 ? (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {featuredStores.map(store => (
+                  <StoreCard 
+                    key={store.id} 
+                    store={{
+                      id: store.id,
+                      name: store.name,
+                      description: store.description,
+                      logo: store.logo
+                    }} 
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p>No stores available yet.</p>
+              </div>
+            )}
           </div>
         </section>
         

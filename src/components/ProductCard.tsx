@@ -13,6 +13,7 @@ interface Product {
   price: number;
   image: string;
   description?: string;
+  category?: string;
 }
 
 interface ProductCardProps {
@@ -47,7 +48,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, storeView = false })
         </div>
         <CardContent className="p-4">
           <h3 className="text-lg font-medium line-clamp-1">{product.name}</h3>
-          <p className="mt-1 font-semibold text-primary">${product.price.toFixed(2)}</p>
+          <p className="mt-1 font-semibold text-primary">R {product.price.toFixed(2)}</p>
           {product.description && (
             <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
               {product.description}

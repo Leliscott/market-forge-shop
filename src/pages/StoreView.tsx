@@ -27,6 +27,17 @@ interface Product {
   category: string;
 }
 
+interface DbProduct {
+  id: string;
+  store_id: string;
+  name: string;
+  price: number;
+  image: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
+
 const StoreView: React.FC = () => {
   const { storeId } = useParams<{ storeId: string }>();
   const [store, setStore] = useState<Store | null>(null);
@@ -54,9 +65,23 @@ const StoreView: React.FC = () => {
           .eq('store_id', storeId);
           
         if (productError) throw productError;
-          
+        
         setStore(storeData);
-        setProducts(productData || []);
+        
+        // Map database products to the format expected by ProductCard
+        if (productData) {
+          const mappedProducts = productData.map((dbProduct: DbProduct) => ({
+            id: dbProduct.id,
+            storeId: dbProduct.store_id,
+            name: dbProduct.name,
+            price: dbProduct.price,
+            image: dbProduct.image || '',
+            description: dbProduct.description || '',
+            category: 'uncategorized' // Default category as it's not in the DB
+          }));
+          
+          setProducts(mappedProducts);
+        }
       } catch (error) {
         console.error('Error fetching store data:', error);
       } finally {
