@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { MessageCircle } from 'lucide-react';
 import { useChat } from '@/hooks/useChat';
@@ -29,13 +29,26 @@ const ChatWithSeller: React.FC<ChatWithSellerProps> = ({
     if (newChatId) {
       setChatId(newChatId);
       setIsOpen(true);
+      // Dispatch event to hide global chat button
+      window.dispatchEvent(new CustomEvent('chatWindowOpen'));
     }
   };
 
   const handleCloseChat = () => {
     setIsOpen(false);
     setChatId(null);
+    // Dispatch event to show global chat button
+    window.dispatchEvent(new CustomEvent('chatWindowClose'));
   };
+
+  useEffect(() => {
+    // Clean up on unmount
+    return () => {
+      if (isOpen) {
+        window.dispatchEvent(new CustomEvent('chatWindowClose'));
+      }
+    };
+  }, [isOpen]);
 
   return (
     <>

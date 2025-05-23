@@ -13,9 +13,10 @@ interface ChatWindowProps {
   chatId: string | null;
   storeName: string;
   onClose: () => void;
+  className?: string;
 }
 
-const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, storeName, onClose }) => {
+const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, storeName, onClose, className = "" }) => {
   const { user } = useAuth();
   const { messages, isLoading, isSending, sendMessage, markAsRead } = useChatMessages(chatId);
   const [newMessage, setNewMessage] = useState('');
@@ -42,7 +43,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, storeName, onClose }) =
   if (!chatId) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 w-80 h-96 bg-white border rounded-lg shadow-lg flex flex-col z-50">
+    <div className={`fixed bottom-4 right-4 w-80 h-96 bg-white border rounded-lg shadow-lg flex flex-col z-50 ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         <h3 className="font-semibold">{storeName}</h3>
