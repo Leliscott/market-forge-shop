@@ -8,7 +8,7 @@ import { NotificationProvider } from '@/context/NotificationContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { Toaster } from '@/components/ui/toaster';
 import CookieConsent from '@/components/CookieConsent';
-import GlobalWhatsAppContact from '@/components/GlobalWhatsAppContact';
+import GlobalChatButton from '@/components/GlobalWhatsAppContact';
 import './App.css';
 
 // Lazy load components
@@ -21,6 +21,7 @@ const ProductDetail = lazy(() => import('@/pages/ProductDetail'));
 const Cart = lazy(() => import('@/pages/Cart'));
 const Checkout = lazy(() => import('@/pages/Checkout'));
 const Orders = lazy(() => import('@/pages/Orders'));
+const Chats = lazy(() => import('@/pages/Chats'));
 const SellerDashboard = lazy(() => import('@/pages/SellerDashboard'));
 const ManageProducts = lazy(() => import('@/pages/ManageProducts'));
 const EditProduct = lazy(() => import('@/pages/EditProduct'));
@@ -54,6 +55,7 @@ function App() {
                       <Route path="/cart" element={<Cart />} />
                       <Route path="/checkout" element={<Checkout />} />
                       <Route path="/orders" element={<Orders />} />
+                      <Route path="/chats" element={<Chats />} />
                       <Route path="/seller/dashboard" element={<SellerDashboard />} />
                       <Route path="/seller/products" element={<ManageProducts />} />
                       <Route path="/seller/products/edit/:id" element={<EditProduct />} />
@@ -68,7 +70,7 @@ function App() {
                   </Suspense>
                   <Toaster />
                   <CookieConsent />
-                  <GlobalWhatsAppContact />
+                  <GlobalChatButton />
                 </div>
               </NotificationProvider>
             </CartProvider>

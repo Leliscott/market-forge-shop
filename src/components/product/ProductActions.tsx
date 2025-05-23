@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { ShoppingCart, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import WhatsAppContact from '@/components/WhatsAppContact';
+import ChatWithSeller from '@/components/chat/ChatWithSeller';
 import { useCart } from '@/context/CartContext';
 import { useProductShare } from '@/hooks/useProductShare';
 import { useAuth } from '@/context/AuthContext';
@@ -18,7 +18,9 @@ interface ProductActionsProps {
     stock?: number;
   };
   store: {
-    phone?: string;
+    id: string;
+    owner_id: string;
+    name: string;
   };
 }
 
@@ -97,11 +99,12 @@ const ProductActions: React.FC<ProductActionsProps> = ({ product, store }) => {
         </div>
       )}
       
-      {/* Contact seller via WhatsApp */}
+      {/* Chat with seller */}
       <div className="pt-4">
-        <WhatsAppContact 
-          phoneNumber={store.phone || "0610000000"} 
-          productName={product.name} 
+        <ChatWithSeller 
+          storeId={store.id}
+          storeName={store.name}
+          sellerId={store.owner_id}
         />
       </div>
       

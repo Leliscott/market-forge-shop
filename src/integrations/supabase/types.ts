@@ -39,6 +39,91 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_tokens: {
+        Row: {
+          created_at: string
+          customer_id: string
+          first_chat_date: string
+          id: string
+          last_chat_date: string
+          seller_id: string
+          store_id: string
+          store_name: string
+          total_messages: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          first_chat_date?: string
+          id?: string
+          last_chat_date?: string
+          seller_id: string
+          store_id: string
+          store_name: string
+          total_messages?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          first_chat_date?: string
+          id?: string
+          last_chat_date?: string
+          seller_id?: string
+          store_id?: string
+          store_name?: string
+          total_messages?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_tokens_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chats: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          last_message_at: string
+          seller_id: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          last_message_at?: string
+          seller_id: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          last_message_at?: string
+          seller_id?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chats_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_logs: {
         Row: {
           action_type: string
@@ -140,6 +225,41 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          chat_id: string
+          content: string
+          created_at: string
+          id: string
+          is_read: boolean
+          sender_id: string
+        }
+        Insert: {
+          chat_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          sender_id: string
+        }
+        Update: {
+          chat_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
             referencedColumns: ["id"]
           },
         ]
@@ -351,6 +471,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_old_chats: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       update_new_listing_status: {
         Args: Record<PropertyKey, never>
         Returns: undefined
