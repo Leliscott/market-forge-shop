@@ -75,7 +75,7 @@ const ManageProducts: React.FC = () => {
         image: product.image || '/placeholder.svg',
         category: product.category || 'Uncategorized',
         sold: 0, // Default since we don't have this info yet
-        created_at: product.created_at,
+        created_at: product.created_at || '',
       }));
       
       setProducts(transformedProducts);
