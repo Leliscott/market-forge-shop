@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -14,18 +15,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import NewStockView from '@/components/seller/NewStockView';
+import DashboardSkeleton from '@/components/seller/DashboardSkeleton';
 import { useAuth } from '@/context/AuthContext';
 import { useSellerData } from '@/hooks/useSellerData';
 
 const SellerDashboard: React.FC = () => {
   const { userStore } = useAuth();
-  const { orders, stats, newProducts, isLoading, updateOrderStatus } = useSellerData();
+  const { orders, stats, newProducts, isLoading, isStatsLoading, updateOrderStatus } = useSellerData();
 
   // Generate revenue chart data from actual orders
   const generateRevenueData = () => {
+    if (orders.length === 0) return [];
+    
     const last7Months = [];
     const now = new Date();
     
@@ -74,11 +79,8 @@ const SellerDashboard: React.FC = () => {
     return (
       <div className="flex flex-col min-h-screen">
         <Header />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading dashboard...</p>
-          </div>
+        <main className="flex-1">
+          <DashboardSkeleton />
         </main>
         <Footer />
       </div>
@@ -145,7 +147,7 @@ const SellerDashboard: React.FC = () => {
           ) : (
             <>
               {/* Welcome message for new stores with no products */}
-              {stats.totalProducts === 0 && (
+              {stats.totalProducts === 0 && !isStatsLoading && (
                 <Card className="mb-8 border-green-200 bg-green-50">
                   <CardContent className="pt-6 text-center">
                     <Package className="mx-auto h-12 w-12 text-green-600 mb-4" />
@@ -174,101 +176,126 @@ const SellerDashboard: React.FC = () => {
                 <TabsContent value="overview">
                   {/* Summary Cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Revenue</p>
-                            <p className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</p>
-                          </div>
-                          <div className="bg-primary/10 p-2 rounded-full">
-                            <DollarSign className="h-6 w-6 text-primary" />
-                          </div>
-                        </div>
-                        <div className="flex items-center mt-3 text-sm">
-                          {stats.revenueGrowth >= 0 ? (
-                            <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
-                          ) : (
-                            <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
-                          )}
-                          <span className={`font-medium ${stats.revenueGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {stats.revenueGrowth >= 0 ? '+' : ''}{stats.revenueGrowth.toFixed(1)}%
-                          </span>
-                          <span className="text-muted-foreground ml-2">from last month</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Orders</p>
-                            <p className="text-2xl font-bold">{stats.totalOrders}</p>
-                          </div>
-                          <div className="bg-blue-500/10 p-2 rounded-full">
-                            <ShoppingBag className="h-6 w-6 text-blue-500" />
-                          </div>
-                        </div>
-                        <div className="flex items-center mt-3 text-sm">
-                          {stats.ordersGrowth >= 0 ? (
-                            <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
-                          ) : (
-                            <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
-                          )}
-                          <span className={`font-medium ${stats.ordersGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {stats.ordersGrowth >= 0 ? '+' : ''}{stats.ordersGrowth.toFixed(1)}%
-                          </span>
-                          <span className="text-muted-foreground ml-2">from last month</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Products</p>
-                            <p className="text-2xl font-bold">{stats.totalProducts}</p>
-                          </div>
-                          <div className="bg-yellow-500/10 p-2 rounded-full">
-                            <Package className="h-6 w-6 text-yellow-500" />
-                          </div>
-                        </div>
-                        <div className="flex items-center mt-3 text-sm">
-                          <Button variant="outline" size="sm" asChild className="h-7">
-                            <Link to="/seller/products">
-                              View All
-                            </Link>
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Customers</p>
-                            <p className="text-2xl font-bold">{stats.totalCustomers}</p>
-                          </div>
-                          <div className="bg-purple-500/10 p-2 rounded-full">
-                            <Users className="h-6 w-6 text-purple-500" />
-                          </div>
-                        </div>
-                        <div className="flex items-center mt-3 text-sm">
-                          {stats.customersGrowth >= 0 ? (
-                            <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
-                          ) : (
-                            <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
-                          )}
-                          <span className={`font-medium ${stats.customersGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {stats.customersGrowth >= 0 ? '+' : ''}{stats.customersGrowth.toFixed(1)}%
-                          </span>
-                          <span className="text-muted-foreground ml-2">from last month</span>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    {isStatsLoading ? (
+                      // Show skeleton for stats cards
+                      Array.from({ length: 4 }).map((_, i) => (
+                        <Card key={i}>
+                          <CardContent className="pt-6">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <Skeleton className="h-4 w-16 mb-2" />
+                                <Skeleton className="h-8 w-20" />
+                              </div>
+                              <Skeleton className="h-12 w-12 rounded-full" />
+                            </div>
+                            <div className="flex items-center mt-3">
+                              <Skeleton className="h-4 w-4 mr-1" />
+                              <Skeleton className="h-4 w-16 mr-2" />
+                              <Skeleton className="h-4 w-24" />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    ) : (
+                      // Show actual stats cards
+                      <>
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">Revenue</p>
+                                <p className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</p>
+                              </div>
+                              <div className="bg-primary/10 p-2 rounded-full">
+                                <DollarSign className="h-6 w-6 text-primary" />
+                              </div>
+                            </div>
+                            <div className="flex items-center mt-3 text-sm">
+                              {stats.revenueGrowth >= 0 ? (
+                                <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
+                              ) : (
+                                <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
+                              )}
+                              <span className={`font-medium ${stats.revenueGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                {stats.revenueGrowth >= 0 ? '+' : ''}{stats.revenueGrowth.toFixed(1)}%
+                              </span>
+                              <span className="text-muted-foreground ml-2">from last month</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">Orders</p>
+                                <p className="text-2xl font-bold">{stats.totalOrders}</p>
+                              </div>
+                              <div className="bg-blue-500/10 p-2 rounded-full">
+                                <ShoppingBag className="h-6 w-6 text-blue-500" />
+                              </div>
+                            </div>
+                            <div className="flex items-center mt-3 text-sm">
+                              {stats.ordersGrowth >= 0 ? (
+                                <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
+                              ) : (
+                                <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
+                              )}
+                              <span className={`font-medium ${stats.ordersGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                {stats.ordersGrowth >= 0 ? '+' : ''}{stats.ordersGrowth.toFixed(1)}%
+                              </span>
+                              <span className="text-muted-foreground ml-2">from last month</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">Products</p>
+                                <p className="text-2xl font-bold">{stats.totalProducts}</p>
+                              </div>
+                              <div className="bg-yellow-500/10 p-2 rounded-full">
+                                <Package className="h-6 w-6 text-yellow-500" />
+                              </div>
+                            </div>
+                            <div className="flex items-center mt-3 text-sm">
+                              <Button variant="outline" size="sm" asChild className="h-7">
+                                <Link to="/seller/products">
+                                  View All
+                                </Link>
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">Customers</p>
+                                <p className="text-2xl font-bold">{stats.totalCustomers}</p>
+                              </div>
+                              <div className="bg-purple-500/10 p-2 rounded-full">
+                                <Users className="h-6 w-6 text-purple-500" />
+                              </div>
+                            </div>
+                            <div className="flex items-center mt-3 text-sm">
+                              {stats.customersGrowth >= 0 ? (
+                                <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
+                              ) : (
+                                <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
+                              )}
+                              <span className={`font-medium ${stats.customersGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                {stats.customersGrowth >= 0 ? '+' : ''}{stats.customersGrowth.toFixed(1)}%
+                              </span>
+                              <span className="text-muted-foreground ml-2">from last month</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </>
+                    )}
                   </div>
                   
                   {/* Revenue Chart */}
@@ -279,15 +306,19 @@ const SellerDashboard: React.FC = () => {
                         <CardDescription>Monthly revenue for the last 7 months</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                          <LineChart data={revenueData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Line type="monotone" dataKey="revenue" stroke="#8884d8" activeDot={{ r: 8 }} />
-                          </LineChart>
-                        </ResponsiveContainer>
+                        {isStatsLoading ? (
+                          <Skeleton className="h-[300px] w-full" />
+                        ) : (
+                          <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={revenueData}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="name" />
+                              <YAxis />
+                              <Tooltip />
+                              <Line type="monotone" dataKey="revenue" stroke="#8884d8" activeDot={{ r: 8 }} />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        )}
                       </CardContent>
                     </Card>
                   </div>
@@ -428,7 +459,7 @@ const SellerDashboard: React.FC = () => {
                 </TabsContent>
                 
                 <TabsContent value="new-stock">
-                  <NewStockView products={newProducts} isLoading={isLoading} />
+                  <NewStockView products={newProducts} isLoading={false} />
                 </TabsContent>
               </Tabs>
             </>

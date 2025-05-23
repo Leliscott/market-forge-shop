@@ -26,13 +26,15 @@ export const useSellerData = () => {
   });
   const [newProducts, setNewProducts] = useState<NewProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isStatsLoading, setIsStatsLoading] = useState(true);
 
   const fetchOrders = async () => {
-    if (!userStore) return;
+    if (!userStore) return [];
 
     try {
       const ordersData = await fetchOrdersFromDB(userStore.id);
       setOrders(ordersData);
+      return ordersData;
     } catch (error: any) {
       console.error('Error fetching orders:', error);
       toast({
@@ -40,6 +42,7 @@ export const useSellerData = () => {
         description: "Failed to fetch orders",
         variant: "destructive"
       });
+      return [];
     }
   };
 
@@ -59,33 +62,37 @@ export const useSellerData = () => {
     }
   };
 
-  const calculateStats = async () => {
+  const calculateStats = async (ordersData: Order[]) => {
     if (!userStore) return;
 
+    setIsStatsLoading(true);
     try {
       const products = await fetchProductsFromDB(userStore.id);
-      const calculatedStats = calculateDashboardStats(orders, products);
+      const calculatedStats = calculateDashboardStats(ordersData, products);
       setStats(calculatedStats);
     } catch (error) {
       console.error('Error calculating stats:', error);
+    } finally {
+      setIsStatsLoading(false);
     }
   };
 
   useEffect(() => {
     if (userStore) {
       setIsLoading(true);
-      Promise.all([
-        fetchOrders(),
-        fetchNewProducts()
-      ]).finally(() => setIsLoading(false));
+      
+      // Fetch orders first, then use the result to calculate stats
+      fetchOrders().then((ordersData) => {
+        // Calculate stats with the fresh orders data
+        calculateStats(ordersData);
+        
+        // Fetch new products in parallel
+        fetchNewProducts();
+        
+        setIsLoading(false);
+      });
     }
   }, [userStore]);
-
-  useEffect(() => {
-    if (orders.length > 0) {
-      calculateStats();
-    }
-  }, [orders]);
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
@@ -117,6 +124,7 @@ export const useSellerData = () => {
     stats,
     newProducts,
     isLoading,
+    isStatsLoading,
     updateOrderStatus,
     fetchOrders,
     fetchNewProducts
