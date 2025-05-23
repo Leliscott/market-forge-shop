@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
@@ -7,21 +6,22 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
 import StoreCard from '@/components/StoreCard';
-import { mockProducts, mockStores, mockCategories } from '@/utils/mockData';
+import { mockCategories } from '@/utils/mockData';
 import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
-  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [newProducts, setNewProducts] = useState([]);
   const [featuredStores, setFeaturedStores] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch featured products
+        // Fetch new products ordered by created_at
         const { data: productData } = await supabase
           .from('products')
           .select('*')
+          .order('created_at', { ascending: false })
           .limit(4);
         
         // Fetch featured stores
@@ -30,7 +30,7 @@ const Index = () => {
           .select('*')
           .limit(4);
         
-        if (productData) setFeaturedProducts(productData);
+        if (productData) setNewProducts(productData);
         if (storeData) setFeaturedStores(storeData);
       } catch (error) {
         console.error('Error fetching featured data:', error);
@@ -69,11 +69,11 @@ const Index = () => {
           </div>
         </section>
         
-        {/* Featured products section */}
+        {/* New Products section */}
         <section className="py-12 bg-white">
           <div className="container px-4 mx-auto">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl font-bold tracking-tight md:text-3xl">Featured Products</h2>
+              <h2 className="text-2xl font-bold tracking-tight md:text-3xl">New Products</h2>
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/marketplace" className="flex items-center gap-1">
                   View all <ArrowRight className="w-4 h-4" />
@@ -85,9 +85,9 @@ const Index = () => {
               <div className="flex justify-center py-8">
                 <p>Loading products...</p>
               </div>
-            ) : featuredProducts.length > 0 ? (
+            ) : newProducts.length > 0 ? (
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {featuredProducts.map(product => (
+                {newProducts.map(product => (
                   <ProductCard 
                     key={product.id} 
                     product={{
