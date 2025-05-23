@@ -15,6 +15,10 @@ export interface Store {
   name: string;
   description: string;
   logo: string;
+  owner_id: string;
+  verified?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface AuthContextType {
