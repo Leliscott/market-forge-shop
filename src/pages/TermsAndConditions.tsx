@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -35,7 +34,13 @@ const TermsAndConditions = () => {
           title: "Success",
           description: "You have successfully accepted our terms and conditions"
         });
-        navigate('/');
+        
+        // Redirect based on user role
+        if (profile?.role === 'seller') {
+          navigate('/seller/dashboard');
+        } else {
+          navigate('/');
+        }
       } else {
         toast({
           title: "Error",
