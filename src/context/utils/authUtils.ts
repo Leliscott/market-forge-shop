@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { Profile, Store } from '../types/AuthTypes';
-import { Toast } from '@/components/ui/use-toast';
+import { toast as toastFunction } from '@/components/ui/use-toast';
 
 // Fetch user profile from database
 export const fetchUserProfile = async (userId: string): Promise<Profile | null> => {
@@ -51,7 +51,7 @@ export const fetchUserStore = async (userId: string): Promise<Store | null> => {
 export const createStoreInDb = async (
   userId: string, 
   storeDetails: Omit<Store, 'id'>, 
-  toast: (props: Toast) => void
+  toast: typeof toastFunction
 ): Promise<Store | null> => {
   try {
     const { data, error } = await supabase
@@ -94,7 +94,7 @@ export const createStoreInDb = async (
 export const updateUserProfile = async (
   userId: string,
   profileData: Partial<Profile>,
-  toast: (props: Toast) => void
+  toast: typeof toastFunction
 ): Promise<boolean> => {
   try {
     const { error } = await supabase
