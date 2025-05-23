@@ -34,7 +34,13 @@ const FeaturedStoresSection: React.FC<FeaturedStoresSectionProps> = ({ stores, l
         
         {loading ? (
           <div className="flex justify-center py-8">
-            <p>Loading stores...</p>
+            <div className="animate-pulse space-y-4">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="bg-gray-200 h-48 rounded-lg"></div>
+                ))}
+              </div>
+            </div>
           </div>
         ) : stores.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -51,8 +57,20 @@ const FeaturedStoresSection: React.FC<FeaturedStoresSectionProps> = ({ stores, l
             ))}
           </div>
         ) : (
-          <div className="text-center py-8">
-            <p>No stores available yet.</p>
+          <div className="text-center py-12">
+            <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No Stores Yet
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Join our marketplace and be among the first sellers!
+              </p>
+              <Button asChild>
+                <Link to="/seller/dashboard">
+                  Create Store
+                </Link>
+              </Button>
+            </div>
           </div>
         )}
       </div>

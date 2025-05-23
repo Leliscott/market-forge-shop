@@ -19,23 +19,40 @@ const Index = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch new products ordered by created_at
-        const { data: productData } = await supabase
-          .from('products')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(4);
+        // Use Promise.allSettled to handle cases where tables might be empty
+        const [productResult, storeResult] = await Promise.allSettled([
+          supabase
+            .from('products')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(4),
+          supabase
+            .from('stores')
+            .select('*')
+            .limit(4)
+        ]);
         
-        // Fetch featured stores
-        const { data: storeData } = await supabase
-          .from('stores')
-          .select('*')
-          .limit(4);
+        // Handle products result
+        if (productResult.status === 'fulfilled' && productResult.value.data) {
+          setNewProducts(productResult.value.data);
+        } else {
+          console.warn('No products found or error fetching products');
+          setNewProducts([]);
+        }
         
-        if (productData) setNewProducts(productData);
-        if (storeData) setFeaturedStores(storeData);
+        // Handle stores result
+        if (storeResult.status === 'fulfilled' && storeResult.value.data) {
+          setFeaturedStores(storeResult.value.data);
+        } else {
+          console.warn('No stores found or error fetching stores');
+          setFeaturedStores([]);
+        }
+        
       } catch (error) {
         console.error('Error fetching featured data:', error);
+        // Set empty arrays on error to prevent UI issues
+        setNewProducts([]);
+        setFeaturedStores([]);
       } finally {
         setLoading(false);
       }

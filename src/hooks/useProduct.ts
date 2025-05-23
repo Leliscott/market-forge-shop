@@ -31,7 +31,10 @@ export const useProduct = (productId: string | undefined) => {
   
   useEffect(() => {
     const fetchProductData = async () => {
-      if (!productId) return;
+      if (!productId) {
+        setLoading(false);
+        return;
+      }
       
       setLoading(true);
       try {
@@ -48,7 +51,7 @@ export const useProduct = (productId: string | undefined) => {
         // Add some defaults for backward compatibility
         const enhancedProduct = {
           ...productData,
-          stock: 10, // Default stock value
+          stock: productData.stock_quantity || 10, // Use actual stock or default
           rating: 4.5, // Default rating
           features: [
             'High quality materials',
@@ -72,6 +75,7 @@ export const useProduct = (productId: string | undefined) => {
         setStore(storeData);
         
         // Fetch related products (same store, different product)
+        // For new stores with few products, this will return empty array gracefully
         const { data: relatedData, error: relatedError } = await supabase
           .from('products')
           .select('*')
@@ -79,9 +83,12 @@ export const useProduct = (productId: string | undefined) => {
           .neq('id', productId)
           .limit(4);
         
-        if (relatedError) throw relatedError;
-        
-        setRelatedProducts(relatedData || []);
+        if (relatedError) {
+          console.warn('Could not fetch related products:', relatedError);
+          setRelatedProducts([]); // Set empty array instead of throwing
+        } else {
+          setRelatedProducts(relatedData || []);
+        }
         
       } catch (err: any) {
         console.error('Error fetching product:', err);

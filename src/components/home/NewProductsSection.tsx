@@ -34,7 +34,13 @@ const NewProductsSection: React.FC<NewProductsSectionProps> = ({ products, loadi
         
         {loading ? (
           <div className="flex justify-center py-8">
-            <p>Loading products...</p>
+            <div className="animate-pulse space-y-4">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="bg-gray-200 h-64 rounded-lg"></div>
+                ))}
+              </div>
+            </div>
           </div>
         ) : products.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -53,8 +59,20 @@ const NewProductsSection: React.FC<NewProductsSectionProps> = ({ products, loadi
             ))}
           </div>
         ) : (
-          <div className="text-center py-8">
-            <p>No products available yet.</p>
+          <div className="text-center py-12">
+            <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No Products Yet
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Be the first to add products to our marketplace!
+              </p>
+              <Button asChild>
+                <Link to="/seller/dashboard">
+                  Start Selling
+                </Link>
+              </Button>
+            </div>
           </div>
         )}
       </div>
