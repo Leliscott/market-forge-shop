@@ -1,97 +1,178 @@
 
-import React, { useState } from 'react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, UserX, User, Clock, Eye, CheckCheck, ShieldAlert } from 'lucide-react';
+import { CheckCircle, UserX, Clock, Eye, CheckCheck, ShieldAlert, Home } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import AgentPortal from '@/components/agent/AgentPortal';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
-// Mock data for verification requests
-const mockVerificationRequests = [
-  {
-    id: '1',
-    merchantName: 'Tech Gadgets Store',
-    storeId: 'store-1',
-    ownerName: 'John Smith',
-    submissionDate: '2023-06-15',
-    status: 'pending',
-    documents: {
-      idDocument: 'https://example.com/id-document.jpg',
-      selfieWithId: 'https://example.com/selfie.jpg'
-    }
-  },
-  {
-    id: '2',
-    merchantName: 'Fashion Boutique',
-    storeId: 'store-2',
-    ownerName: 'Sarah Johnson',
-    submissionDate: '2023-06-14',
-    status: 'pending',
-    documents: {
-      idDocument: 'https://example.com/id-document2.jpg',
-      selfieWithId: 'https://example.com/selfie2.jpg'
-    }
-  },
-  {
-    id: '3',
-    merchantName: 'Home Decor Plus',
-    storeId: 'store-3',
-    ownerName: 'Michael Brown',
-    submissionDate: '2023-06-12',
-    status: 'approved',
-    documents: {
-      idDocument: 'https://example.com/id-document3.jpg',
-      selfieWithId: 'https://example.com/selfie3.jpg'
-    }
-  },
-  {
-    id: '4',
-    merchantName: 'Kitchen Supplies Co.',
-    storeId: 'store-4',
-    ownerName: 'Emily Wilson',
-    submissionDate: '2023-06-10',
-    status: 'rejected',
-    documents: {
-      idDocument: 'https://example.com/id-document4.jpg',
-      selfieWithId: 'https://example.com/selfie4.jpg'
-    }
-  }
-];
+interface VerificationRequest {
+  id: string;
+  merchant_name: string;
+  store_id: string;
+  owner_name: string;
+  submission_date: string;
+  status: string;
+  id_document_url: string;
+  selfie_url: string;
+  owner_id: string;
+}
 
 const AgentDashboard = () => {
   const { toast } = useToast();
-  const [viewingRequest, setViewingRequest] = useState<any>(null);
-  const [requests, setRequests] = useState(mockVerificationRequests);
+  const { user } = useAuth();
+  const [viewingRequest, setViewingRequest] = useState<VerificationRequest | null>(null);
+  const [requests, setRequests] = useState<VerificationRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentAgent, setCurrentAgent] = useState<any>(null);
 
-  const handleApprove = (requestId: string) => {
-    setRequests(prev => prev.map(req => 
-      req.id === requestId ? { ...req, status: 'approved' } : req
-    ));
+  useEffect(() => {
+    if (user) {
+      fetchAgentData();
+      fetchVerificationRequests();
+    }
+  }, [user]);
+
+  const fetchAgentData = async () => {
+    if (!user) return;
     
-    toast({
-      title: "Merchant verified",
-      description: "The merchant has been successfully verified",
-    });
-    
-    setViewingRequest(null);
+    const { data, error } = await supabase
+      .from('agents')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    if (error) {
+      console.error('Error fetching agent data:', error);
+    } else {
+      setCurrentAgent(data);
+    }
+  };
+
+  const fetchVerificationRequests = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('merchant_verifications')
+        .select('*')
+        .order('submission_date', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching verification requests:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load verification requests",
+          variant: "destructive"
+        });
+      } else {
+        setRequests(data || []);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async (requestId: string) => {
+    if (!currentAgent) {
+      toast({
+        title: "Error",
+        description: "Agent information not found",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const request = requests.find(r => r.id === requestId);
+      if (!request) return;
+
+      // Update verification request
+      const { error: verificationError } = await supabase
+        .from('merchant_verifications')
+        .update({
+          status: 'approved',
+          processed_by: currentAgent.id,
+          processed_at: new Date().toISOString()
+        })
+        .eq('id', requestId);
+
+      if (verificationError) {
+        throw verificationError;
+      }
+
+      // Update store verification status
+      const { error: storeError } = await supabase
+        .from('stores')
+        .update({ verified: true })
+        .eq('id', request.store_id);
+
+      if (storeError) {
+        throw storeError;
+      }
+
+      toast({
+        title: "Merchant verified",
+        description: "The merchant has been successfully verified",
+      });
+      
+      setViewingRequest(null);
+      fetchVerificationRequests(); // Refresh the list
+    } catch (error: any) {
+      console.error('Error approving merchant:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to approve merchant",
+        variant: "destructive"
+      });
+    }
   };
   
-  const handleReject = (requestId: string) => {
-    setRequests(prev => prev.map(req => 
-      req.id === requestId ? { ...req, status: 'rejected' } : req
-    ));
-    
-    toast({
-      title: "Merchant rejected",
-      description: "The verification request has been rejected",
-    });
-    
-    setViewingRequest(null);
+  const handleReject = async (requestId: string) => {
+    if (!currentAgent) {
+      toast({
+        title: "Error",
+        description: "Agent information not found",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('merchant_verifications')
+        .update({
+          status: 'rejected',
+          processed_by: currentAgent.id,
+          processed_at: new Date().toISOString()
+        })
+        .eq('id', requestId);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Merchant rejected",
+        description: "The verification request has been rejected",
+      });
+      
+      setViewingRequest(null);
+      fetchVerificationRequests(); // Refresh the list
+    } catch (error: any) {
+      console.error('Error rejecting merchant:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject merchant",
+        variant: "destructive"
+      });
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -109,9 +190,34 @@ const AgentDashboard = () => {
     return requests.filter(req => status === 'all' || req.status === status);
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-ZA');
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <div className="bg-white border-b px-4 py-2">
+          <Link to="/" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary">
+            <Home className="mr-1 h-4 w-4" />
+            Back to Home
+          </Link>
+        </div>
+        <main className="flex-1 container mx-auto px-4 py-8">
+          <div className="text-center">Loading...</div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
+      <div className="bg-white border-b px-4 py-2">
+        <Link to="/" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary">
+          <Home className="mr-1 h-4 w-4" />
+          Back to Home
+        </Link>
+      </div>
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
@@ -126,16 +232,16 @@ const AgentDashboard = () => {
           </div>
           
           <Button variant="outline">
-            Agent ID: AG-{Math.floor(10000 + Math.random() * 90000)}
+            Agent ID: {currentAgent?.agent_id || 'Loading...'}
           </Button>
         </div>
         
         <Tabs defaultValue="all" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="all">All Requests</TabsTrigger>
-            <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="approved">Approved</TabsTrigger>
-            <TabsTrigger value="rejected">Rejected</TabsTrigger>
+            <TabsTrigger value="all">All Requests ({requests.length})</TabsTrigger>
+            <TabsTrigger value="pending">Pending ({filteredRequests('pending').length})</TabsTrigger>
+            <TabsTrigger value="approved">Approved ({filteredRequests('approved').length})</TabsTrigger>
+            <TabsTrigger value="rejected">Rejected ({filteredRequests('rejected').length})</TabsTrigger>
           </TabsList>
           
           {['all', 'pending', 'approved', 'rejected'].map(status => (
@@ -163,9 +269,9 @@ const AgentDashboard = () => {
                         <tbody>
                           {filteredRequests(status).map((request, index) => (
                             <tr key={request.id} className={index !== filteredRequests(status).length - 1 ? "border-b" : ""}>
-                              <td className="py-3 px-4">{request.merchantName}</td>
-                              <td className="py-3 px-4">{request.ownerName}</td>
-                              <td className="py-3 px-4">{request.submissionDate}</td>
+                              <td className="py-3 px-4">{request.merchant_name}</td>
+                              <td className="py-3 px-4">{request.owner_name}</td>
+                              <td className="py-3 px-4">{formatDate(request.submission_date)}</td>
                               <td className="py-3 px-4">{getStatusBadge(request.status)}</td>
                               <td className="py-3 px-4">
                                 <Button 
@@ -194,9 +300,6 @@ const AgentDashboard = () => {
         </Tabs>
       </main>
       
-      <AgentPortal />
-      <Footer />
-      
       {/* Verification Request Dialog */}
       {viewingRequest && (
         <Dialog open={!!viewingRequest} onOpenChange={open => !open && setViewingRequest(null)}>
@@ -212,9 +315,9 @@ const AgentDashboard = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h3 className="font-medium mb-2">Merchant Details</h3>
-                  <p><strong>Store Name:</strong> {viewingRequest.merchantName}</p>
-                  <p><strong>Owner Name:</strong> {viewingRequest.ownerName}</p>
-                  <p><strong>Submission Date:</strong> {viewingRequest.submissionDate}</p>
+                  <p><strong>Store Name:</strong> {viewingRequest.merchant_name}</p>
+                  <p><strong>Owner Name:</strong> {viewingRequest.owner_name}</p>
+                  <p><strong>Submission Date:</strong> {formatDate(viewingRequest.submission_date)}</p>
                   <p><strong>Status:</strong> {viewingRequest.status}</p>
                 </div>
                 
@@ -224,17 +327,23 @@ const AgentDashboard = () => {
                     <div>
                       <p className="mb-1">South African ID Document:</p>
                       <img 
-                        src={viewingRequest.documents.idDocument} 
+                        src={viewingRequest.id_document_url} 
                         alt="ID Document" 
                         className="h-40 w-full object-cover rounded-md border" 
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder.svg';
+                        }}
                       />
                     </div>
                     <div>
                       <p className="mb-1">Selfie with ID:</p>
                       <img 
-                        src={viewingRequest.documents.selfieWithId} 
+                        src={viewingRequest.selfie_url} 
                         alt="Selfie with ID" 
                         className="h-40 w-full object-cover rounded-md border" 
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder.svg';
+                        }}
                       />
                     </div>
                   </div>

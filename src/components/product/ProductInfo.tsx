@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, Store, Check, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Store {
   id: string;
@@ -20,6 +21,24 @@ interface ProductInfoProps {
 }
 
 const ProductInfo: React.FC<ProductInfoProps> = ({ name, price, stock = 0, rating = 0, store }) => {
+  const [isVerified, setIsVerified] = useState(false);
+
+  useEffect(() => {
+    const checkStoreVerification = async () => {
+      const { data, error } = await supabase
+        .from('stores')
+        .select('verified')
+        .eq('id', store.id)
+        .single();
+
+      if (data && !error) {
+        setIsVerified(data.verified || false);
+      }
+    };
+
+    checkStoreVerification();
+  }, [store.id]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -32,7 +51,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ name, price, stock = 0, ratin
             {store.name}
           </Link>
           
-          {store.verified && (
+          {isVerified && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>

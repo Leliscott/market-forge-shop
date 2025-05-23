@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useCart } from '@/context/CartContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { supabase } from '@/integrations/supabase/client';
 
 interface Product {
   id: string;
@@ -25,7 +26,24 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, storeView = false }) => {
   const { addToCart } = useCart();
+  const [isVerified, setIsVerified] = useState(false);
   
+  useEffect(() => {
+    const checkStoreVerification = async () => {
+      const { data, error } = await supabase
+        .from('stores')
+        .select('verified')
+        .eq('id', product.storeId)
+        .single();
+
+      if (data && !error) {
+        setIsVerified(data.verified || false);
+      }
+    };
+
+    checkStoreVerification();
+  }, [product.storeId]);
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -60,7 +78,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, storeView = false })
           </Link>
         )}
         
-        {product.verified && (
+        {isVerified && (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>

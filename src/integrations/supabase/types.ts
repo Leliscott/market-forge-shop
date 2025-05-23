@@ -9,6 +9,96 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      agents: {
+        Row: {
+          agent_id: string
+          cellphone: string
+          created_at: string | null
+          email: string
+          id: string
+          last_login: string | null
+          user_id: string | null
+        }
+        Insert: {
+          agent_id: string
+          cellphone: string
+          created_at?: string | null
+          email: string
+          id?: string
+          last_login?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          agent_id?: string
+          cellphone?: string
+          created_at?: string | null
+          email?: string
+          id?: string
+          last_login?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      merchant_verifications: {
+        Row: {
+          id: string
+          id_document_url: string
+          merchant_name: string
+          notes: string | null
+          owner_id: string
+          owner_name: string
+          processed_at: string | null
+          processed_by: string | null
+          selfie_url: string
+          status: string
+          store_id: string
+          submission_date: string | null
+        }
+        Insert: {
+          id?: string
+          id_document_url: string
+          merchant_name: string
+          notes?: string | null
+          owner_id: string
+          owner_name: string
+          processed_at?: string | null
+          processed_by?: string | null
+          selfie_url: string
+          status?: string
+          store_id: string
+          submission_date?: string | null
+        }
+        Update: {
+          id?: string
+          id_document_url?: string
+          merchant_name?: string
+          notes?: string | null
+          owner_id?: string
+          owner_name?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          selfie_url?: string
+          status?: string
+          store_id?: string
+          submission_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_verifications_processed_by_fkey"
+            columns: ["processed_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_verifications_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           created_at: string | null
@@ -92,6 +182,7 @@ export type Database = {
           name: string
           owner_id: string
           updated_at: string | null
+          verified: boolean | null
         }
         Insert: {
           created_at?: string | null
@@ -101,6 +192,7 @@ export type Database = {
           name: string
           owner_id: string
           updated_at?: string | null
+          verified?: boolean | null
         }
         Update: {
           created_at?: string | null
@@ -110,6 +202,7 @@ export type Database = {
           name?: string
           owner_id?: string
           updated_at?: string | null
+          verified?: boolean | null
         }
         Relationships: []
       }
