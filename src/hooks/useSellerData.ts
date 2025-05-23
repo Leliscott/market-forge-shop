@@ -67,11 +67,36 @@ export const useSellerData = () => {
 
     setIsStatsLoading(true);
     try {
-      const products = await fetchProductsFromDB(userStore.id);
-      const calculatedStats = calculateDashboardStats(ordersData, products);
-      setStats(calculatedStats);
+      // First check if we have any orders - if not, just get products count
+      if (ordersData.length === 0) {
+        const products = await fetchProductsFromDB(userStore.id);
+        setStats({
+          totalRevenue: 0,
+          totalOrders: 0,
+          totalProducts: products.length,
+          totalCustomers: 0,
+          revenueGrowth: 0,
+          ordersGrowth: 0,
+          customersGrowth: 0,
+        });
+      } else {
+        // Only do full calculation if we have orders
+        const products = await fetchProductsFromDB(userStore.id);
+        const calculatedStats = calculateDashboardStats(ordersData, products);
+        setStats(calculatedStats);
+      }
     } catch (error) {
       console.error('Error calculating stats:', error);
+      // Set empty stats on error
+      setStats({
+        totalRevenue: 0,
+        totalOrders: 0,
+        totalProducts: 0,
+        totalCustomers: 0,
+        revenueGrowth: 0,
+        ordersGrowth: 0,
+        customersGrowth: 0,
+      });
     } finally {
       setIsStatsLoading(false);
     }
@@ -91,6 +116,10 @@ export const useSellerData = () => {
         
         setIsLoading(false);
       });
+    } else {
+      // If no store, set everything to loading false with empty data
+      setIsLoading(false);
+      setIsStatsLoading(false);
     }
   }, [userStore]);
 
