@@ -16,10 +16,20 @@ interface Product {
   id: string;
   name: string;
   price: number;
-  stock_quantity: number;
+  stock: number;
+  status: string;
   image: string;
   category: string;
+  sold: number;
+  stock_quantity: number;
   created_at: string;
+}
+
+interface ProductsByStatus {
+  all: Product[];
+  active: Product[];
+  low_stock: Product[];
+  out_of_stock: Product[];
 }
 
 const ManageProducts: React.FC = () => {
@@ -54,16 +64,18 @@ const ManageProducts: React.FC = () => {
       if (error) throw error;
       
       // Transform the data to match our expected format
-      const transformedProducts = data.map(product => ({
+      const transformedProducts: Product[] = data.map(product => ({
         id: product.id,
         name: product.name,
         price: product.price,
-        stock: product.stock_quantity,
+        stock: product.stock_quantity || 0,
+        stock_quantity: product.stock_quantity || 0,
         status: product.stock_quantity === 0 ? 'out_of_stock' : 
                 product.stock_quantity < 10 ? 'low_stock' : 'active',
         image: product.image || '/placeholder.svg',
         category: product.category || 'Uncategorized',
         sold: 0, // Default since we don't have this info yet
+        created_at: product.created_at,
       }));
       
       setProducts(transformedProducts);
@@ -92,7 +104,7 @@ const ManageProducts: React.FC = () => {
   );
   
   // Organize products by status
-  const productsByStatus = {
+  const productsByStatus: ProductsByStatus = {
     all: filteredProducts,
     active: filteredProducts.filter(p => p.status === 'active'),
     low_stock: filteredProducts.filter(p => p.status === 'low_stock'),
