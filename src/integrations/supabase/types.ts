@@ -39,6 +39,51 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          id: string
+          notes: string | null
+          product_id: string
+          quantity_change: number | null
+          store_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id: string
+          quantity_change?: number | null
+          store_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id?: string
+          quantity_change?: number | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_logs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_logs_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merchant_verifications: {
         Row: {
           id: string
@@ -99,14 +144,102 @@ export type Database = {
           },
         ]
       }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          product_id: string
+          quantity: number
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          product_id: string
+          quantity?: number
+          total_price: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          product_id?: string
+          quantity?: number
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          id: string
+          shipping_address: string | null
+          status: string
+          store_id: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          shipping_address?: string | null
+          status?: string
+          store_id: string
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          shipping_address?: string | null
+          status?: string
+          store_id?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           created_at: string | null
           description: string | null
           id: string
           image: string | null
+          is_new_listing: boolean | null
           name: string
           price: number
+          stock_quantity: number | null
           store_id: string
           updated_at: string | null
         }
@@ -115,8 +248,10 @@ export type Database = {
           description?: string | null
           id?: string
           image?: string | null
+          is_new_listing?: boolean | null
           name: string
           price: number
+          stock_quantity?: number | null
           store_id: string
           updated_at?: string | null
         }
@@ -125,8 +260,10 @@ export type Database = {
           description?: string | null
           id?: string
           image?: string | null
+          is_new_listing?: boolean | null
           name?: string
           price?: number
+          stock_quantity?: number | null
           store_id?: string
           updated_at?: string | null
         }
@@ -211,7 +348,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_new_listing_status: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

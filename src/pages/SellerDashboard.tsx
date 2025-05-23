@@ -3,60 +3,89 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
-  ResponsiveContainer, PieChart, Pie, Cell 
+  ResponsiveContainer
 } from 'recharts';
 import { 
-  ShoppingBag, PackageCheck, DollarSign, Users, ArrowUpRight, 
-  ArrowDownRight, Store, Package, Plus, ShoppingCart
+  ShoppingBag, DollarSign, Users, ArrowUpRight, 
+  ArrowDownRight, Store, Package, Plus, Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-
-// Mock data
-const salesData = [
-  { name: 'Jan', revenue: 1200 },
-  { name: 'Feb', revenue: 1900 },
-  { name: 'Mar', revenue: 1500 },
-  { name: 'Apr', revenue: 2400 },
-  { name: 'May', revenue: 1800 },
-  { name: 'Jun', revenue: 2800 },
-  { name: 'Jul', revenue: 3200 },
-];
-
-const productPerformanceData = [
-  { name: 'Wireless Earbuds', sales: 153 },
-  { name: 'Phone Stand', sales: 87 },
-  { name: 'USB-C Cable', sales: 65 },
-  { name: 'Power Bank', sales: 45 },
-  { name: 'Screen Protector', sales: 32 },
-];
-
-const orderStatusData = [
-  { name: 'Delivered', value: 85 },
-  { name: 'Processing', value: 10 },
-  { name: 'Cancelled', value: 5 },
-];
-
-const COLORS = ['#34D399', '#60A5FA', '#F87171'];
-
-const mockStore = {
-  id: 'store1',
-  name: 'Tech Haven',
-  logo: '/placeholder.svg',
-  productCount: 12
-};
-
-const recentOrders = [
-  { id: 'ORD001', customer: 'John Doe', date: '2023-07-15', amount: 124.99, status: 'delivered' },
-  { id: 'ORD002', customer: 'Alice Smith', date: '2023-07-14', amount: 75.50, status: 'processing' },
-  { id: 'ORD003', customer: 'Robert Johnson', date: '2023-07-13', amount: 199.99, status: 'delivered' },
-  { id: 'ORD004', customer: 'Emily Brown', date: '2023-07-12', amount: 45.25, status: 'delivered' },
-];
+import NewStockView from '@/components/seller/NewStockView';
+import { useAuth } from '@/context/AuthContext';
+import { useSellerData } from '@/hooks/useSellerData';
 
 const SellerDashboard: React.FC = () => {
+  const { userStore } = useAuth();
+  const { orders, stats, newProducts, isLoading, updateOrderStatus } = useSellerData();
+
+  // Generate revenue chart data from actual orders
+  const generateRevenueData = () => {
+    const last7Months = [];
+    const now = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+      
+      const monthOrders = orders.filter(order => {
+        const orderDate = new Date(order.created_at);
+        return orderDate.getMonth() === date.getMonth() && 
+               orderDate.getFullYear() === date.getFullYear();
+      });
+      
+      const revenue = monthOrders.reduce((sum, order) => sum + order.total_amount, 0);
+      
+      last7Months.push({
+        name: monthName,
+        revenue: revenue
+      });
+    }
+    
+    return last7Months;
+  };
+
+  const revenueData = generateRevenueData();
+  const recentOrders = orders.slice(0, 5);
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'delivered':
+        return 'bg-green-100 text-green-800';
+      case 'processing':
+        return 'bg-blue-100 text-blue-800';
+      case 'shipped':
+        return 'bg-purple-100 text-purple-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading dashboard...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
@@ -75,11 +104,11 @@ const SellerDashboard: React.FC = () => {
               <Button asChild>
                 <Link to="/seller/create-store">
                   <Store className="mr-2 h-4 w-4" />
-                  {mockStore ? 'Manage Store' : 'Create Store'}
+                  {userStore ? 'Manage Store' : 'Create Store'}
                 </Link>
               </Button>
               
-              {mockStore && (
+              {userStore && (
                 <Button asChild>
                   <Link to="/seller/products/edit/new">
                     <Plus className="mr-2 h-4 w-4" />
@@ -90,7 +119,7 @@ const SellerDashboard: React.FC = () => {
             </div>
           </div>
           
-          {!mockStore ? (
+          {!userStore ? (
             <Card className="mb-8">
               <CardContent className="pt-6 text-center">
                 <Store className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -111,7 +140,7 @@ const SellerDashboard: React.FC = () => {
               <TabsList className="mb-8">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="orders">Orders</TabsTrigger>
-                <TabsTrigger value="products">Products</TabsTrigger>
+                <TabsTrigger value="new-stock">New Stock</TabsTrigger>
               </TabsList>
               
               <TabsContent value="overview">
@@ -122,15 +151,21 @@ const SellerDashboard: React.FC = () => {
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Revenue</p>
-                          <p className="text-2xl font-bold">$12,560</p>
+                          <p className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</p>
                         </div>
                         <div className="bg-primary/10 p-2 rounded-full">
                           <DollarSign className="h-6 w-6 text-primary" />
                         </div>
                       </div>
                       <div className="flex items-center mt-3 text-sm">
-                        <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
-                        <span className="text-green-500 font-medium">+12.5%</span>
+                        {stats.revenueGrowth >= 0 ? (
+                          <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
+                        ) : (
+                          <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
+                        )}
+                        <span className={`font-medium ${stats.revenueGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {stats.revenueGrowth >= 0 ? '+' : ''}{stats.revenueGrowth.toFixed(1)}%
+                        </span>
                         <span className="text-muted-foreground ml-2">from last month</span>
                       </div>
                     </CardContent>
@@ -141,15 +176,21 @@ const SellerDashboard: React.FC = () => {
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Orders</p>
-                          <p className="text-2xl font-bold">154</p>
+                          <p className="text-2xl font-bold">{stats.totalOrders}</p>
                         </div>
                         <div className="bg-blue-500/10 p-2 rounded-full">
                           <ShoppingBag className="h-6 w-6 text-blue-500" />
                         </div>
                       </div>
                       <div className="flex items-center mt-3 text-sm">
-                        <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
-                        <span className="text-green-500 font-medium">+8.2%</span>
+                        {stats.ordersGrowth >= 0 ? (
+                          <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
+                        ) : (
+                          <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
+                        )}
+                        <span className={`font-medium ${stats.ordersGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {stats.ordersGrowth >= 0 ? '+' : ''}{stats.ordersGrowth.toFixed(1)}%
+                        </span>
                         <span className="text-muted-foreground ml-2">from last month</span>
                       </div>
                     </CardContent>
@@ -160,7 +201,7 @@ const SellerDashboard: React.FC = () => {
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Products</p>
-                          <p className="text-2xl font-bold">{mockStore.productCount}</p>
+                          <p className="text-2xl font-bold">{stats.totalProducts}</p>
                         </div>
                         <div className="bg-yellow-500/10 p-2 rounded-full">
                           <Package className="h-6 w-6 text-yellow-500" />
@@ -181,55 +222,43 @@ const SellerDashboard: React.FC = () => {
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Customers</p>
-                          <p className="text-2xl font-bold">1,254</p>
+                          <p className="text-2xl font-bold">{stats.totalCustomers}</p>
                         </div>
                         <div className="bg-purple-500/10 p-2 rounded-full">
                           <Users className="h-6 w-6 text-purple-500" />
                         </div>
                       </div>
                       <div className="flex items-center mt-3 text-sm">
-                        <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
-                        <span className="text-red-500 font-medium">-2.3%</span>
+                        {stats.customersGrowth >= 0 ? (
+                          <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
+                        ) : (
+                          <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
+                        )}
+                        <span className={`font-medium ${stats.customersGrowth >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {stats.customersGrowth >= 0 ? '+' : ''}{stats.customersGrowth.toFixed(1)}%
+                        </span>
                         <span className="text-muted-foreground ml-2">from last month</span>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
                 
-                {/* Charts */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                {/* Revenue Chart */}
+                <div className="mb-8">
                   <Card>
                     <CardHeader>
                       <CardTitle>Revenue Overview</CardTitle>
-                      <CardDescription>Monthly revenue for the current year</CardDescription>
+                      <CardDescription>Monthly revenue for the last 7 months</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={salesData}>
+                        <LineChart data={revenueData}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
                           <YAxis />
                           <Tooltip />
                           <Line type="monotone" dataKey="revenue" stroke="#8884d8" activeDot={{ r: 8 }} />
                         </LineChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Product Performance</CardTitle>
-                      <CardDescription>Top-selling products by units sold</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={productPerformanceData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Tooltip />
-                          <Bar dataKey="sales" fill="#8884d8" />
-                        </BarChart>
                       </ResponsiveContainer>
                     </CardContent>
                   </Card>
@@ -242,48 +271,54 @@ const SellerDashboard: React.FC = () => {
                     <CardDescription>Your latest orders and their status</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="text-left text-muted-foreground">
-                            <th className="p-3 font-medium">Order ID</th>
-                            <th className="p-3 font-medium">Customer</th>
-                            <th className="p-3 font-medium">Date</th>
-                            <th className="p-3 font-medium">Amount</th>
-                            <th className="p-3 font-medium">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
+                    {recentOrders.length > 0 ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Order ID</TableHead>
+                            <TableHead>Customer</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
                           {recentOrders.map((order) => (
-                            <tr key={order.id} className="border-t">
-                              <td className="p-3">{order.id}</td>
-                              <td className="p-3">{order.customer}</td>
-                              <td className="p-3">{order.date}</td>
-                              <td className="p-3">${order.amount.toFixed(2)}</td>
-                              <td className="p-3">
-                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                  order.status === 'delivered' 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : order.status === 'processing' 
-                                    ? 'bg-blue-100 text-blue-800' 
-                                    : 'bg-red-100 text-red-800'
-                                }`}>
+                            <TableRow key={order.id}>
+                              <TableCell className="font-mono text-sm">
+                                {order.id.slice(0, 8)}...
+                              </TableCell>
+                              <TableCell>
+                                {order.customer_profile?.name || order.customer_profile?.email || 'Unknown'}
+                              </TableCell>
+                              <TableCell>
+                                {new Date(order.created_at).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell>${order.total_amount.toFixed(2)}</TableCell>
+                              <TableCell>
+                                <Badge className={getStatusBadgeColor(order.status)}>
                                   {order.status}
-                                </span>
-                              </td>
-                            </tr>
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No orders yet. Start selling to see your orders here!
+                      </div>
+                    )}
                   </CardContent>
-                  <CardFooter>
-                    <Button variant="outline" asChild className="w-full">
-                      <Link to="/seller/orders">
-                        View All Orders
-                      </Link>
-                    </Button>
-                  </CardFooter>
+                  {recentOrders.length > 0 && (
+                    <CardFooter>
+                      <Button variant="outline" asChild className="w-full">
+                        <Link to="/seller/orders">
+                          View All Orders
+                        </Link>
+                      </Button>
+                    </CardFooter>
+                  )}
                 </Card>
               </TabsContent>
               
@@ -298,134 +333,74 @@ const SellerDashboard: React.FC = () => {
                 
                 <Card>
                   <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="text-left text-muted-foreground border-b">
-                            <th className="p-4 font-medium">Order ID</th>
-                            <th className="p-4 font-medium">Customer</th>
-                            <th className="p-4 font-medium">Date</th>
-                            <th className="p-4 font-medium">Amount</th>
-                            <th className="p-4 font-medium">Status</th>
-                            <th className="p-4 font-medium">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {recentOrders.concat(recentOrders).map((order, index) => (
-                            <tr key={`${order.id}-${index}`} className="border-t">
-                              <td className="p-4">{order.id}</td>
-                              <td className="p-4">{order.customer}</td>
-                              <td className="p-4">{order.date}</td>
-                              <td className="p-4">${order.amount.toFixed(2)}</td>
-                              <td className="p-4">
-                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                  order.status === 'delivered' 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : order.status === 'processing' 
-                                    ? 'bg-blue-100 text-blue-800' 
-                                    : 'bg-red-100 text-red-800'
-                                }`}>
-                                  {order.status}
-                                </span>
-                              </td>
-                              <td className="p-4">
+                    {orders.length > 0 ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Order ID</TableHead>
+                            <TableHead>Customer</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {orders.map((order) => (
+                            <TableRow key={order.id}>
+                              <TableCell className="font-mono text-sm">
+                                {order.id.slice(0, 8)}...
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <div className="font-medium">
+                                    {order.customer_profile?.name || 'Unknown'}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {order.customer_profile?.email}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {new Date(order.created_at).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell>${order.total_amount.toFixed(2)}</TableCell>
+                              <TableCell>
+                                <Select
+                                  value={order.status}
+                                  onValueChange={(value) => updateOrderStatus(order.id, value as any)}
+                                >
+                                  <SelectTrigger className="w-32">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                    <SelectItem value="processing">Processing</SelectItem>
+                                    <SelectItem value="shipped">Shipped</SelectItem>
+                                    <SelectItem value="delivered">Delivered</SelectItem>
+                                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell>
                                 <Button variant="ghost" size="sm">View</Button>
-                              </td>
-                            </tr>
+                              </TableCell>
+                            </TableRow>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <ShoppingBag className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No orders yet. Start selling to see your orders here!</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
               
-              <TabsContent value="products">
-                <div className="mb-6 flex justify-between items-center">
-                  <h2 className="text-2xl font-bold">Your Products</h2>
-                  <Button asChild>
-                    <Link to="/seller/products/edit/new">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Product
-                    </Link>
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                  <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-                    <Link to="/seller/products/edit/1">
-                      <div className="aspect-square overflow-hidden">
-                        <img 
-                          src="https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80" 
-                          alt="Wireless Earbuds" 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <CardContent className="p-4">
-                        <h3 className="font-medium">Wireless Earbuds</h3>
-                        <p className="text-primary font-semibold mt-1">$59.99</p>
-                        <p className="text-sm text-muted-foreground mt-1">153 sold</p>
-                      </CardContent>
-                    </Link>
-                  </Card>
-                  
-                  <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-                    <Link to="/seller/products/edit/2">
-                      <div className="aspect-square overflow-hidden">
-                        <img 
-                          src="https://images.unsplash.com/photo-1586953208448-b95a79798f07?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80" 
-                          alt="Phone Stand" 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <CardContent className="p-4">
-                        <h3 className="font-medium">Phone Stand</h3>
-                        <p className="text-primary font-semibold mt-1">$24.99</p>
-                        <p className="text-sm text-muted-foreground mt-1">87 sold</p>
-                      </CardContent>
-                    </Link>
-                  </Card>
-                  
-                  <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-                    <Link to="/seller/products/edit/3">
-                      <div className="aspect-square overflow-hidden">
-                        <img 
-                          src="https://images.unsplash.com/photo-1612815292890-fd55c355d8ce?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
-                          alt="USB-C Cable" 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <CardContent className="p-4">
-                        <h3 className="font-medium">USB-C Cable Pack</h3>
-                        <p className="text-primary font-semibold mt-1">$15.99</p>
-                        <p className="text-sm text-muted-foreground mt-1">65 sold</p>
-                      </CardContent>
-                    </Link>
-                  </Card>
-                  
-                  <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-                    <Link to="/seller/products/edit/4">
-                      <div className="aspect-square overflow-hidden">
-                        <img 
-                          src="https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
-                          alt="Power Bank" 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <CardContent className="p-4">
-                        <h3 className="font-medium">Portable Power Bank</h3>
-                        <p className="text-primary font-semibold mt-1">$49.99</p>
-                        <p className="text-sm text-muted-foreground mt-1">45 sold</p>
-                      </CardContent>
-                    </Link>
-                  </Card>
-                </div>
-                
-                <div className="flex justify-center">
-                  <Button variant="outline" asChild>
-                    <Link to="/seller/products">View All Products</Link>
-                  </Button>
-                </div>
+              <TabsContent value="new-stock">
+                <NewStockView products={newProducts} isLoading={isLoading} />
               </TabsContent>
             </Tabs>
           )}

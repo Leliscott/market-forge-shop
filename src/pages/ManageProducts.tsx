@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -272,21 +273,21 @@ const ManageProducts: React.FC = () => {
                   </div>
                 ) : (
                   <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="bg-muted/50 border-b">
-                          <th className="text-left p-3">Product</th>
-                          <th className="text-left p-3">Category</th>
-                          <th className="text-left p-3">Price</th>
-                          <th className="text-left p-3">Stock</th>
-                          <th className="text-left p-3">Sold</th>
-                          <th className="text-left p-3">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {products.map((product, index) => (
-                          <tr key={product.id} className={index !== products.length - 1 ? 'border-b' : ''}>
-                            <td className="p-3">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Product</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Stock</TableHead>
+                          <TableHead>Sold</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {products.map((product) => (
+                          <TableRow key={product.id}>
+                            <TableCell>
                               <div className="flex items-center gap-3">
                                 <div className="h-10 w-10 rounded overflow-hidden flex-shrink-0">
                                   <img
@@ -297,10 +298,10 @@ const ManageProducts: React.FC = () => {
                                 </div>
                                 <span className="font-medium">{product.name}</span>
                               </div>
-                            </td>
-                            <td className="p-3">{product.category}</td>
-                            <td className="p-3">${product.price.toFixed(2)}</td>
-                            <td className="p-3">
+                            </TableCell>
+                            <TableCell>{product.category}</TableCell>
+                            <TableCell>${product.price.toFixed(2)}</TableCell>
+                            <TableCell>
                               <div className="flex items-center gap-2">
                                 {product.status === 'out_of_stock' ? (
                                   <span className="text-red-500">Out of stock</span>
@@ -310,9 +311,9 @@ const ManageProducts: React.FC = () => {
                                   <span>{product.stock}</span>
                                 )}
                               </div>
-                            </td>
-                            <td className="p-3">{product.sold}</td>
-                            <td className="p-3">
+                            </TableCell>
+                            <TableCell>{product.sold}</TableCell>
+                            <TableCell>
                               <div className="flex items-center gap-2">
                                 <Button variant="ghost" size="sm" asChild>
                                   <Link to={`/seller/products/edit/${product.id}`}>
@@ -327,11 +328,11 @@ const ManageProducts: React.FC = () => {
                                   <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                               </div>
-                            </td>
-                          </tr>
+                            </TableCell>
+                          </TableRow>
                         ))}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
               </TabsContent>
