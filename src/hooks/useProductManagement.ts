@@ -33,14 +33,17 @@ export const useProductManagement = () => {
     
     try {
       setIsLoading(true);
+      setError(null);
+      
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('store_id', userStore.id);
+        .eq('store_id', userStore.id)
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       
-      const transformedProducts: Product[] = data.map(product => ({
+      const transformedProducts: Product[] = (data || []).map(product => ({
         id: product.id,
         name: product.name,
         price: product.price,
@@ -50,7 +53,7 @@ export const useProductManagement = () => {
                 product.stock_quantity < 10 ? 'low_stock' : 'active',
         image: product.image || '/placeholder.svg',
         category: product.category || 'Uncategorized',
-        sold: 0,
+        sold: 0, // This would need to be calculated from orders
         created_at: product.created_at || '',
       }));
       
@@ -77,7 +80,8 @@ export const useProductManagement = () => {
       
       if (error) throw error;
       
-      setProducts(products.filter(product => product.id !== productId));
+      // Remove from local state immediately for better UX
+      setProducts(prev => prev.filter(product => product.id !== productId));
       
       toast({
         title: "Success",
@@ -90,6 +94,8 @@ export const useProductManagement = () => {
         description: "Failed to delete product. Please try again.",
         variant: "destructive"
       });
+      // Refresh the list in case of error to ensure consistency
+      await fetchProducts();
     }
   };
 

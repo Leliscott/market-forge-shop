@@ -7,6 +7,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useToast } from '@/components/ui/use-toast';
 import ProductFormTabs from '@/components/products/ProductFormTabs';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
 
 interface ProductFormData {
   name: string;
@@ -22,27 +24,6 @@ interface ProductFormData {
     height: string;
   };
 }
-
-// Mock data for editing
-const mockProduct = {
-  id: '1',
-  name: 'Wireless Earbuds',
-  price: '599.99',
-  stock: '42',
-  description: 'High-quality wireless earbuds with noise cancellation and long battery life. Perfect for on-the-go listening with crystal clear sound and comfortable fit.',
-  category: 'Audio',
-  sku: 'WEB-001',
-  weight: '0.3',
-  dimensions: {
-    length: '5',
-    width: '5', 
-    height: '2'
-  },
-  images: [
-    'https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1074&q=80',
-    'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1169&q=80'
-  ]
-};
 
 const categories = [
   "Audio",
@@ -61,8 +42,10 @@ const EditProduct: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { userStore } = useAuth();
   const isNewProduct = id === 'new';
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(!isNewProduct);
   
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
@@ -82,23 +65,60 @@ const EditProduct: React.FC = () => {
   const [images, setImages] = useState<string[]>([]);
   
   useEffect(() => {
-    // If editing an existing product, load its data
-    if (!isNewProduct) {
-      // In a real app, fetch from API. Here we use mock data.
-      setFormData({
-        name: mockProduct.name,
-        price: mockProduct.price,
-        stock: mockProduct.stock,
-        description: mockProduct.description,
-        category: mockProduct.category,
-        sku: mockProduct.sku,
-        weight: mockProduct.weight,
-        dimensions: mockProduct.dimensions
-      });
-      
-      setImages(mockProduct.images);
-    }
-  }, [isNewProduct, id]);
+    const fetchProduct = async () => {
+      if (!isNewProduct && id) {
+        try {
+          const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+          if (error) {
+            console.error('Error fetching product:', error);
+            toast({
+              title: "Error",
+              description: "Failed to load product. Please try again.",
+              variant: "destructive"
+            });
+            return;
+          }
+
+          if (data) {
+            setFormData({
+              name: data.name || '',
+              price: data.price?.toString() || '',
+              stock: data.stock_quantity?.toString() || '',
+              description: data.description || '',
+              category: data.category || '',
+              sku: '',
+              weight: '',
+              dimensions: {
+                length: '',
+                width: '',
+                height: ''
+              }
+            });
+            
+            if (data.image) {
+              setImages([data.image]);
+            }
+          }
+        } catch (err) {
+          console.error('Error:', err);
+          toast({
+            title: "Error",
+            description: "Failed to load product. Please try again.",
+            variant: "destructive"
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchProduct();
+  }, [isNewProduct, id, toast]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -134,31 +154,96 @@ const EditProduct: React.FC = () => {
     setImages(prev => prev.filter((_, i) => i !== index));
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!userStore) {
+      toast({
+        title: "Error",
+        description: "You need to have a store to create products.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     
-    // Simple validation
+    // Validation
     if (!formData.name || !formData.price || !formData.category) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields.",
+        description: "Please fill in all required fields (Name, Price, Category).",
         variant: "destructive"
       });
       setIsSubmitting(false);
       return;
     }
-    
-    // Simulate API call
-    setTimeout(() => {
-      toast({
-        title: isNewProduct ? "Product created" : "Product updated",
-        description: `"${formData.name}" has been ${isNewProduct ? 'created' : 'updated'} successfully.`
-      });
+
+    try {
+      const productData = {
+        name: formData.name,
+        description: formData.description,
+        price: parseFloat(formData.price),
+        stock_quantity: parseInt(formData.stock) || 0,
+        category: formData.category,
+        image: images[0] || null,
+        store_id: userStore.id,
+        is_new_listing: isNewProduct
+      };
+
+      if (isNewProduct) {
+        // Create new product
+        const { data, error } = await supabase
+          .from('products')
+          .insert([productData])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: `"${formData.name}" has been created successfully.`
+        });
+      } else {
+        // Update existing product
+        const { error } = await supabase
+          .from('products')
+          .update(productData)
+          .eq('id', id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: `"${formData.name}" has been updated successfully.`
+        });
+      }
       
       navigate('/seller/products');
-    }, 1500);
+    } catch (error: any) {
+      console.error('Error saving product:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save product. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
   
   return (
     <div className="flex flex-col min-h-screen">
