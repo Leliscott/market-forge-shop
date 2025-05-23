@@ -33,15 +33,29 @@ export const useChatMessages = (chatId: string | null) => {
     try {
       const { data, error } = await supabase
         .from('messages')
-        .select(`
-          *,
-          sender_profile:profiles!messages_sender_id_fkey(name, email)
-        `)
+        .select('*')
         .eq('chat_id', chatId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+
+      // Get sender profiles separately
+      const messagesWithProfiles = await Promise.all(
+        (data || []).map(async (message) => {
+          const { data: senderProfile } = await supabase
+            .from('profiles')
+            .select('name, email')
+            .eq('id', message.sender_id)
+            .single();
+
+          return {
+            ...message,
+            sender_profile: senderProfile
+          };
+        })
+      );
+
+      setMessages(messagesWithProfiles);
     } catch (error: any) {
       console.error('Error fetching messages:', error);
       toast({

@@ -53,17 +53,31 @@ export const useChat = () => {
         .from('chats')
         .select(`
           *,
-          stores!chats_store_id_fkey(name, logo),
-          customer_profile:profiles!chats_customer_id_fkey(name, email),
-          seller_profile:profiles!chats_seller_id_fkey(name, email)
+          stores!chats_store_id_fkey(name, logo)
         `)
+        .or(`customer_id.eq.${user.id},seller_id.eq.${user.id}`)
         .order('last_message_at', { ascending: false });
 
       if (error) throw error;
 
-      // Get last message for each chat
-      const chatsWithMessages = await Promise.all(
+      // Get profiles and last messages separately
+      const chatsWithProfiles = await Promise.all(
         (data || []).map(async (chat) => {
+          // Get customer profile
+          const { data: customerProfile } = await supabase
+            .from('profiles')
+            .select('name, email')
+            .eq('id', chat.customer_id)
+            .single();
+
+          // Get seller profile
+          const { data: sellerProfile } = await supabase
+            .from('profiles')
+            .select('name, email')
+            .eq('id', chat.seller_id)
+            .single();
+
+          // Get last message
           const { data: lastMessage } = await supabase
             .from('messages')
             .select('content, sender_id')
@@ -75,12 +89,14 @@ export const useChat = () => {
           return {
             ...chat,
             store: chat.stores,
+            customer_profile: customerProfile,
+            seller_profile: sellerProfile,
             last_message: lastMessage
           };
         })
       );
 
-      setChats(chatsWithMessages);
+      setChats(chatsWithProfiles);
     } catch (error: any) {
       console.error('Error fetching chats:', error);
       toast({
