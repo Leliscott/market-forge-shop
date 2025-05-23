@@ -45,3 +45,43 @@ export const productCategories = [
   'Music & Instruments',
   'Other'
 ];
+
+// Mock categories data for the home page
+export const mockCategories = [
+  {
+    id: '1',
+    name: 'Electronics',
+    icon: '📱',
+    count: 150
+  },
+  {
+    id: '2',
+    name: 'Clothing',
+    icon: '👕',
+    count: 200
+  },
+  {
+    id: '3',
+    name: 'Home & Garden',
+    icon: '🏠',
+    count: 120
+  },
+  {
+    id: '4',
+    name: 'Beauty & Personal Care',
+    icon: '💄',
+    count: 80
+  },
+  {
+    id: '5',
+    name: 'Sports & Outdoors',
+    icon: '⚽',
+    count: 90
+  },
+  {
+    id: '6',
+    name: 'Books',
+    icon: '📚',
+    count: 110
+  }
+];
