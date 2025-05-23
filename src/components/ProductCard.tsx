@@ -1,10 +1,11 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useCart } from '@/context/CartContext';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Product {
   id: string;
@@ -14,6 +15,7 @@ interface Product {
   image: string;
   description?: string;
   category?: string;
+  verified?: boolean;
 }
 
 interface ProductCardProps {
@@ -56,6 +58,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, storeView = false })
           >
             View Store
           </Link>
+        )}
+        
+        {product.verified && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="absolute bottom-2 right-2 bg-white rounded-full p-0.5">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Verified Merchant Product</p>
+                <p className="text-xs text-muted-foreground">This seller has been verified by our agents</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
       

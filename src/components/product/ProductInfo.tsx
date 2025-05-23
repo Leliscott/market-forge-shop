@@ -1,12 +1,14 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Star, Store, Check } from 'lucide-react';
+import { Star, Store, Check, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Store {
   id: string;
   name: string;
+  verified?: boolean;
 }
 
 interface ProductInfoProps {
@@ -21,13 +23,31 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ name, price, stock = 0, ratin
   return (
     <div className="space-y-6">
       <div>
-        <Link 
-          to={`/store/${store.id}`}
-          className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary"
-        >
-          <Store className="w-4 h-4 mr-1" />
-          {store.name}
-        </Link>
+        <div className="flex items-center">
+          <Link 
+            to={`/store/${store.id}`}
+            className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary"
+          >
+            <Store className="w-4 h-4 mr-1" />
+            {store.name}
+          </Link>
+          
+          {store.verified && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="ml-2">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Verified Merchant</p>
+                  <p className="text-xs text-muted-foreground">This seller has been verified by our agents</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
         <h1 className="mt-2 text-3xl font-bold">{name}</h1>
         
         <div className="flex items-center mt-2 space-x-2">

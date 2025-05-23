@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,6 +28,7 @@ import Orders from "./pages/Orders";
 import AuthCallback from "./pages/AuthCallback";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import UserProfile from "./pages/UserProfile";
+import AgentDashboard from "./pages/AgentDashboard";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +58,7 @@ function App() {
                 <Route path="/seller/orders" element={<Orders />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/profile" element={<UserProfile />} />
+                <Route path="/agent/dashboard" element={<AgentDashboard />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <CookieConsent />

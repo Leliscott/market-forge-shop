@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import AgentPortal from '@/components/agent/AgentPortal';
 
 const TermsAndConditions = () => {
   const navigate = useNavigate();
@@ -110,21 +111,34 @@ const TermsAndConditions = () => {
             <li>Properly disclose all pricing in South African Rand (ZAR), inclusive of VAT where applicable</li>
           </ul>
           
-          <h2>7. Intellectual Property</h2>
+          <h2 className="text-primary">7. Merchant Verification</h2>
+          <p>
+            As part of our commitment to a safe and trusted marketplace, all sellers must undergo a verification process to become Verified Merchants.
+          </p>
+          <ul>
+            <li><strong>Verification Requirements:</strong> Sellers must submit a valid South African ID document and a current selfie photograph clearly showing their face alongside the ID document for verification purposes.</li>
+            <li><strong>Verification Process:</strong> All submitted documents will be reviewed by authorized ShopMarket agents who will verify the authenticity of documents and confirm the identity of the merchant.</li>
+            <li><strong>Verification Status:</strong> Products from verified merchants will be marked with a verification badge, visible to customers.</li>
+            <li><strong>Data Protection:</strong> All personal identification documents submitted for verification will be stored securely in accordance with South African data protection laws.</li>
+            <li><strong>Revocation:</strong> ShopMarket reserves the right to revoke verified status at any time if fraud or misrepresentation is detected.</li>
+            <li><strong>Mandatory Verification:</strong> Beginning January 1, 2026, all merchants must complete the verification process to continue selling on our platform.</li>
+          </ul>
+          
+          <h2>8. Intellectual Property</h2>
           <p>
             The platform and its original content, features, and functionality are and will remain the exclusive
             property of ShopMarket and its licensors. The platform is protected by copyright, trademark, and other
             laws of the Republic of South Africa and foreign countries.
           </p>
           
-          <h2>8. Privacy Policy and Cookies</h2>
+          <h2>9. Privacy Policy and Cookies</h2>
           <p>
             Your use of our platform is also subject to our Privacy Policy, which outlines how we collect,
             use, disclose, and safeguard your information. By using our platform, you consent to the collection 
             and use of cookies in accordance with our Cookie Policy.
           </p>
           
-          <h2>9. Limitation of Liability</h2>
+          <h2>10. Limitation of Liability</h2>
           <p>
             In no event shall ShopMarket, nor its directors, employees, partners, agents, suppliers,
             or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages,
@@ -132,26 +146,26 @@ const TermsAndConditions = () => {
             resulting from your access to or use of or inability to access or use the platform.
           </p>
           
-          <h2>10. Governing Law</h2>
+          <h2>11. Governing Law</h2>
           <p>
             These Terms shall be governed and construed in accordance with the laws of the Republic of South Africa,
             without regard to its conflict of law provisions.
           </p>
           
-          <h2>11. VAT and Taxation</h2>
+          <h2>12. VAT and Taxation</h2>
           <p>
             All prices displayed on the platform are in South African Rand (ZAR) and include Value Added Tax (VAT) 
             where applicable. Sellers are responsible for ensuring compliance with all South African Revenue Service 
             (SARS) requirements regarding taxation.
           </p>
           
-          <h2>12. Changes to Terms</h2>
+          <h2>13. Changes to Terms</h2>
           <p>
             We reserve the right to modify or replace these Terms at any time. If a revision is material,
             we will try to provide at least 30 days' notice prior to any new terms taking effect.
           </p>
           
-          <h2>13. Contact Us</h2>
+          <h2>14. Contact Us</h2>
           <p>
             If you have any questions about these Terms, please contact us at support@shopmarket.co.za.
           </p>
@@ -183,6 +197,7 @@ const TermsAndConditions = () => {
         </div>
       </main>
       
+      <AgentPortal />
       <Footer />
     </div>
   );

@@ -9,6 +9,7 @@ import NewProductsSection from '@/components/home/NewProductsSection';
 import CategoriesSection from '@/components/home/CategoriesSection';
 import FeaturedStoresSection from '@/components/home/FeaturedStoresSection';
 import HowItWorksSection from '@/components/home/HowItWorksSection';
+import AgentPortal from '@/components/agent/AgentPortal';
 
 const Index = () => {
   const [newProducts, setNewProducts] = useState([]);
@@ -55,6 +56,7 @@ const Index = () => {
         <HowItWorksSection />
       </main>
       
+      <AgentPortal />
       <Footer />
     </div>
   );
