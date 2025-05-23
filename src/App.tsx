@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -31,8 +30,8 @@ import UserProfile from "./pages/UserProfile";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+function App() {
+  return (
     <BrowserRouter>
       <AuthProvider>
         <CartProvider>
@@ -44,6 +43,7 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/terms" element={<TermsAndConditions />} />
                 <Route path="/marketplace" element={<Marketplace />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/cart" element={<Cart />} />
@@ -55,7 +55,6 @@ const App = () => (
                 <Route path="/seller/products/edit/:id" element={<EditProduct />} />
                 <Route path="/seller/orders" element={<Orders />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/terms" element={<TermsAndConditions />} />
                 <Route path="/profile" element={<UserProfile />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
@@ -65,7 +64,7 @@ const App = () => (
         </CartProvider>
       </AuthProvider>
     </BrowserRouter>
-  </QueryClientProvider>
-);
+  );
+}
 
 export default App;

@@ -38,15 +38,29 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, storeView = false })
 
   return (
     <Card className="overflow-hidden product-card">
-      <Link to={`/product/${product.id}`}>
-        <div className="overflow-hidden aspect-square">
-          <img
-            src={product.image || '/placeholder.svg'}
-            alt={product.name}
-            className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
-          />
-        </div>
-        <CardContent className="p-4">
+      <div className="relative">
+        <Link to={`/product/${product.id}`} className="block">
+          <div className="overflow-hidden aspect-square">
+            <img
+              src={product.image || '/placeholder.svg'}
+              alt={product.name}
+              className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
+            />
+          </div>
+        </Link>
+        
+        {!storeView && (
+          <Link
+            to={`/store/${product.storeId}`}
+            className="absolute top-2 right-2 bg-white bg-opacity-90 text-xs font-medium py-1 px-2 rounded-md hover:bg-opacity-100"
+          >
+            View Store
+          </Link>
+        )}
+      </div>
+      
+      <CardContent className="p-4">
+        <Link to={`/product/${product.id}`}>
           <h3 className="text-lg font-medium line-clamp-1">{product.name}</h3>
           <p className="mt-1 font-semibold text-primary">R {product.price.toFixed(2)}</p>
           {product.description && (
@@ -54,17 +68,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, storeView = false })
               {product.description}
             </p>
           )}
-        </CardContent>
-        <CardFooter className="p-4 pt-0">
-          <Button 
-            className="w-full gap-2" 
-            onClick={handleAddToCart}
-          >
-            <ShoppingCart className="w-4 h-4" /> 
-            Add to Cart
-          </Button>
-        </CardFooter>
-      </Link>
+        </Link>
+      </CardContent>
+      
+      <CardFooter className="p-4 pt-0">
+        <Button 
+          className="w-full gap-2" 
+          onClick={handleAddToCart}
+        >
+          <ShoppingCart className="w-4 h-4" /> 
+          Add to Cart
+        </Button>
+      </CardFooter>
     </Card>
   );
 };

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Store, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,13 @@ import { Label } from '@/components/ui/label';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const CreateStore: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { profile, user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -27,6 +30,15 @@ const CreateStore: React.FC = () => {
   
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+
+  // Check if user has accepted terms
+  useEffect(() => {
+    if (profile && !profile.accepted_terms) {
+      navigate('/terms');
+    }
+  }, [profile, navigate]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -36,6 +48,7 @@ const CreateStore: React.FC = () => {
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      setLogoFile(file);
       const reader = new FileReader();
       
       reader.onloadend = () => {
@@ -49,6 +62,7 @@ const CreateStore: React.FC = () => {
   const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      setBannerFile(file);
       const reader = new FileReader();
       
       reader.onloadend = () => {
@@ -61,26 +75,68 @@ const CreateStore: React.FC = () => {
   
   const removeLogo = () => {
     setLogoPreview(null);
+    setLogoFile(null);
   };
   
   const removeBanner = () => {
     setBannerPreview(null);
+    setBannerFile(null);
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a store",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!formData.name || !formData.description || !formData.email || !formData.category) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Create store in Supabase
+      const { data: storeData, error: storeError } = await supabase
+        .from('stores')
+        .insert({
+          name: formData.name,
+          description: formData.description,
+          owner_id: user.id,
+          logo: logoPreview || '',
+        })
+        .select()
+        .single();
+      
+      if (storeError) throw storeError;
+      
       toast({
         title: "Store created successfully",
         description: `Your store "${formData.name}" has been created.`,
       });
       
       navigate('/seller/dashboard');
+    } catch (error) {
+      console.error("Error creating store:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create store. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
   
   return (

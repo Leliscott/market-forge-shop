@@ -55,7 +55,7 @@ const RegisterForm = ({ onSuccess }: RegisterFormProps) => {
         onSuccess(data.role);
       } else {
         if (data.role === 'seller') {
-          navigate('/seller/create-store');
+          navigate('/terms');
         } else {
           navigate('/');
         }
