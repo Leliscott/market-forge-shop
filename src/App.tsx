@@ -8,7 +8,7 @@ import { NotificationProvider } from '@/context/NotificationContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { Toaster } from '@/components/ui/toaster';
 import CookieConsent from '@/components/CookieConsent';
-import WhatsAppContact from '@/components/WhatsAppContact';
+import GlobalWhatsAppContact from '@/components/GlobalWhatsAppContact';
 import './App.css';
 
 // Lazy load components
@@ -68,7 +68,7 @@ function App() {
                   </Suspense>
                   <Toaster />
                   <CookieConsent />
-                  <WhatsAppContact />
+                  <GlobalWhatsAppContact />
                 </div>
               </NotificationProvider>
             </CartProvider>
