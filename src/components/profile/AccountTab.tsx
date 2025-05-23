@@ -11,7 +11,7 @@ import { Profile } from '@/context/types/AuthTypes';
 
 interface AccountTabProps {
   user: {
-    email: string | undefined;
+    email?: string | undefined;
   } | null;
   profile: Profile | null;
   profileData: {
