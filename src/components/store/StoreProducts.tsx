@@ -4,6 +4,7 @@ import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Package } from 'lucide-react';
+import { formatCurrency } from '@/utils/constants';
 
 interface Product {
   id: string;
@@ -19,10 +20,31 @@ interface StoreProductsProps {
   products: Product[];
   isOwnStore?: boolean;
   storeId?: string;
+  isLoading?: boolean;
 }
 
-const StoreProducts: React.FC<StoreProductsProps> = ({ products, isOwnStore = false, storeId }) => {
-  if (products.length === 0) {
+const StoreProducts: React.FC<StoreProductsProps> = ({ 
+  products, 
+  isOwnStore = false, 
+  storeId,
+  isLoading = false
+}) => {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="animate-pulse">
+            <div className="bg-gray-200 aspect-square rounded-lg mb-4"></div>
+            <div className="h-5 bg-gray-200 rounded w-2/3 mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/3 mb-3"></div>
+            <div className="h-10 bg-gray-200 rounded"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  
+  if (!products || products.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">

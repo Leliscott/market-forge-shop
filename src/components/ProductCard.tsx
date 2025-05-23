@@ -7,6 +7,7 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useCart } from '@/context/CartContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from '@/integrations/supabase/client';
+import { formatCurrency } from '@/utils/constants';
 
 interface Product {
   id: string;
@@ -98,7 +99,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, storeView = false })
       <CardContent className="p-4">
         <Link to={`/product/${product.id}`}>
           <h3 className="text-lg font-medium line-clamp-1">{product.name}</h3>
-          <p className="mt-1 font-semibold text-primary">R {product.price.toFixed(2)}</p>
+          <p className="mt-1 font-semibold text-primary">{formatCurrency(product.price)}</p>
           {product.description && (
             <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
               {product.description}

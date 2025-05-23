@@ -5,6 +5,7 @@ import { Star, Store, Check, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
+import { formatCurrency } from '@/utils/constants';
 
 interface Store {
   id: string;
@@ -85,7 +86,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ name, price, stock = 0, ratin
       </div>
       
       <div className="text-3xl font-bold text-primary">
-        R{price.toFixed(2)}
+        {formatCurrency(price)}
       </div>
       
       {/* Stock status */}
