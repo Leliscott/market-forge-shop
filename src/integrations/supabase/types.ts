@@ -527,6 +527,8 @@ export type Database = {
       }
       stores: {
         Row: {
+          contact_email: string | null
+          contact_phone: string | null
           created_at: string | null
           description: string | null
           id: string
@@ -537,6 +539,8 @@ export type Database = {
           verified: boolean | null
         }
         Insert: {
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -547,6 +551,8 @@ export type Database = {
           verified?: boolean | null
         }
         Update: {
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string | null
           description?: string | null
           id?: string

@@ -28,8 +28,7 @@ const DeliveryFormPage = () => {
           .select(`
             *,
             profiles:user_id (
-              full_name,
-              phone,
+              name,
               email
             )
           `)
@@ -49,9 +48,8 @@ const DeliveryFormPage = () => {
                 name,
                 contact_phone,
                 contact_email,
-                profiles:user_id (
-                  full_name,
-                  phone,
+                profiles:owner_id (
+                  name,
                   email
                 )
               )
@@ -62,14 +60,14 @@ const DeliveryFormPage = () => {
 
         if (itemsError) throw itemsError;
 
-        if (orderItems && orderItems.length > 0) {
+        if (orderItems && orderItems.length > 0 && orderItems[0].products?.stores) {
           const store = orderItems[0].products.stores;
           const storeOwner = store.profiles;
           
           setSellerContact({
             name: store.name,
-            phone: store.contact_phone || storeOwner.phone,
-            email: store.contact_email || storeOwner.email,
+            phone: store.contact_phone || storeOwner?.email || 'Contact via email',
+            email: store.contact_email || storeOwner?.email || 'No email provided',
           });
         }
 
