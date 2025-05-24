@@ -50,12 +50,11 @@ const ShippingForm: React.FC<ShippingFormProps> = ({ onAddressChange }) => {
 
   const watchedValues = form.watch();
 
-  // Load saved address from profile
+  // Load saved address from profile only once
   useEffect(() => {
     if (profile?.location) {
       try {
         const savedData = JSON.parse(profile.location);
-        // Load shipping address specifically
         const shippingAddress = savedData.shippingAddress || savedData;
         
         form.setValue('firstName', shippingAddress.firstName || '');
@@ -70,20 +69,24 @@ const ShippingForm: React.FC<ShippingFormProps> = ({ onAddressChange }) => {
     }
   }, [profile, form]);
 
-  // Auto-save valid address and notify parent
+  // Only notify parent of changes - NO AUTO-SAVE
   useEffect(() => {
     if (form.formState.isValid) {
       onAddressChange(watchedValues);
-      // Auto-save when form is valid
-      saveShippingAddress();
     }
   }, [watchedValues, form.formState.isValid, onAddressChange]);
 
   const saveShippingAddress = async () => {
-    if (!user || !form.formState.isValid) return;
+    if (!user || !form.formState.isValid) {
+      toast({
+        title: "Save Failed",
+        description: "Please complete all required fields first.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
-      // Get existing location data
       let locationData = {};
       if (profile?.location) {
         try {
@@ -93,7 +96,6 @@ const ShippingForm: React.FC<ShippingFormProps> = ({ onAddressChange }) => {
         }
       }
 
-      // Update with shipping address
       const updatedData = {
         ...locationData,
         shippingAddress: watchedValues
@@ -106,24 +108,6 @@ const ShippingForm: React.FC<ShippingFormProps> = ({ onAddressChange }) => {
 
       if (error) throw error;
 
-      console.log('Shipping address auto-saved');
-    } catch (error) {
-      console.error('Error auto-saving shipping address:', error);
-    }
-  };
-
-  const manualSave = async () => {
-    if (!user || !form.formState.isValid) {
-      toast({
-        title: "Save Failed",
-        description: "Please complete all required fields first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await saveShippingAddress();
       toast({
         title: "Address Saved",
         description: "Your shipping address has been saved for future orders.",
@@ -229,7 +213,7 @@ const ShippingForm: React.FC<ShippingFormProps> = ({ onAddressChange }) => {
         {form.formState.isValid && (
           <div className="bg-green-50 border border-green-200 p-3 rounded-lg">
             <p className="text-sm text-green-800">
-              ✓ Address automatically saved for future orders
+              ✓ Address ready for checkout
             </p>
           </div>
         )}
@@ -238,7 +222,7 @@ const ShippingForm: React.FC<ShippingFormProps> = ({ onAddressChange }) => {
           type="button" 
           variant="outline" 
           size="sm"
-          onClick={manualSave}
+          onClick={saveShippingAddress}
           className="mt-4"
         >
           Save Address for Future Orders

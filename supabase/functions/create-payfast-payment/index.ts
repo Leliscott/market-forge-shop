@@ -11,14 +11,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Cache for frequently used values
-const ENV_CACHE = {
-  supabaseUrl: Deno.env.get('SUPABASE_URL') ?? '',
-  serviceRoleKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-};
-
 serve(async (req) => {
-  // Handle CORS preflight requests immediately
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -26,43 +19,55 @@ serve(async (req) => {
   const startTime = Date.now();
   
   try {
-    // Validate method early
     if (req.method !== 'POST') {
       return createErrorResponse('Method not allowed', 405, startTime);
     }
 
-    // Initialize Supabase client with cached values
-    if (!ENV_CACHE.supabaseUrl || !ENV_CACHE.serviceRoleKey) {
-      throw new ValidationError('Supabase configuration missing', 500);
+    console.log('=== PAYFAST PAYMENT REQUEST STARTED ===');
+
+    // Initialize Supabase
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new ValidationError('Server configuration error', 500);
     }
 
-    const supabaseClient = createClient(ENV_CACHE.supabaseUrl, ENV_CACHE.serviceRoleKey);
+    const supabaseClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Fast auth validation
+    // Fast auth check
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return createErrorResponse('Authorization header missing or invalid', 401, startTime);
+    if (!authHeader?.startsWith('Bearer ')) {
+      return createErrorResponse('Invalid authorization', 401, startTime);
     }
 
-    // Parse and validate request body
-    const requestBody = await parseRequestBody(req);
+    // Parse request
+    const requestBody = await req.json().catch(() => {
+      throw new ValidationError('Invalid request body');
+    });
+
+    console.log('Validating request...');
     const validatedRequest = validatePaymentRequest(requestBody);
     const { merchantId, merchantKey } = validateEnvironment();
 
-    // Get user with timeout
-    const { data: { user }, error: userError } = await getUser(supabaseClient, authHeader);
+    // Get user
+    console.log('Getting user...');
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+    
     if (userError || !user) {
       console.error('Auth error:', userError);
       return createErrorResponse('Authentication failed', 401, startTime);
     }
 
-    console.log('Creating PayFast payment for user:', user.id, 'amount:', validatedRequest.amount, 'time:', Date.now() - startTime + 'ms');
+    console.log(`Processing payment for user: ${user.id}, amount: ${validatedRequest.amount}`);
 
-    // Generate secure payment ID
-    const timestamp = Date.now();
-    const paymentId = `${user.id.slice(-8)}_${timestamp}`;
+    // Generate payment ID
+    const paymentId = `${user.id.slice(-8)}_${Date.now()}`;
     
-    // Create order
+    // Create order (fast operation)
+    console.log('Creating order...');
     const order = await createOrder(
       supabaseClient,
       user,
@@ -74,11 +79,13 @@ serve(async (req) => {
       validatedRequest.delivery_charge || 0
     );
 
-    // Create order items in background - fix the async call
-    createOrderItems(supabaseClient, order.id, validatedRequest.cart_items);
+    // Create order items asynchronously (don't wait)
+    createOrderItems(supabaseClient, order.id, validatedRequest.cart_items)
+      .catch(error => console.error('Order items creation failed:', error));
 
-    // Prepare PayFast payment data
-    const baseUrl = req.headers.get('origin') || ENV_CACHE.supabaseUrl.replace('/auth/v1', '');
+    // Prepare PayFast data
+    console.log('Preparing PayFast data...');
+    const baseUrl = req.headers.get('origin') || supabaseUrl.replace('/auth/v1', '');
     const paymentData = createPayFastData(
       merchantId,
       merchantKey,
@@ -92,10 +99,11 @@ serve(async (req) => {
     );
 
     // Generate signature
+    console.log('Generating signature...');
     const signature = await generateSecurePayFastSignature(paymentData, merchantKey);
     
     const processingTime = Date.now() - startTime;
-    console.log('PayFast payment prepared successfully in', processingTime + 'ms');
+    console.log(`PayFast payment prepared successfully in ${processingTime}ms`);
 
     const response: SuccessResponse = {
       success: true,
@@ -117,23 +125,6 @@ serve(async (req) => {
   }
 });
 
-async function parseRequestBody(req: Request) {
-  try {
-    return await req.json();
-  } catch (error) {
-    throw new ValidationError('Invalid JSON payload');
-  }
-}
-
-async function getUser(supabaseClient: any, authHeader: string) {
-  const authPromise = supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''));
-  const timeoutPromise = new Promise((_, reject) => 
-    setTimeout(() => reject(new Error('Auth timeout')), 5000)
-  );
-  
-  return await Promise.race([authPromise, timeoutPromise]) as any;
-}
-
 function createErrorResponse(message: string, status: number, startTime: number): Response {
   const response: ErrorResponse = {
     success: false,
@@ -149,7 +140,7 @@ function createErrorResponse(message: string, status: number, startTime: number)
 
 function handleError(error: any, startTime: number): Response {
   const processingTime = Date.now() - startTime;
-  console.error('PayFast payment error:', error, 'time:', processingTime + 'ms');
+  console.error('PayFast payment error:', error, `Processing time: ${processingTime}ms`);
   
   let errorMessage = 'Payment creation failed';
   let statusCode = 500;
@@ -157,10 +148,10 @@ function handleError(error: any, startTime: number): Response {
   if (error instanceof ValidationError) {
     errorMessage = error.message;
     statusCode = error.statusCode;
-  } else if (error.message?.includes('timeout') || error.message?.includes('Auth timeout')) {
+  } else if (error.message?.includes('timeout')) {
     errorMessage = 'Request timeout - please try again';
     statusCode = 408;
-  } else if (error.message?.includes('configuration') || error.message?.includes('credentials')) {
+  } else if (error.message?.includes('configuration')) {
     errorMessage = 'Payment system temporarily unavailable';
     statusCode = 503;
   }
