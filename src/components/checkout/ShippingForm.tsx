@@ -1,76 +1,143 @@
 
 import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Input } from '@/components/ui/input';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 
-const ShippingForm = () => {
+const shippingAddressSchema = z.object({
+  firstName: z.string().min(2, 'First name must be at least 2 characters'),
+  lastName: z.string().min(2, 'Last name must be at least 2 characters'),
+  address: z.string().min(5, 'Please enter a complete address'),
+  city: z.string().min(2, 'Please enter a city'),
+  province: z.string().min(2, 'Please enter a province'),
+  postalCode: z.string().min(4, 'Please enter a valid postal code'),
+});
+
+type ShippingAddressForm = z.infer<typeof shippingAddressSchema>;
+
+interface ShippingFormProps {
+  onAddressChange: (address: any) => void;
+}
+
+const ShippingForm: React.FC<ShippingFormProps> = ({ onAddressChange }) => {
+  const form = useForm<ShippingAddressForm>({
+    resolver: zodResolver(shippingAddressSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      address: '',
+      city: '',
+      province: '',
+      postalCode: '',
+    },
+  });
+
+  const watchedValues = form.watch();
+
+  React.useEffect(() => {
+    if (form.formState.isValid) {
+      onAddressChange(watchedValues);
+    }
+  }, [watchedValues, form.formState.isValid, onAddressChange]);
+
   return (
-    <form className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="firstName" className="block text-sm font-medium mb-1">
-            First Name
-          </label>
-          <input
-            id="firstName"
-            type="text"
-            className="w-full p-2 border rounded"
+    <Form {...form}>
+      <form className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="firstName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>First Name *</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="lastName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Last Name *</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
-        <div>
-          <label htmlFor="lastName" className="block text-sm font-medium mb-1">
-            Last Name
-          </label>
-          <input
-            id="lastName"
-            type="text"
-            className="w-full p-2 border rounded"
-          />
-        </div>
-      </div>
-      
-      <div>
-        <label htmlFor="address" className="block text-sm font-medium mb-1">
-          Street Address
-        </label>
-        <input
-          id="address"
-          type="text"
-          className="w-full p-2 border rounded"
+        
+        <FormField
+          control={form.control}
+          name="address"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Street Address *</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div>
-          <label htmlFor="city" className="block text-sm font-medium mb-1">
-            City
-          </label>
-          <input
-            id="city"
-            type="text"
-            className="w-full p-2 border rounded"
+        
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <FormField
+            control={form.control}
+            name="city"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>City *</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="province"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Province *</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="postalCode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Postal Code *</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
-        <div>
-          <label htmlFor="state" className="block text-sm font-medium mb-1">
-            State/Province
-          </label>
-          <input
-            id="state"
-            type="text"
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        <div>
-          <label htmlFor="zip" className="block text-sm font-medium mb-1">
-            ZIP / Postal
-          </label>
-          <input
-            id="zip"
-            type="text"
-            className="w-full p-2 border rounded"
-          />
-        </div>
-      </div>
-    </form>
+      </form>
+    </Form>
   );
 };
 

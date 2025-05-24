@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,10 @@ import PaymentForm from '@/components/checkout/PaymentForm';
 import OrderSummary from '@/components/checkout/OrderSummary';
 
 const Checkout = () => {
+  const [shippingAddress, setShippingAddress] = useState(null);
+  const [billingAddress, setBillingAddress] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
@@ -25,7 +29,7 @@ const Checkout = () => {
             </Button>
           </div>
           
-          <h1 className="text-3xl font-bold mb-8">Checkout</h1>
+          <h1 className="text-3xl font-bold mb-8">Secure Checkout</h1>
           
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
@@ -33,15 +37,18 @@ const Checkout = () => {
               <Card>
                 <CardContent className="p-6">
                   <h2 className="text-xl font-semibold mb-4">Shipping Address</h2>
-                  <ShippingForm />
+                  <ShippingForm onAddressChange={setShippingAddress} />
                 </CardContent>
               </Card>
               
               {/* Payment Method */}
               <Card>
                 <CardContent className="p-6">
-                  <h2 className="text-xl font-semibold mb-4">Payment Method</h2>
-                  <PaymentForm />
+                  <h2 className="text-xl font-semibold mb-4">Payment & Billing</h2>
+                  <PaymentForm 
+                    onBillingAddressChange={setBillingAddress}
+                    isProcessing={isProcessing}
+                  />
                 </CardContent>
               </Card>
             </div>
@@ -50,7 +57,10 @@ const Checkout = () => {
             <div className="lg:col-span-1">
               <Card className="sticky top-20">
                 <CardContent className="p-6">
-                  <OrderSummary />
+                  <OrderSummary 
+                    shippingAddress={shippingAddress}
+                    billingAddress={billingAddress}
+                  />
                 </CardContent>
               </Card>
             </div>
