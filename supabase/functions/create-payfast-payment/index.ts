@@ -57,6 +57,7 @@ serve(async (req) => {
     const merchantKey = Deno.env.get('PAYFAST_MERCHANT_KEY')
     
     if (!merchantId || !merchantKey) {
+      console.error('PayFast credentials missing:', { merchantId: !!merchantId, merchantKey: !!merchantKey })
       throw new Error('PayFast credentials not configured')
     }
 
@@ -130,6 +131,8 @@ serve(async (req) => {
       custom_str2: user.id,
     }
 
+    console.log('PayFast payment data:', paymentData)
+
     // Generate signature for PayFast using proper MD5 implementation
     const signature = await generatePayFastSignature(paymentData, merchantKey)
     
@@ -143,7 +146,7 @@ serve(async (req) => {
       order_id: order.id
     }
 
-    console.log('PayFast payment data prepared successfully')
+    console.log('PayFast payment data prepared successfully, signature:', signature)
 
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -165,36 +168,30 @@ serve(async (req) => {
 })
 
 async function generatePayFastSignature(data: Record<string, string>, passphrase: string): Promise<string> {
-  // Create parameter string
-  const params = Object.keys(data)
-    .filter(key => key !== 'signature' && data[key] !== '')
+  // Create parameter string - exclude merchant_key and signature from the string
+  const filteredData = { ...data }
+  delete filteredData.merchant_key
+  delete filteredData.signature
+  
+  const params = Object.keys(filteredData)
+    .filter(key => filteredData[key] !== '' && filteredData[key] !== null && filteredData[key] !== undefined)
     .sort()
-    .map(key => `${key}=${encodeURIComponent(data[key])}`)
+    .map(key => `${key}=${encodeURIComponent(filteredData[key])}`)
     .join('&')
   
-  // Add passphrase
-  const stringToSign = params + `&passphrase=${encodeURIComponent(passphrase)}`
+  // Add passphrase if provided
+  const stringToSign = passphrase ? params + `&passphrase=${encodeURIComponent(passphrase)}` : params
   
-  console.log('String to sign:', stringToSign)
+  console.log('String to sign for PayFast:', stringToSign)
   
-  // Generate MD5 hash using a proper implementation
-  const md5Hash = await md5(stringToSign)
-  
-  return md5Hash
-}
-
-// Proper MD5 implementation for Deno
-async function md5(message: string): Promise<string> {
-  // Convert string to bytes
-  const encoder = new TextEncoder()
-  const data = encoder.encode(message)
-  
-  // Use SHA-256 instead of MD5 for now, as MD5 is not available in Deno
-  // PayFast documentation should be checked if SHA-256 is acceptable
-  // For now, let's implement a working MD5 using a different approach
-  
-  // Import crypto-js for MD5 hashing
-  const { MD5 } = await import('https://deno.land/x/crypto_js@4.1.1/mod.ts')
-  
-  return MD5(message).toString()
+  // Generate MD5 hash using crypto-js
+  try {
+    const { MD5 } = await import('https://deno.land/x/crypto_js@4.1.1/mod.ts')
+    const hash = MD5(stringToSign).toString()
+    console.log('Generated MD5 signature:', hash)
+    return hash
+  } catch (error) {
+    console.error('Error generating MD5 hash:', error)
+    throw new Error('Failed to generate payment signature')
+  }
 }

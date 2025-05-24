@@ -103,6 +103,8 @@ export const useOrderSubmit = () => {
           throw new Error('Payment system configuration error. Please contact support.');
         } else if (error.message?.includes('Unauthorized')) {
           throw new Error('Session expired. Please refresh the page and try again.');
+        } else if (error.message?.includes('Failed to create order')) {
+          throw new Error('Unable to create order. Please check your information and try again.');
         } else {
           throw new Error(`Payment setup failed: ${error.message}`);
         }
@@ -113,26 +115,9 @@ export const useOrderSubmit = () => {
       }
 
       if (data.success && data.payment_url && data.payment_data) {
-        console.log('PayFast payment data received, redirecting...');
+        console.log('PayFast payment data received, redirecting to:', data.payment_url);
         
-        // Create form and redirect to PayFast
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = data.payment_url;
-        form.style.display = 'none';
-
-        // Add all payment data as hidden fields
-        Object.entries(data.payment_data).forEach(([key, value]) => {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = value as string;
-          form.appendChild(input);
-        });
-
-        document.body.appendChild(form);
-        
-        // Clear cart before redirect
+        // Clear cart before redirect for better UX
         clearCart();
         
         toast({
@@ -140,10 +125,25 @@ export const useOrderSubmit = () => {
           description: "You will be redirected to PayFast to complete your payment securely. Your transaction is protected under South African consumer laws.",
         });
 
-        // Small delay to ensure user sees the toast
+        // Create form and redirect to PayFast with small delay
         setTimeout(() => {
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = data.payment_url;
+          form.style.display = 'none';
+
+          // Add all payment data as hidden fields
+          Object.entries(data.payment_data).forEach(([key, value]) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = value as string;
+            form.appendChild(input);
+          });
+
+          document.body.appendChild(form);
           form.submit();
-        }, 1000);
+        }, 1500);
 
       } else {
         throw new Error(data.error || 'Payment creation failed - invalid response format');
@@ -154,12 +154,14 @@ export const useOrderSubmit = () => {
       // Enhanced error messaging
       let userMessage = "There was an error processing your payment. Please try again.";
       
-      if (error.message?.includes('configuration')) {
+      if (error.message?.includes('configuration') || error.message?.includes('credentials')) {
         userMessage = "Payment system is temporarily unavailable. Please contact support.";
       } else if (error.message?.includes('session') || error.message?.includes('Unauthorized')) {
         userMessage = "Your session has expired. Please refresh the page and try again.";
       } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
         userMessage = "Network error. Please check your connection and try again.";
+      } else if (error.message?.includes('order')) {
+        userMessage = "Unable to process your order. Please verify your information and try again.";
       }
       
       toast({
