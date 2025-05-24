@@ -264,6 +264,57 @@ export type Database = {
           },
         ]
       }
+      order_financials: {
+        Row: {
+          created_at: string
+          gross_amount: number
+          id: string
+          marketplace_fee: number
+          net_amount: number
+          order_id: string
+          seller_profit: number
+          store_id: string
+          vat_amount: number
+        }
+        Insert: {
+          created_at?: string
+          gross_amount: number
+          id?: string
+          marketplace_fee: number
+          net_amount: number
+          order_id: string
+          seller_profit: number
+          store_id: string
+          vat_amount: number
+        }
+        Update: {
+          created_at?: string
+          gross_amount?: number
+          id?: string
+          marketplace_fee?: number
+          net_amount?: number
+          order_id?: string
+          seller_profit?: number
+          store_id?: string
+          vat_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_financials_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_financials_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -433,6 +484,47 @@ export type Database = {
         }
         Relationships: []
       }
+      seller_accounts: {
+        Row: {
+          available_balance: number
+          created_at: string
+          id: string
+          pending_balance: number
+          store_id: string
+          total_earnings: number
+          total_withdrawn: number
+          updated_at: string
+        }
+        Insert: {
+          available_balance?: number
+          created_at?: string
+          id?: string
+          pending_balance?: number
+          store_id: string
+          total_earnings?: number
+          total_withdrawn?: number
+          updated_at?: string
+        }
+        Update: {
+          available_balance?: number
+          created_at?: string
+          id?: string
+          pending_balance?: number
+          store_id?: string
+          total_earnings?: number
+          total_withdrawn?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_accounts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stores: {
         Row: {
           created_at: string | null
@@ -465,6 +557,65 @@ export type Database = {
           verified?: boolean | null
         }
         Relationships: []
+      }
+      withdrawals: {
+        Row: {
+          account_holder_name: string
+          account_number: string
+          amount: number
+          bank_name: string
+          branch_code: string
+          created_at: string
+          id: string
+          notes: string | null
+          processed_at: string | null
+          processed_by: string | null
+          requested_at: string
+          seller_id: string
+          status: string
+          store_id: string
+        }
+        Insert: {
+          account_holder_name: string
+          account_number: string
+          amount: number
+          bank_name: string
+          branch_code: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_at?: string
+          seller_id: string
+          status?: string
+          store_id: string
+        }
+        Update: {
+          account_holder_name?: string
+          account_number?: string
+          amount?: number
+          bank_name?: string
+          branch_code?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_at?: string
+          seller_id?: string
+          status?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawals_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

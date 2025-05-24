@@ -33,6 +33,45 @@ const PaymentTerms = () => {
         <li>Delivery timeframes are estimates and may vary based on location and seller</li>
         <li>You can view all your orders and their status in your account dashboard</li>
       </ul>
+
+      <h2>7. VAT and Pricing Structure</h2>
+      <p>
+        All product prices on ShopMarket include VAT (Value Added Tax) at the current South African rate of 15%. 
+        The pricing structure works as follows:
+      </p>
+      <ul>
+        <li>Product prices displayed include 15% VAT</li>
+        <li>VAT is automatically calculated and deducted from seller earnings</li>
+        <li>Sellers are responsible for VAT compliance and registration where required</li>
+        <li>VAT certificates can be requested for business purchases</li>
+      </ul>
+
+      <h2>8. Seller Financial Terms</h2>
+      <p>
+        For sellers using the ShopMarket platform:
+      </p>
+      <ul>
+        <li>A marketplace service fee of 9% is charged on the net amount (after VAT deduction)</li>
+        <li>Seller profit = Gross Sale Price - VAT (15%) - Marketplace Fee (9% of net amount)</li>
+        <li>Earnings are available for withdrawal once orders are marked as "delivered"</li>
+        <li>Withdrawal requests are processed within 3-5 business days</li>
+        <li>Sellers must provide valid South African banking details for withdrawals</li>
+        <li>All financial records and transaction details are maintained for auditing purposes</li>
+        <li>Sellers acknowledge that marketplace fees cover payment processing, platform maintenance, customer support, and marketing services</li>
+      </ul>
+
+      <h2>9. Withdrawal and Banking</h2>
+      <p>
+        Withdrawal of seller earnings is subject to the following terms:
+      </p>
+      <ul>
+        <li>Minimum withdrawal amount may apply as determined by ShopMarket</li>
+        <li>Banking details must be verified and belong to the registered seller</li>
+        <li>Withdrawal requests are reviewed and processed by our finance team</li>
+        <li>Fraudulent or suspicious activity may result in withdrawal delays or account suspension</li>
+        <li>Bank charges for transfers may apply and will be deducted from the withdrawal amount</li>
+        <li>Sellers are responsible for declaring earnings for tax purposes</li>
+      </ul>
     </div>
   );
 };

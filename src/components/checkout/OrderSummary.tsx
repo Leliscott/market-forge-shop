@@ -7,6 +7,7 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { formatCurrency } from '@/utils/constants';
 
 interface CartItem {
   id: string;
@@ -28,8 +29,11 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ shippingAddress, billingAdd
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const tax = totalPrice * 0.15; // 15% VAT for South Africa
-  const finalTotal = totalPrice + tax;
+  // Calculate VAT and final total with VAT included
+  const vatRate = 0.15; // 15% VAT
+  const subtotalExcludingVAT = totalPrice / (1 + vatRate);
+  const vatAmount = totalPrice - subtotalExcludingVAT;
+  const finalTotal = totalPrice; // VAT is already included in product prices
 
   const handleCompleteOrder = async () => {
     if (!user) {
@@ -125,17 +129,23 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ shippingAddress, billingAdd
                 </span>
                 {item.name}
               </span>
-              <span>R{(item.price * item.quantity).toFixed(2)}</span>
+              <span>{formatCurrency(item.price * item.quantity)}</span>
             </div>
           ))}
         </div>
         
         <Separator />
         
-        {/* Subtotal */}
+        {/* Subtotal (excluding VAT) */}
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Subtotal</span>
-          <span>R{totalPrice.toFixed(2)}</span>
+          <span className="text-muted-foreground">Subtotal (excl. VAT)</span>
+          <span>{formatCurrency(subtotalExcludingVAT)}</span>
+        </div>
+        
+        {/* VAT */}
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">VAT (15%)</span>
+          <span>{formatCurrency(vatAmount)}</span>
         </div>
         
         {/* Shipping */}
@@ -144,18 +154,18 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ shippingAddress, billingAdd
           <span>Free</span>
         </div>
         
-        {/* Tax (VAT) */}
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">VAT (15%)</span>
-          <span>R{tax.toFixed(2)}</span>
-        </div>
-        
         <Separator />
         
         {/* Total */}
         <div className="flex justify-between font-medium text-lg">
-          <span>Total</span>
-          <span>R{finalTotal.toFixed(2)}</span>
+          <span>Total (incl. VAT)</span>
+          <span>{formatCurrency(finalTotal)}</span>
+        </div>
+        
+        {/* Fee Information */}
+        <div className="bg-blue-50 p-3 rounded-lg text-sm">
+          <p className="text-blue-800 font-medium mb-1">Payment Information</p>
+          <p className="text-blue-700">VAT (15%) is included in all product prices. Sellers receive their profit after VAT and marketplace fees are deducted.</p>
         </div>
         
         <Button 
@@ -172,7 +182,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ shippingAddress, billingAdd
           ) : (
             <>
               <Check className="mr-2 h-4 w-4" />
-              Pay with PayFast - R{finalTotal.toFixed(2)}
+              Pay with PayFast - {formatCurrency(finalTotal)}
             </>
           )}
         </Button>

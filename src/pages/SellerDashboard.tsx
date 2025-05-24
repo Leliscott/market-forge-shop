@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -6,7 +7,7 @@ import {
 } from 'recharts';
 import { 
   ShoppingBag, DollarSign, Users, ArrowUpRight, 
-  ArrowDownRight, Store, Package, Plus, Clock, Shield, CheckCircle
+  ArrowDownRight, Store, Package, Plus, Clock, Shield, CheckCircle, CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,9 +21,11 @@ import Footer from '@/components/Footer';
 import NewStockView from '@/components/seller/NewStockView';
 import DashboardSkeleton from '@/components/seller/DashboardSkeleton';
 import VerificationDialog from '@/components/seller/VerificationDialog';
+import SellerAccountDashboard from '@/components/seller/SellerAccountDashboard';
 import { useAuth } from '@/context/AuthContext';
 import { useSellerData } from '@/hooks/useSellerData';
 import { useVerificationStatus } from '@/hooks/useVerificationStatus';
+import { formatCurrency } from '@/utils/constants';
 
 const SellerDashboard: React.FC = () => {
   const { userStore } = useAuth();
@@ -258,6 +261,7 @@ const SellerDashboard: React.FC = () => {
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="orders">Orders</TabsTrigger>
                   <TabsTrigger value="new-stock">New Stock</TabsTrigger>
+                  <TabsTrigger value="account">Account & Withdrawals</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="overview">
@@ -291,7 +295,7 @@ const SellerDashboard: React.FC = () => {
                             <div className="flex justify-between items-center">
                               <div>
                                 <p className="text-sm font-medium text-muted-foreground">Revenue</p>
-                                <p className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</p>
+                                <p className="text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</p>
                               </div>
                               <div className="bg-primary/10 p-2 rounded-full">
                                 <DollarSign className="h-6 w-6 text-primary" />
@@ -401,7 +405,7 @@ const SellerDashboard: React.FC = () => {
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey="name" />
                               <YAxis />
-                              <Tooltip />
+                              <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                               <Line type="monotone" dataKey="revenue" stroke="#8884d8" activeDot={{ r: 8 }} />
                             </LineChart>
                           </ResponsiveContainer>
@@ -440,7 +444,7 @@ const SellerDashboard: React.FC = () => {
                                 <TableCell>
                                   {new Date(order.created_at).toLocaleDateString()}
                                 </TableCell>
-                                <TableCell>${order.total_amount.toFixed(2)}</TableCell>
+                                <TableCell>{formatCurrency(order.total_amount)}</TableCell>
                                 <TableCell>
                                   <Badge className={getStatusBadgeColor(order.status)}>
                                     {order.status}
@@ -510,7 +514,7 @@ const SellerDashboard: React.FC = () => {
                                 <TableCell>
                                   {new Date(order.created_at).toLocaleDateString()}
                                 </TableCell>
-                                <TableCell>${order.total_amount.toFixed(2)}</TableCell>
+                                <TableCell>{formatCurrency(order.total_amount)}</TableCell>
                                 <TableCell>
                                   <Select
                                     value={order.status}
@@ -547,6 +551,10 @@ const SellerDashboard: React.FC = () => {
                 
                 <TabsContent value="new-stock">
                   <NewStockView products={newProducts} isLoading={false} />
+                </TabsContent>
+
+                <TabsContent value="account">
+                  <SellerAccountDashboard />
                 </TabsContent>
               </Tabs>
             </>
