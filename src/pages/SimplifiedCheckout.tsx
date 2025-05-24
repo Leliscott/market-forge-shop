@@ -18,7 +18,7 @@ interface DeliveryService {
   charge_amount: number;
 }
 
-const Checkout = () => {
+const SimplifiedCheckout = () => {
   const { items } = useCart();
   const [shippingAddress, setShippingAddress] = useState(null);
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryService | null>(null);
@@ -40,7 +40,7 @@ const Checkout = () => {
             </Button>
           </div>
           
-          <h1 className="text-3xl font-bold mb-8">Secure Checkout</h1>
+          <h1 className="text-3xl font-bold mb-8">Quick Checkout</h1>
           
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
@@ -82,4 +82,4 @@ const Checkout = () => {
   );
 };
 
-export default Checkout;
+export default SimplifiedCheckout;
