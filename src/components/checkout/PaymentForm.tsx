@@ -65,6 +65,10 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ onBillingAddressChange, isPro
     }
   }, [watchedValues, form.formState.isValid, onBillingAddressChange]);
 
+  const handleSameAsShippingChange = (checked: boolean | "indeterminate") => {
+    setSameAsShipping(checked === true);
+  };
+
   return (
     <div className="space-y-6">
       {/* Security Notice */}
@@ -115,7 +119,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ onBillingAddressChange, isPro
               <Checkbox
                 id="sameAsShipping"
                 checked={sameAsShipping}
-                onCheckedChange={setSameAsShipping}
+                onCheckedChange={handleSameAsShippingChange}
               />
               <Label htmlFor="sameAsShipping" className="text-sm">
                 Same as shipping address
