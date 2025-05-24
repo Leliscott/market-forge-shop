@@ -23,7 +23,6 @@ export interface PayFastData {
   name_first: string;
   name_last: string;
   email_address: string;
-  cell_number: string;
   m_payment_id: string;
   amount: string;
   item_name: string;

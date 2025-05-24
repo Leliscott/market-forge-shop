@@ -65,10 +65,10 @@ export function createPayFastData(
   cart_items: any[],
   baseUrl: string
 ): PayFastData {
+  // Only use essential user information for payment processing
   const firstName = sanitizeUserInput(billing_address?.firstName || 'Customer');
   const lastName = sanitizeUserInput(billing_address?.lastName || 'Customer');
   const email = user.email || billing_address?.email || '';
-  const phone = sanitizePhone(billing_address?.phone || '');
 
   return {
     merchant_id: merchantId,
@@ -79,7 +79,6 @@ export function createPayFastData(
     name_first: firstName,
     name_last: lastName,
     email_address: email,
-    cell_number: phone,
     m_payment_id: paymentId,
     amount: amount.toFixed(2),
     item_name: `Order #${orderId.toString().slice(0, 8)}`,
