@@ -230,7 +230,7 @@ export const useOrderSubmit = () => {
         description: "Redirecting to secure payment...",
       });
 
-      // Prepare PayFast form data
+      // Prepare PayFast form data - INCLUDING merchant_key
       const baseUrl = window.location.origin;
       const paymentData = {
         merchant_id: merchantId,
@@ -249,11 +249,13 @@ export const useOrderSubmit = () => {
         custom_str2: user.id
       };
 
-      // Generate signature using MD5 with passphrase
-      const paramString = Object.keys(paymentData)
-        .filter(key => paymentData[key] !== '' && key !== 'merchant_key')
+      // Generate signature using MD5 with passphrase (exclude merchant_key from signature calculation)
+      const signatureData = { ...paymentData };
+      delete signatureData.merchant_key; // Remove merchant_key from signature calculation only
+      
+      const paramString = Object.keys(signatureData)
         .sort()
-        .map(key => `${key}=${encodeURIComponent(paymentData[key])}`)
+        .map(key => `${key}=${encodeURIComponent(signatureData[key])}`)
         .join('&');
       
       const stringToSign = `${paramString}&passphrase=${passphrase}`;
@@ -261,15 +263,15 @@ export const useOrderSubmit = () => {
 
       console.log('Generated MD5 signature:', signature);
 
-      // Create and submit form to PayFast
+      // Create and submit form to PayFast with ALL required fields
       const form = document.createElement('form');
       form.method = 'POST';
       form.action = 'https://www.payfast.co.za/eng/process';
       form.style.display = 'none';
 
-      // Add all payment data as hidden inputs (excluding merchant_key)
+      // Add ALL payment data as hidden inputs (including merchant_key)
       Object.entries({ ...paymentData, signature }).forEach(([key, value]) => {
-        if (key !== 'merchant_key' && value) {
+        if (value) {
           const input = document.createElement('input');
           input.type = 'hidden';
           input.name = key;
@@ -279,7 +281,7 @@ export const useOrderSubmit = () => {
       });
 
       document.body.appendChild(form);
-      console.log('Submitting form to PayFast with signature:', signature);
+      console.log('Submitting form to PayFast with all required fields including merchant_key');
       form.submit();
 
     } catch (error: any) {
