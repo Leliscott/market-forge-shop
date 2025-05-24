@@ -11,7 +11,7 @@ import FeaturedStoresSection from '@/components/home/FeaturedStoresSection';
 import HowItWorksSection from '@/components/home/HowItWorksSection';
 import AgentPortal from '@/components/agent/AgentPortal';
 
-const Index = () => {
+const Index: React.FC = () => {
   const [newProducts, setNewProducts] = useState([]);
   const [featuredStores, setFeaturedStores] = useState([]);
   const [loading, setLoading] = useState(true);
