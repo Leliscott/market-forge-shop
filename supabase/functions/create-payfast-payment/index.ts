@@ -72,15 +72,15 @@ serve(async (req) => {
       supabaseClient,
       user,
       validatedRequest.amount,
-      validatedRequest.shipping_address,
-      validatedRequest.billing_address,
+      validatedRequest.shipping_address || {}, // Allow empty shipping address
+      validatedRequest.billing_address || {}, // Allow empty billing address
       validatedRequest.cart_items,
       paymentId,
       validatedRequest.delivery_charge || 0
     );
 
-    // Create order items asynchronously (don't wait)
-    createOrderItems(supabaseClient, order.id, validatedRequest.cart_items)
+    // Create order items asynchronously (don't wait) - fix the .catch() issue
+    Promise.resolve(createOrderItems(supabaseClient, order.id, validatedRequest.cart_items))
       .catch(error => console.error('Order items creation failed:', error));
 
     // Prepare PayFast data
@@ -90,7 +90,7 @@ serve(async (req) => {
       merchantId,
       merchantKey,
       validatedRequest.amount,
-      validatedRequest.billing_address,
+      validatedRequest.billing_address || { firstName: 'Customer', lastName: 'Customer' },
       user,
       paymentId,
       order.id,

@@ -30,7 +30,7 @@ export const useOrderSubmit = () => {
     console.log('=== STARTING PAYMENT PROCESS ===');
     const startTime = Date.now();
 
-    // Fast validation
+    // Simplified validation - only check essential requirements
     if (!user || !profile?.accepted_terms) {
       toast({
         title: "Authentication Required",
@@ -40,10 +40,19 @@ export const useOrderSubmit = () => {
       return;
     }
 
-    if (!shippingAddress?.firstName || !finalTotal || finalTotal <= 0) {
+    if (!finalTotal || finalTotal <= 0) {
       toast({
         title: "Invalid Order",
-        description: "Please complete shipping address and verify order amount.",
+        description: "Please verify order amount.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!items.length) {
+      toast({
+        title: "Empty Cart",
+        description: "Please add items to cart before checkout.",
         variant: "destructive"
       });
       return;
@@ -52,7 +61,7 @@ export const useOrderSubmit = () => {
     setIsProcessing(true);
 
     try {
-      // Get fresh auth token with shorter timeout
+      // Get fresh auth token
       console.log('Getting auth session...');
       const { data: { session }, error: sessionError } = await Promise.race([
         supabase.auth.getSession(),
@@ -63,11 +72,11 @@ export const useOrderSubmit = () => {
         throw new Error('Please refresh and log in again');
       }
 
-      // Minimal payload for PayFast
+      // Minimal payload for PayFast - addresses are optional
       const payload = {
         amount: finalTotal,
-        shipping_address: shippingAddress,
-        billing_address: billingAddress || shippingAddress, // Use shipping as billing if not provided
+        shipping_address: shippingAddress || {},
+        billing_address: billingAddress || {},
         cart_items: items.map(item => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -79,10 +88,10 @@ export const useOrderSubmit = () => {
 
       console.log('Calling PayFast payment function...');
       
-      // Call PayFast with optimized timeout
+      // Call PayFast with timeout
       const { data, error } = await Promise.race([
         supabase.functions.invoke('create-payfast-payment', { body: payload }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Payment timeout')), 10000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Payment timeout')), 15000))
       ]) as any;
 
       const processingTime = Date.now() - startTime;
@@ -134,11 +143,9 @@ export const useOrderSubmit = () => {
       let userMessage = "Payment processing failed.";
       
       if (error.message?.includes('timeout')) {
-        userMessage = "Request timed out. Please check your connection and try again.";
+        userMessage = "Request timed out. Please try again.";
       } else if (error.message?.includes('session') || error.message?.includes('log in')) {
-        userMessage = "Session expired. Please refresh the page and log in again.";
-      } else if (error.message?.includes('Invalid') || error.message?.includes('setup failed')) {
-        userMessage = "Payment setup failed. Please verify your order details.";
+        userMessage = "Session expired. Please refresh and log in again.";
       } else if (error.message) {
         userMessage = error.message;
       }

@@ -9,10 +9,10 @@ export class ValidationError extends Error {
 }
 
 export function validatePaymentRequest(requestBody: any): PaymentRequest {
-  const { amount, shipping_address, billing_address, cart_items } = requestBody;
+  const { amount, cart_items } = requestBody;
   
-  if (!amount || !shipping_address || !billing_address || !cart_items?.length) {
-    throw new ValidationError('Missing required fields');
+  if (!amount || !cart_items?.length) {
+    throw new ValidationError('Missing required fields: amount and cart_items');
   }
 
   const numAmount = parseFloat(amount);
@@ -22,8 +22,8 @@ export function validatePaymentRequest(requestBody: any): PaymentRequest {
 
   return {
     amount: numAmount,
-    shipping_address,
-    billing_address,
+    shipping_address: requestBody.shipping_address || {},
+    billing_address: requestBody.billing_address || {},
     cart_items,
     delivery_charge: requestBody.delivery_charge || 0
   };
