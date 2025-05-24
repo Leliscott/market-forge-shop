@@ -5,6 +5,7 @@ import { Store } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import StoreForm from '@/components/store/StoreForm';
+import SellerTermsEnforcement from '@/components/seller/SellerTermsEnforcement';
 import { useAuth } from '@/context/AuthContext';
 
 const CreateStore: React.FC = () => {
@@ -34,6 +35,9 @@ const CreateStore: React.FC = () => {
               Set up your store to start selling products on our marketplace
             </p>
           </div>
+          
+          {/* Terms Enforcement for Sellers */}
+          <SellerTermsEnforcement />
           
           <StoreForm isEditing={false} />
         </div>

@@ -2,8 +2,9 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useTermsValidation } from '@/hooks/useTermsValidation';
 
 interface DeliveryService {
   id: string;
@@ -16,6 +17,7 @@ export const useOrderSubmit = () => {
   const { user, profile } = useAuth();
   const { items, clearCart } = useCart();
   const { toast } = useToast();
+  const { validateCustomerTerms } = useTermsValidation();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleCompleteOrder = async (
@@ -27,18 +29,27 @@ export const useOrderSubmit = () => {
   ) => {
     if (!user) {
       toast({
-        title: "Authentication required",
-        description: "Please log in to complete your order.",
+        title: "Authentication Required",
+        description: "Please log in to complete your order. This is required for consumer protection under South African law.",
         variant: "destructive"
       });
       return;
     }
 
-    // Check if user has accepted terms
+    // Enhanced terms validation with SA law compliance
+    if (!validateCustomerTerms()) {
+      toast({
+        title: "Legal Compliance Required",
+        description: "You must accept our Terms and Conditions, including POPIA privacy provisions and Consumer Protection Act rights, before making a purchase. This is required by South African law.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!profile?.accepted_terms) {
       toast({
         title: "Terms and Conditions Required",
-        description: "You must accept our terms and conditions before making a purchase.",
+        description: "You must accept our comprehensive terms and conditions, including POPIA compliance, before making a purchase. This is mandatory under South African e-commerce regulations.",
         variant: "destructive"
       });
       return;
@@ -46,8 +57,8 @@ export const useOrderSubmit = () => {
 
     if (!shippingAddress || !billingAddress) {
       toast({
-        title: "Missing information",
-        description: "Please complete both shipping and billing information.",
+        title: "Missing Required Information",
+        description: "Please complete both shipping and billing information. Complete customer details are required under the Consumer Protection Act.",
         variant: "destructive"
       });
       return;
@@ -64,7 +75,13 @@ export const useOrderSubmit = () => {
           billing_address: billingAddress,
           cart_items: items,
           delivery_service: selectedDelivery,
-          delivery_charge: deliveryCharge
+          delivery_charge: deliveryCharge,
+          legal_compliance: {
+            popia_consent: true,
+            cpa_acknowledged: true,
+            ect_act_consent: true,
+            terms_accepted_at: new Date().toISOString()
+          }
         }
       });
 
@@ -95,8 +112,8 @@ export const useOrderSubmit = () => {
         clearCart();
 
         toast({
-          title: "Redirecting to payment",
-          description: "You will be redirected to PayFast to complete your payment.",
+          title: "Redirecting to Secure Payment",
+          description: "You will be redirected to PayFast to complete your payment securely. Your transaction is protected under South African consumer laws.",
         });
       } else {
         throw new Error(data.error || 'Payment creation failed');
@@ -104,8 +121,8 @@ export const useOrderSubmit = () => {
     } catch (error: any) {
       console.error('Payment error:', error);
       toast({
-        title: "Payment failed",
-        description: error.message || "There was an error processing your payment. Please try again.",
+        title: "Payment Processing Failed",
+        description: error.message || "There was an error processing your payment. Please try again. If the problem persists, you have rights under the Consumer Protection Act.",
         variant: "destructive"
       });
     } finally {

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import StoreForm from '@/components/store/StoreForm';
+import SellerTermsEnforcement from '@/components/seller/SellerTermsEnforcement';
 import { useAuth } from '@/context/AuthContext';
 
 const StoreSettings: React.FC = () => {
@@ -53,6 +54,9 @@ const StoreSettings: React.FC = () => {
               Update your store information and settings
             </p>
           </div>
+          
+          {/* Terms Enforcement for Sellers */}
+          <SellerTermsEnforcement />
           
           <StoreForm isEditing={true} />
         </div>

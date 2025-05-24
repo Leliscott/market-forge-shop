@@ -11,6 +11,7 @@ import PricingBreakdown from './PricingBreakdown';
 import TermsValidation from './TermsValidation';
 import { useOrderCalculations } from './hooks/useOrderCalculations';
 import { useOrderSubmit } from './hooks/useOrderSubmit';
+import { useTermsValidation } from '@/hooks/useTermsValidation';
 
 interface DeliveryService {
   id: string;
@@ -33,6 +34,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   const { items, totalPrice } = useCart();
   const { profile } = useAuth();
   const { isProcessing, handleCompleteOrder } = useOrderSubmit();
+  const { hasAcceptedTerms, validateCustomerTerms } = useTermsValidation();
   
   const {
     deliveryCharge,
@@ -41,9 +43,13 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
     finalTotal
   } = useOrderCalculations(totalPrice, selectedDelivery);
 
-  const isReadyToProcess = shippingAddress && billingAddress && items.length > 0 && profile?.accepted_terms;
+  const isReadyToProcess = shippingAddress && billingAddress && items.length > 0 && hasAcceptedTerms;
 
   const onCompleteOrder = () => {
+    if (!validateCustomerTerms()) {
+      return;
+    }
+    
     handleCompleteOrder(
       finalTotal,
       shippingAddress,
@@ -73,15 +79,23 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
           selectedDelivery={selectedDelivery}
         />
         
-        {/* Terms Acceptance Check */}
-        <TermsValidation hasAcceptedTerms={!!profile?.accepted_terms} />
+        {/* Enhanced Terms Acceptance Check */}
+        <TermsValidation 
+          hasAcceptedTerms={hasAcceptedTerms} 
+          userType="customer"
+          showNavigateButton={true}
+        />
         
-        {/* Fee Information */}
-        <div className="bg-blue-50 p-3 rounded-lg text-sm">
-          <p className="text-blue-800 font-medium mb-1">Payment & Delivery Information</p>
-          <p className="text-blue-700">
-            VAT (15%) is included in product prices. Delivery charges are paid separately to the seller's selected delivery service. After payment, you'll receive seller contact details and must complete a delivery form.
-          </p>
+        {/* Enhanced Legal Information */}
+        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg text-sm space-y-2">
+          <p className="text-blue-800 font-medium mb-2">South African Legal Compliance</p>
+          <div className="text-blue-700 space-y-1">
+            <p>• VAT (15%) is included in product prices as required by SARS</p>
+            <p>• Delivery charges are paid separately to seller's delivery service</p>
+            <p>• Consumer Protection Act rights apply to all purchases</p>
+            <p>• Electronic transaction records maintained per ECT Act</p>
+            <p>• Personal data processed according to POPIA requirements</p>
+          </div>
         </div>
         
         <Button 
@@ -105,8 +119,8 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
 
         {!isReadyToProcess && (
           <div className="text-sm text-muted-foreground text-center space-y-1">
-            {!profile?.accepted_terms && (
-              <p>Please accept our terms and conditions</p>
+            {!hasAcceptedTerms && (
+              <p className="text-red-600 font-medium">⚠ Please accept terms and conditions (SA law requirement)</p>
             )}
             {(!shippingAddress || !billingAddress) && (
               <p>Please complete shipping and billing information</p>
