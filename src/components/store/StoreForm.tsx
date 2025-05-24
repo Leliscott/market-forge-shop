@@ -164,44 +164,6 @@ const StoreForm: React.FC<StoreFormProps> = ({ isEditing = false }) => {
     }
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setLogoFile(file);
-      const reader = new FileReader();
-      
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      
-      reader.readAsDataURL(file);
-    }
-  };
-  
-  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setBannerFile(file);
-      const reader = new FileReader();
-      
-      reader.onloadend = () => {
-        setBannerPreview(reader.result as string);
-      };
-      
-      reader.readAsDataURL(file);
-    }
-  };
-  
-  const removeLogo = () => {
-    setLogoPreview(null);
-    setLogoFile(null);
-  };
-  
-  const removeBanner = () => {
-    setBannerPreview(null);
-    setBannerFile(null);
-  };
-
   const handleFinishSetup = () => {
     navigate('/seller/dashboard');
   };
