@@ -39,39 +39,49 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   }, [sameAsShipping, shippingAddress, form]);
 
   useEffect(() => {
-    // Always pass the current form values, but mark as valid only when all required fields are filled
-    const isFormValid = form.formState.isValid && 
-                       watchedValues.agreeToTerms && 
-                       watchedValues.agreeToPrivacy && 
-                       watchedValues.agreeToProcessing;
+    // Check if all required fields have values (not just form validation)
+    const hasRequiredFields = 
+      watchedValues.firstName && watchedValues.firstName.trim() !== '' &&
+      watchedValues.lastName && watchedValues.lastName.trim() !== '' &&
+      watchedValues.email && watchedValues.email.trim() !== '' &&
+      watchedValues.phone && watchedValues.phone.trim() !== '' &&
+      watchedValues.address && watchedValues.address.trim() !== '' &&
+      watchedValues.city && watchedValues.city.trim() !== '' &&
+      watchedValues.province && watchedValues.province.trim() !== '' &&
+      watchedValues.postalCode && watchedValues.postalCode.trim() !== '' &&
+      watchedValues.agreeToTerms === true &&
+      watchedValues.agreeToPrivacy === true &&
+      watchedValues.agreeToProcessing === true;
+
+    // Trigger validation only after user starts interacting
+    const hasUserInteracted = Object.keys(form.formState.touchedFields).length > 0;
     
     onBillingAddressChange({
       ...watchedValues,
-      isValid: isFormValid
+      isValid: hasRequiredFields
     });
 
-    // Show validation errors if user has interacted with form
-    if (Object.keys(form.formState.touchedFields).length > 0) {
+    // Show validation feedback if user has started filling the form
+    if (hasUserInteracted) {
       setShowValidation(true);
     }
-  }, [watchedValues, form.formState.isValid, form.formState.touchedFields, onBillingAddressChange]);
+  }, [watchedValues, form.formState.touchedFields, onBillingAddressChange]);
 
-  // Get missing required fields
+  // Get missing required fields for user feedback
   const getMissingFields = () => {
     const missing = [];
-    const errors = form.formState.errors;
     
-    if (errors.firstName) missing.push('First Name');
-    if (errors.lastName) missing.push('Last Name');
-    if (errors.email) missing.push('Email Address');
-    if (errors.phone) missing.push('Phone Number');
-    if (errors.address) missing.push('Street Address');
-    if (errors.city) missing.push('City');
-    if (errors.province) missing.push('Province');
-    if (errors.postalCode) missing.push('Postal Code');
-    if (errors.agreeToTerms) missing.push('Terms and Conditions Agreement');
-    if (errors.agreeToPrivacy) missing.push('Privacy Policy Consent');
-    if (errors.agreeToProcessing) missing.push('Electronic Transaction Consent');
+    if (!watchedValues.firstName || watchedValues.firstName.trim() === '') missing.push('First Name');
+    if (!watchedValues.lastName || watchedValues.lastName.trim() === '') missing.push('Last Name');
+    if (!watchedValues.email || watchedValues.email.trim() === '') missing.push('Email Address');
+    if (!watchedValues.phone || watchedValues.phone.trim() === '') missing.push('Phone Number');
+    if (!watchedValues.address || watchedValues.address.trim() === '') missing.push('Street Address');
+    if (!watchedValues.city || watchedValues.city.trim() === '') missing.push('City');
+    if (!watchedValues.province || watchedValues.province.trim() === '') missing.push('Province');
+    if (!watchedValues.postalCode || watchedValues.postalCode.trim() === '') missing.push('Postal Code');
+    if (!watchedValues.agreeToTerms) missing.push('Terms and Conditions Agreement');
+    if (!watchedValues.agreeToPrivacy) missing.push('Privacy Policy Consent');
+    if (!watchedValues.agreeToProcessing) missing.push('Electronic Transaction Consent');
     
     return missing;
   };

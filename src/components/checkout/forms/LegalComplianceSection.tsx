@@ -21,18 +21,27 @@ const LegalComplianceSection: React.FC<LegalComplianceSectionProps> = ({
   form, 
   showValidation = false 
 }) => {
+  const watchedValues = form.watch();
+
   // Get checkbox error status for visual highlighting
   const getCheckboxClassName = (fieldName: keyof BillingAddressForm) => {
-    const hasError = form.formState.errors[fieldName];
+    const fieldValue = watchedValues[fieldName];
+    const isChecked = fieldValue === true;
     const isTouched = form.formState.touchedFields[fieldName];
     
-    if (showValidation && hasError) {
-      return "border-red-500 focus:border-red-500 focus:ring-red-500";
-    } else if (isTouched && !hasError) {
-      return "border-green-500 focus:border-green-500 focus:ring-green-500";
+    let className = "transition-all duration-200";
+    
+    if (showValidation) {
+      if (!isChecked) {
+        className += " border-red-500 focus:border-red-500 focus:ring-red-500 shadow-sm shadow-red-100";
+      } else {
+        className += " border-green-500 focus:border-green-500 focus:ring-green-500 shadow-sm shadow-green-100";
+      }
+    } else if (isTouched && isChecked) {
+      className += " border-green-500 focus:border-green-500 focus:ring-green-500";
     }
     
-    return "";
+    return className;
   };
 
   return (

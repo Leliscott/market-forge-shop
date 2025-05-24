@@ -36,21 +36,44 @@ const BillingAddressForm: React.FC<BillingAddressFormProps> = ({
     setSameAsShipping(checked === true);
   };
 
+  const watchedValues = form.watch();
+
   // Get field error status for visual highlighting
   const getFieldClassName = (fieldName: keyof BillingAddressFormType) => {
-    const hasError = form.formState.errors[fieldName];
+    const fieldValue = watchedValues[fieldName];
+    const hasValue = fieldValue && (typeof fieldValue === 'string' ? fieldValue.trim() !== '' : fieldValue === true);
     const isTouched = form.formState.touchedFields[fieldName];
+    const hasFormError = form.formState.errors[fieldName];
     
-    let className = "bg-white";
+    let className = "bg-white transition-all duration-200";
     
-    if (showValidation && hasError) {
-      className += " border-red-500 focus:border-red-500 focus:ring-red-500";
-    } else if (isTouched && !hasError) {
-      className += " border-green-500 focus:border-green-500 focus:ring-green-500";
+    if (showValidation) {
+      if (!hasValue) {
+        // Field is empty and validation is showing
+        className += " border-red-500 focus:border-red-500 focus:ring-red-500 shadow-sm shadow-red-100";
+      } else if (hasValue && !hasFormError) {
+        // Field has value and no validation errors
+        className += " border-green-500 focus:border-green-500 focus:ring-green-500 shadow-sm shadow-green-100";
+      }
+    } else if (isTouched) {
+      if (hasValue && !hasFormError) {
+        className += " border-green-500 focus:border-green-500 focus:ring-green-500";
+      }
     }
     
     return className;
   };
+
+  // Check if form is complete for save button
+  const isFormComplete = 
+    watchedValues.firstName && watchedValues.firstName.trim() !== '' &&
+    watchedValues.lastName && watchedValues.lastName.trim() !== '' &&
+    watchedValues.email && watchedValues.email.trim() !== '' &&
+    watchedValues.phone && watchedValues.phone.trim() !== '' &&
+    watchedValues.address && watchedValues.address.trim() !== '' &&
+    watchedValues.city && watchedValues.city.trim() !== '' &&
+    watchedValues.province && watchedValues.province.trim() !== '' &&
+    watchedValues.postalCode && watchedValues.postalCode.trim() !== '';
 
   return (
     <div className="space-y-4">
@@ -241,7 +264,7 @@ const BillingAddressForm: React.FC<BillingAddressFormProps> = ({
           />
         </div>
 
-        {!sameAsShipping && form.formState.isValid && (
+        {!sameAsShipping && isFormComplete && (
           <Button 
             type="button" 
             variant="outline" 
