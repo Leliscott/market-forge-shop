@@ -14,6 +14,8 @@ interface WithdrawalDialogProps {
   availableBalance: number;
 }
 
+const MINIMUM_WITHDRAWAL = 15; // R15 minimum withdrawal
+
 const WithdrawalDialog: React.FC<WithdrawalDialogProps> = ({
   isOpen,
   onClose,
@@ -33,7 +35,7 @@ const WithdrawalDialog: React.FC<WithdrawalDialogProps> = ({
     e.preventDefault();
     
     const amount = parseFloat(formData.amount);
-    if (amount <= 0 || amount > availableBalance) {
+    if (amount < MINIMUM_WITHDRAWAL || amount > availableBalance) {
       return;
     }
 
@@ -68,13 +70,16 @@ const WithdrawalDialog: React.FC<WithdrawalDialogProps> = ({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const requestedAmount = parseFloat(formData.amount) || 0;
   const isFormValid = formData.amount && 
     formData.bank_name && 
     formData.account_holder_name && 
     formData.account_number && 
     formData.branch_code &&
-    parseFloat(formData.amount) > 0 &&
-    parseFloat(formData.amount) <= availableBalance;
+    requestedAmount >= MINIMUM_WITHDRAWAL &&
+    requestedAmount <= availableBalance;
+
+  const canWithdraw = availableBalance >= MINIMUM_WITHDRAWAL;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -88,9 +93,17 @@ const WithdrawalDialog: React.FC<WithdrawalDialogProps> = ({
             Available Balance: <span className="font-bold">{formatCurrency(availableBalance)}</span>
           </p>
           <p className="text-xs text-blue-600 mt-1">
-            Withdrawals are processed within 3-5 business days
+            Minimum withdrawal: {formatCurrency(MINIMUM_WITHDRAWAL)} • Processed within 3-5 business days
           </p>
         </div>
+
+        {!canWithdraw && (
+          <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            <p className="text-sm text-orange-800">
+              You need at least {formatCurrency(MINIMUM_WITHDRAWAL)} in your available balance to request a withdrawal.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -99,12 +112,19 @@ const WithdrawalDialog: React.FC<WithdrawalDialogProps> = ({
               id="amount"
               type="number"
               step="0.01"
+              min={MINIMUM_WITHDRAWAL}
               max={availableBalance}
               value={formData.amount}
               onChange={(e) => handleInputChange('amount', e.target.value)}
-              placeholder="0.00"
+              placeholder={`${MINIMUM_WITHDRAWAL}.00`}
+              disabled={!canWithdraw}
               required
             />
+            {requestedAmount > 0 && requestedAmount < MINIMUM_WITHDRAWAL && (
+              <p className="text-xs text-red-600 mt-1">
+                Minimum withdrawal amount is {formatCurrency(MINIMUM_WITHDRAWAL)}
+              </p>
+            )}
           </div>
 
           <div>
@@ -114,6 +134,7 @@ const WithdrawalDialog: React.FC<WithdrawalDialogProps> = ({
               value={formData.bank_name}
               onChange={(e) => handleInputChange('bank_name', e.target.value)}
               placeholder="e.g., Standard Bank"
+              disabled={!canWithdraw}
               required
             />
           </div>
@@ -125,6 +146,7 @@ const WithdrawalDialog: React.FC<WithdrawalDialogProps> = ({
               value={formData.account_holder_name}
               onChange={(e) => handleInputChange('account_holder_name', e.target.value)}
               placeholder="Full name as on bank account"
+              disabled={!canWithdraw}
               required
             />
           </div>
@@ -136,6 +158,7 @@ const WithdrawalDialog: React.FC<WithdrawalDialogProps> = ({
               value={formData.account_number}
               onChange={(e) => handleInputChange('account_number', e.target.value)}
               placeholder="Bank account number"
+              disabled={!canWithdraw}
               required
             />
           </div>
@@ -147,6 +170,7 @@ const WithdrawalDialog: React.FC<WithdrawalDialogProps> = ({
               value={formData.branch_code}
               onChange={(e) => handleInputChange('branch_code', e.target.value)}
               placeholder="6-digit branch code"
+              disabled={!canWithdraw}
               required
             />
           </div>
@@ -157,7 +181,7 @@ const WithdrawalDialog: React.FC<WithdrawalDialogProps> = ({
             </Button>
             <Button 
               type="submit" 
-              disabled={!isFormValid || isSubmitting}
+              disabled={!isFormValid || isSubmitting || !canWithdraw}
             >
               {isSubmitting ? (
                 <>

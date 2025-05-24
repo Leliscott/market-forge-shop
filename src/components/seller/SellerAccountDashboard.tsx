@@ -10,6 +10,8 @@ import { formatCurrency } from '@/utils/constants';
 import { useSellerAccount } from '@/hooks/useSellerAccount';
 import WithdrawalDialog from './WithdrawalDialog';
 
+const MINIMUM_WITHDRAWAL = 15; // R15 minimum withdrawal
+
 const SellerAccountDashboard: React.FC = () => {
   const { account, financials, withdrawals, isLoading } = useSellerAccount();
   const [showWithdrawalDialog, setShowWithdrawalDialog] = useState(false);
@@ -50,15 +52,15 @@ const SellerAccountDashboard: React.FC = () => {
     );
   }
 
-  if (!account) {
-    return (
-      <Card>
-        <CardContent className="pt-6 text-center">
-          <p className="text-muted-foreground">No account information available</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Handle null/undefined account (new sellers without orders)
+  const safeAccount = account || {
+    available_balance: 0,
+    total_earnings: 0,
+    pending_balance: 0,
+    total_withdrawn: 0
+  };
+
+  const canWithdraw = safeAccount.available_balance >= MINIMUM_WITHDRAWAL;
 
   return (
     <div className="space-y-6">
@@ -69,12 +71,17 @@ const SellerAccountDashboard: React.FC = () => {
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Available Balance</p>
-                <p className="text-2xl font-bold text-green-600">{formatCurrency(account.available_balance)}</p>
+                <p className="text-2xl font-bold text-green-600">{formatCurrency(safeAccount.available_balance)}</p>
               </div>
               <div className="bg-green-500/10 p-2 rounded-full">
                 <DollarSign className="h-6 w-6 text-green-500" />
               </div>
             </div>
+            {safeAccount.available_balance === 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Complete orders to earn money
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -83,12 +90,17 @@ const SellerAccountDashboard: React.FC = () => {
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Earnings</p>
-                <p className="text-2xl font-bold">{formatCurrency(account.total_earnings)}</p>
+                <p className="text-2xl font-bold">{formatCurrency(safeAccount.total_earnings)}</p>
               </div>
               <div className="bg-blue-500/10 p-2 rounded-full">
                 <TrendingUp className="h-6 w-6 text-blue-500" />
               </div>
             </div>
+            {safeAccount.total_earnings === 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                No completed orders yet
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -97,7 +109,7 @@ const SellerAccountDashboard: React.FC = () => {
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Pending Withdrawals</p>
-                <p className="text-2xl font-bold text-yellow-600">{formatCurrency(account.pending_balance)}</p>
+                <p className="text-2xl font-bold text-yellow-600">{formatCurrency(safeAccount.pending_balance)}</p>
               </div>
               <div className="bg-yellow-500/10 p-2 rounded-full">
                 <CreditCard className="h-6 w-6 text-yellow-500" />
@@ -111,7 +123,7 @@ const SellerAccountDashboard: React.FC = () => {
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Withdrawn</p>
-                <p className="text-2xl font-bold">{formatCurrency(account.total_withdrawn)}</p>
+                <p className="text-2xl font-bold">{formatCurrency(safeAccount.total_withdrawn)}</p>
               </div>
               <div className="bg-purple-500/10 p-2 rounded-full">
                 <Download className="h-6 w-6 text-purple-500" />
@@ -124,12 +136,24 @@ const SellerAccountDashboard: React.FC = () => {
       {/* Withdrawal Button */}
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Account Management</h2>
-        <Button 
-          onClick={() => setShowWithdrawalDialog(true)}
-          disabled={account.available_balance <= 0}
-        >
-          Request Withdrawal
-        </Button>
+        <div className="flex flex-col items-end">
+          <Button 
+            onClick={() => setShowWithdrawalDialog(true)}
+            disabled={!canWithdraw}
+          >
+            Request Withdrawal
+          </Button>
+          {!canWithdraw && safeAccount.available_balance > 0 && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Minimum withdrawal: {formatCurrency(MINIMUM_WITHDRAWAL)}
+            </p>
+          )}
+          {safeAccount.available_balance === 0 && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Complete orders to earn money for withdrawals
+            </p>
+          )}
+        </div>
       </div>
 
       {/* VAT and Fee Information */}
@@ -149,7 +173,7 @@ const SellerAccountDashboard: React.FC = () => {
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
               <h3 className="font-medium text-green-800 mb-2">Your Profit</h3>
-              <p className="text-green-700">Net amount minus marketplace fee. Available for withdrawal.</p>
+              <p className="text-green-700">Net amount minus marketplace fee. Available for withdrawal (min {formatCurrency(MINIMUM_WITHDRAWAL)}).</p>
             </div>
           </div>
         </CardContent>
@@ -161,7 +185,7 @@ const SellerAccountDashboard: React.FC = () => {
           <CardTitle>Recent Withdrawals</CardTitle>
         </CardHeader>
         <CardContent>
-          {withdrawals.length > 0 ? (
+          {withdrawals && withdrawals.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -202,7 +226,7 @@ const SellerAccountDashboard: React.FC = () => {
           <CardTitle>Recent Order Financials</CardTitle>
         </CardHeader>
         <CardContent>
-          {financials.length > 0 ? (
+          {financials && financials.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -235,7 +259,8 @@ const SellerAccountDashboard: React.FC = () => {
             </Table>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              No completed orders yet
+              <div className="mb-2">No completed orders yet</div>
+              <div className="text-xs">Orders must be marked as "delivered" to appear here</div>
             </div>
           )}
         </CardContent>
@@ -244,7 +269,7 @@ const SellerAccountDashboard: React.FC = () => {
       <WithdrawalDialog
         isOpen={showWithdrawalDialog}
         onClose={() => setShowWithdrawalDialog(false)}
-        availableBalance={account.available_balance}
+        availableBalance={safeAccount.available_balance}
       />
     </div>
   );

@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 const PaymentTerms = () => {
@@ -51,13 +50,17 @@ const PaymentTerms = () => {
         For sellers using the ShopMarket platform:
       </p>
       <ul>
+        <li>All product prices automatically include 15% VAT (Value Added Tax)</li>
+        <li>VAT is automatically deducted from gross sales revenue</li>
         <li>A marketplace service fee of 9% is charged on the net amount (after VAT deduction)</li>
         <li>Seller profit = Gross Sale Price - VAT (15%) - Marketplace Fee (9% of net amount)</li>
         <li>Earnings are available for withdrawal once orders are marked as "delivered"</li>
+        <li>Minimum withdrawal amount is R15.00</li>
         <li>Withdrawal requests are processed within 3-5 business days</li>
         <li>Sellers must provide valid South African banking details for withdrawals</li>
         <li>All financial records and transaction details are maintained for auditing purposes</li>
         <li>Sellers acknowledge that marketplace fees cover payment processing, platform maintenance, customer support, and marketing services</li>
+        <li>New sellers without completed orders will show zero balances until their first order is delivered</li>
       </ul>
 
       <h2>9. Withdrawal and Banking</h2>
@@ -65,12 +68,14 @@ const PaymentTerms = () => {
         Withdrawal of seller earnings is subject to the following terms:
       </p>
       <ul>
-        <li>Minimum withdrawal amount may apply as determined by ShopMarket</li>
+        <li>Minimum withdrawal amount is R15.00</li>
         <li>Banking details must be verified and belong to the registered seller</li>
         <li>Withdrawal requests are reviewed and processed by our finance team</li>
         <li>Fraudulent or suspicious activity may result in withdrawal delays or account suspension</li>
         <li>Bank charges for transfers may apply and will be deducted from the withdrawal amount</li>
         <li>Sellers are responsible for declaring earnings for tax purposes</li>
+        <li>Sellers with insufficient balance (below R15.00) cannot request withdrawals</li>
+        <li>All withdrawal requests include seller verification and account summary for security purposes</li>
       </ul>
     </div>
   );
