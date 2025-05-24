@@ -54,10 +54,15 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                         billingAddress.address && 
                         billingAddress.city && 
                         billingAddress.province && 
-                        billingAddress.postalCode &&
-                        billingAddress.agreeToTerms &&
-                        billingAddress.agreeToPrivacy &&
-                        billingAddress.agreeToProcessing;
+                        billingAddress.postalCode;
+
+  // Only require checkbox acceptance if user hasn't already accepted terms
+  const needsCheckboxAcceptance = !hasAcceptedTerms && (!billingAddress?.agreeToTerms || 
+                                 !billingAddress?.agreeToPrivacy || 
+                                 !billingAddress?.agreeToProcessing);
+
+  // Update billing validation to consider terms acceptance status
+  const isBillingCompletelyValid = isBillingValid && (!needsCheckboxAcceptance);
 
   // Check if shipping address is valid
   const isShippingValid = shippingAddress && 
@@ -69,7 +74,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                          shippingAddress.postalCode;
 
   const isReadyToProcess = isShippingValid && 
-                          isBillingValid && 
+                          isBillingCompletelyValid && 
                           items.length > 0 && 
                           hasAcceptedTerms;
 
@@ -99,7 +104,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
       }
     }
     
-    if (!isBillingValid) {
+    if (!isBillingCompletelyValid) {
       if (!billingAddress) {
         issues.push("Complete billing information");
       } else {
@@ -113,10 +118,13 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
         if (!billingAddress.province) missingBilling.push("province");
         if (!billingAddress.postalCode) missingBilling.push("postal code");
         
+        // Only show missing consent if user hasn't already accepted terms
         const missingConsent = [];
-        if (!billingAddress.agreeToTerms) missingConsent.push("Terms & Conditions");
-        if (!billingAddress.agreeToPrivacy) missingConsent.push("Privacy Policy");
-        if (!billingAddress.agreeToProcessing) missingConsent.push("Electronic Transactions");
+        if (needsCheckboxAcceptance) {
+          if (!billingAddress.agreeToTerms) missingConsent.push("Terms & Conditions");
+          if (!billingAddress.agreeToPrivacy) missingConsent.push("Privacy Policy");
+          if (!billingAddress.agreeToProcessing) missingConsent.push("Electronic Transactions");
+        }
         
         if (missingBilling.length > 0) {
           issues.push(`Complete billing: ${missingBilling.join(", ")}`);
@@ -166,12 +174,30 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
           selectedDelivery={selectedDelivery}
         />
         
-        {/* Enhanced Terms Acceptance Check */}
-        <TermsValidation 
-          hasAcceptedTerms={hasAcceptedTerms} 
-          userType="customer"
-          showNavigateButton={true}
-        />
+        {/* Enhanced Terms Acceptance Check - Only show if user hasn't accepted terms */}
+        {!hasAcceptedTerms && (
+          <TermsValidation 
+            hasAcceptedTerms={hasAcceptedTerms} 
+            userType="customer"
+            showNavigateButton={true}
+          />
+        )}
+
+        {/* Terms Already Accepted Confirmation */}
+        {hasAcceptedTerms && (
+          <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+            <div className="flex items-center gap-2 text-green-800">
+              <Check className="h-4 w-4" />
+              <span className="text-sm font-medium">
+                ✓ Terms and Conditions Already Accepted
+              </span>
+            </div>
+            <p className="text-xs text-green-700 mt-1">
+              You have previously accepted our Terms and Conditions including POPIA compliance.
+              No need to accept again for this order.
+            </p>
+          </div>
+        )}
         
         {/* Validation Issues Alert */}
         {!isReadyToProcess && validationIssues.length > 0 && (

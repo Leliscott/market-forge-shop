@@ -54,37 +54,76 @@ const ShippingForm: React.FC<ShippingFormProps> = ({ onAddressChange }) => {
   useEffect(() => {
     if (profile?.location) {
       try {
-        const savedAddress = JSON.parse(profile.location);
-        form.setValue('firstName', savedAddress.firstName || '');
-        form.setValue('lastName', savedAddress.lastName || '');
-        form.setValue('address', savedAddress.address || '');
-        form.setValue('city', savedAddress.city || '');
-        form.setValue('province', savedAddress.province || '');
-        form.setValue('postalCode', savedAddress.postalCode || '');
+        const savedData = JSON.parse(profile.location);
+        // Load shipping address specifically
+        const shippingAddress = savedData.shippingAddress || savedData;
+        
+        form.setValue('firstName', shippingAddress.firstName || '');
+        form.setValue('lastName', shippingAddress.lastName || '');
+        form.setValue('address', shippingAddress.address || '');
+        form.setValue('city', shippingAddress.city || '');
+        form.setValue('province', shippingAddress.province || '');
+        form.setValue('postalCode', shippingAddress.postalCode || '');
       } catch (error) {
         console.log('No saved address found');
       }
     }
   }, [profile, form]);
 
+  // Auto-save valid address and notify parent
   useEffect(() => {
     if (form.formState.isValid) {
       onAddressChange(watchedValues);
+      // Auto-save when form is valid
+      saveShippingAddress();
     }
   }, [watchedValues, form.formState.isValid, onAddressChange]);
 
-  const saveAddress = async () => {
+  const saveShippingAddress = async () => {
     if (!user || !form.formState.isValid) return;
 
     try {
-      const addressData = JSON.stringify(watchedValues);
+      // Get existing location data
+      let locationData = {};
+      if (profile?.location) {
+        try {
+          locationData = JSON.parse(profile.location);
+        } catch (error) {
+          console.log('Creating new location data');
+        }
+      }
+
+      // Update with shipping address
+      const updatedData = {
+        ...locationData,
+        shippingAddress: watchedValues
+      };
+
       const { error } = await supabase
         .from('profiles')
-        .update({ location: addressData })
+        .update({ location: JSON.stringify(updatedData) })
         .eq('id', user.id);
 
       if (error) throw error;
 
+      console.log('Shipping address auto-saved');
+    } catch (error) {
+      console.error('Error auto-saving shipping address:', error);
+    }
+  };
+
+  const manualSave = async () => {
+    if (!user || !form.formState.isValid) {
+      toast({
+        title: "Save Failed",
+        description: "Please complete all required fields first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await saveShippingAddress();
       toast({
         title: "Address Saved",
         description: "Your shipping address has been saved for future orders.",
@@ -188,16 +227,22 @@ const ShippingForm: React.FC<ShippingFormProps> = ({ onAddressChange }) => {
         </div>
 
         {form.formState.isValid && (
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="sm"
-            onClick={saveAddress}
-            className="mt-4"
-          >
-            Save Address for Future Orders
-          </Button>
+          <div className="bg-green-50 border border-green-200 p-3 rounded-lg">
+            <p className="text-sm text-green-800">
+              ✓ Address automatically saved for future orders
+            </p>
+          </div>
         )}
+
+        <Button 
+          type="button" 
+          variant="outline" 
+          size="sm"
+          onClick={manualSave}
+          className="mt-4"
+        >
+          Save Address for Future Orders
+        </Button>
       </form>
     </Form>
   );
