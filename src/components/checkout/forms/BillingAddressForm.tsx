@@ -13,23 +13,10 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-
-type BillingAddressForm = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  province: string;
-  postalCode: string;
-  agreeToTerms: boolean;
-  agreeToPrivacy: boolean;
-  agreeToProcessing: boolean;
-};
+import { BillingAddressForm as BillingAddressFormType } from '../hooks/useBillingAddressForm';
 
 interface BillingAddressFormProps {
-  form: UseFormReturn<BillingAddressForm>;
+  form: UseFormReturn<BillingAddressFormType>;
   sameAsShipping: boolean;
   setSameAsShipping: (checked: boolean) => void;
   shippingAddress?: any;
