@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Form } from '@/components/ui/form';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 import { useBillingAddressForm } from './hooks/useBillingAddressForm';
 import SecurityNotice from './forms/SecurityNotice';
 import PaymentMethodSelector from './forms/PaymentMethodSelector';
@@ -19,6 +21,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
   shippingAddress 
 }) => {
   const [sameAsShipping, setSameAsShipping] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
   const { form, saveBillingAddress } = useBillingAddressForm();
 
   const watchedValues = form.watch();
@@ -46,12 +49,54 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
       ...watchedValues,
       isValid: isFormValid
     });
-  }, [watchedValues, form.formState.isValid, onBillingAddressChange]);
+
+    // Show validation errors if user has interacted with form
+    if (Object.keys(form.formState.touchedFields).length > 0) {
+      setShowValidation(true);
+    }
+  }, [watchedValues, form.formState.isValid, form.formState.touchedFields, onBillingAddressChange]);
+
+  // Get missing required fields
+  const getMissingFields = () => {
+    const missing = [];
+    const errors = form.formState.errors;
+    
+    if (errors.firstName) missing.push('First Name');
+    if (errors.lastName) missing.push('Last Name');
+    if (errors.email) missing.push('Email Address');
+    if (errors.phone) missing.push('Phone Number');
+    if (errors.address) missing.push('Street Address');
+    if (errors.city) missing.push('City');
+    if (errors.province) missing.push('Province');
+    if (errors.postalCode) missing.push('Postal Code');
+    if (errors.agreeToTerms) missing.push('Terms and Conditions Agreement');
+    if (errors.agreeToPrivacy) missing.push('Privacy Policy Consent');
+    if (errors.agreeToProcessing) missing.push('Electronic Transaction Consent');
+    
+    return missing;
+  };
+
+  const missingFields = getMissingFields();
+  const hasErrors = missingFields.length > 0;
 
   return (
     <div className="space-y-6">
       <SecurityNotice />
       <PaymentMethodSelector />
+
+      {showValidation && hasErrors && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="font-medium mb-2">Please complete the following required fields:</div>
+            <ul className="list-disc list-inside space-y-1">
+              {missingFields.map((field, index) => (
+                <li key={index} className="text-sm">{field}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Form {...form}>
         <form className="space-y-4">
@@ -61,8 +106,12 @@ const PaymentForm: React.FC<PaymentFormProps> = ({
             setSameAsShipping={setSameAsShipping}
             shippingAddress={shippingAddress}
             onSaveBillingAddress={saveBillingAddress}
+            showValidation={showValidation}
           />
-          <LegalComplianceSection form={form} />
+          <LegalComplianceSection 
+            form={form} 
+            showValidation={showValidation}
+          />
         </form>
       </Form>
     </div>

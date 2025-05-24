@@ -14,9 +14,27 @@ import { BillingAddressForm } from '../hooks/useBillingAddressForm';
 
 interface LegalComplianceSectionProps {
   form: UseFormReturn<BillingAddressForm>;
+  showValidation?: boolean;
 }
 
-const LegalComplianceSection: React.FC<LegalComplianceSectionProps> = ({ form }) => {
+const LegalComplianceSection: React.FC<LegalComplianceSectionProps> = ({ 
+  form, 
+  showValidation = false 
+}) => {
+  // Get checkbox error status for visual highlighting
+  const getCheckboxClassName = (fieldName: keyof BillingAddressForm) => {
+    const hasError = form.formState.errors[fieldName];
+    const isTouched = form.formState.touchedFields[fieldName];
+    
+    if (showValidation && hasError) {
+      return "border-red-500 focus:border-red-500 focus:ring-red-500";
+    } else if (isTouched && !hasError) {
+      return "border-green-500 focus:border-green-500 focus:ring-green-500";
+    }
+    
+    return "";
+  };
+
   return (
     <div className="space-y-6">
       {/* Enhanced Legal Compliance Section */}
@@ -32,11 +50,12 @@ const LegalComplianceSection: React.FC<LegalComplianceSectionProps> = ({ form })
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  className={getCheckboxClassName('agreeToTerms')}
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
                 <FormLabel className="text-sm">
-                  I agree to the{' '}
+                  <span className="text-red-500">*</span> I agree to the{' '}
                   <a href="/terms" target="_blank" className="underline font-medium text-primary hover:text-primary/80">
                     Terms and Conditions
                   </a>{' '}
@@ -57,11 +76,12 @@ const LegalComplianceSection: React.FC<LegalComplianceSectionProps> = ({ form })
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  className={getCheckboxClassName('agreeToPrivacy')}
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
                 <FormLabel className="text-sm">
-                  I consent to the processing of my personal information in accordance with{' '}
+                  <span className="text-red-500">*</span> I consent to the processing of my personal information in accordance with{' '}
                   <a href="/terms" target="_blank" className="underline font-medium text-primary hover:text-primary/80">
                     POPIA Privacy Policy
                   </a>
@@ -81,11 +101,12 @@ const LegalComplianceSection: React.FC<LegalComplianceSectionProps> = ({ form })
                 <Checkbox
                   checked={field.value}
                   onCheckedChange={field.onChange}
+                  className={getCheckboxClassName('agreeToProcessing')}
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
                 <FormLabel className="text-sm">
-                  I consent to electronic transactions under the Electronic Communications and Transactions Act (ECT Act)
+                  <span className="text-red-500">*</span> I consent to electronic transactions under the Electronic Communications and Transactions Act (ECT Act)
                 </FormLabel>
                 <FormMessage />
               </div>

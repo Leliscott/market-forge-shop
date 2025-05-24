@@ -21,6 +21,7 @@ interface BillingAddressFormProps {
   setSameAsShipping: (checked: boolean) => void;
   shippingAddress?: any;
   onSaveBillingAddress: () => void;
+  showValidation?: boolean;
 }
 
 const BillingAddressForm: React.FC<BillingAddressFormProps> = ({
@@ -29,9 +30,26 @@ const BillingAddressForm: React.FC<BillingAddressFormProps> = ({
   setSameAsShipping,
   shippingAddress,
   onSaveBillingAddress,
+  showValidation = false,
 }) => {
   const handleSameAsShippingChange = (checked: boolean | "indeterminate") => {
     setSameAsShipping(checked === true);
+  };
+
+  // Get field error status for visual highlighting
+  const getFieldClassName = (fieldName: keyof BillingAddressFormType) => {
+    const hasError = form.formState.errors[fieldName];
+    const isTouched = form.formState.touchedFields[fieldName];
+    
+    let className = "bg-white";
+    
+    if (showValidation && hasError) {
+      className += " border-red-500 focus:border-red-500 focus:ring-red-500";
+    } else if (isTouched && !hasError) {
+      className += " border-green-500 focus:border-green-500 focus:ring-green-500";
+    }
+    
+    return className;
   };
 
   return (
@@ -60,9 +78,16 @@ const BillingAddressForm: React.FC<BillingAddressFormProps> = ({
             name="firstName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>First Name *</FormLabel>
+                <FormLabel className="text-sm font-medium">
+                  First Name <span className="text-red-500">*</span>
+                </FormLabel>
                 <FormControl>
-                  <Input {...field} className="bg-white" disabled={sameAsShipping} />
+                  <Input 
+                    {...field} 
+                    className={getFieldClassName('firstName')}
+                    disabled={sameAsShipping}
+                    placeholder="Enter your first name"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -73,9 +98,16 @@ const BillingAddressForm: React.FC<BillingAddressFormProps> = ({
             name="lastName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Last Name *</FormLabel>
+                <FormLabel className="text-sm font-medium">
+                  Last Name <span className="text-red-500">*</span>
+                </FormLabel>
                 <FormControl>
-                  <Input {...field} className="bg-white" disabled={sameAsShipping} />
+                  <Input 
+                    {...field} 
+                    className={getFieldClassName('lastName')}
+                    disabled={sameAsShipping}
+                    placeholder="Enter your last name"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -88,9 +120,16 @@ const BillingAddressForm: React.FC<BillingAddressFormProps> = ({
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email Address *</FormLabel>
+              <FormLabel className="text-sm font-medium">
+                Email Address <span className="text-red-500">*</span>
+              </FormLabel>
               <FormControl>
-                <Input type="email" {...field} className="bg-white" />
+                <Input 
+                  type="email" 
+                  {...field} 
+                  className={getFieldClassName('email')}
+                  placeholder="Enter your email address"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -102,9 +141,16 @@ const BillingAddressForm: React.FC<BillingAddressFormProps> = ({
           name="phone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Phone Number *</FormLabel>
+              <FormLabel className="text-sm font-medium">
+                Phone Number <span className="text-red-500">*</span>
+              </FormLabel>
               <FormControl>
-                <Input type="tel" {...field} className="bg-white" />
+                <Input 
+                  type="tel" 
+                  {...field} 
+                  className={getFieldClassName('phone')}
+                  placeholder="Enter your phone number"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -116,9 +162,16 @@ const BillingAddressForm: React.FC<BillingAddressFormProps> = ({
           name="address"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Street Address *</FormLabel>
+              <FormLabel className="text-sm font-medium">
+                Street Address <span className="text-red-500">*</span>
+              </FormLabel>
               <FormControl>
-                <Input {...field} className="bg-white" disabled={sameAsShipping} />
+                <Input 
+                  {...field} 
+                  className={getFieldClassName('address')}
+                  disabled={sameAsShipping}
+                  placeholder="Enter your street address"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -131,9 +184,16 @@ const BillingAddressForm: React.FC<BillingAddressFormProps> = ({
             name="city"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>City *</FormLabel>
+                <FormLabel className="text-sm font-medium">
+                  City <span className="text-red-500">*</span>
+                </FormLabel>
                 <FormControl>
-                  <Input {...field} className="bg-white" disabled={sameAsShipping} />
+                  <Input 
+                    {...field} 
+                    className={getFieldClassName('city')}
+                    disabled={sameAsShipping}
+                    placeholder="Enter city"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -144,9 +204,16 @@ const BillingAddressForm: React.FC<BillingAddressFormProps> = ({
             name="province"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Province *</FormLabel>
+                <FormLabel className="text-sm font-medium">
+                  Province <span className="text-red-500">*</span>
+                </FormLabel>
                 <FormControl>
-                  <Input {...field} className="bg-white" disabled={sameAsShipping} />
+                  <Input 
+                    {...field} 
+                    className={getFieldClassName('province')}
+                    disabled={sameAsShipping}
+                    placeholder="Enter province"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -157,9 +224,16 @@ const BillingAddressForm: React.FC<BillingAddressFormProps> = ({
             name="postalCode"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Postal Code *</FormLabel>
+                <FormLabel className="text-sm font-medium">
+                  Postal Code <span className="text-red-500">*</span>
+                </FormLabel>
                 <FormControl>
-                  <Input {...field} className="bg-white" disabled={sameAsShipping} />
+                  <Input 
+                    {...field} 
+                    className={getFieldClassName('postalCode')}
+                    disabled={sameAsShipping}
+                    placeholder="Enter postal code"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

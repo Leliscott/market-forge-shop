@@ -2,6 +2,8 @@
 import React from 'react';
 import { Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { formatCurrency } from '@/utils/constants';
@@ -71,6 +73,65 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                           items.length > 0 && 
                           hasAcceptedTerms;
 
+  // Get detailed validation status for better user feedback
+  const getValidationIssues = () => {
+    const issues = [];
+    
+    if (!hasAcceptedTerms) {
+      issues.push("Accept Terms and Conditions in your profile (SA law requirement)");
+    }
+    
+    if (!isShippingValid) {
+      if (!shippingAddress) {
+        issues.push("Complete shipping address");
+      } else {
+        const missingShipping = [];
+        if (!shippingAddress.firstName) missingShipping.push("first name");
+        if (!shippingAddress.lastName) missingShipping.push("last name");
+        if (!shippingAddress.address) missingShipping.push("street address");
+        if (!shippingAddress.city) missingShipping.push("city");
+        if (!shippingAddress.province) missingShipping.push("province");
+        if (!shippingAddress.postalCode) missingShipping.push("postal code");
+        
+        if (missingShipping.length > 0) {
+          issues.push(`Complete shipping: ${missingShipping.join(", ")}`);
+        }
+      }
+    }
+    
+    if (!isBillingValid) {
+      if (!billingAddress) {
+        issues.push("Complete billing information");
+      } else {
+        const missingBilling = [];
+        if (!billingAddress.firstName) missingBilling.push("first name");
+        if (!billingAddress.lastName) missingBilling.push("last name");
+        if (!billingAddress.email) missingBilling.push("email");
+        if (!billingAddress.phone) missingBilling.push("phone");
+        if (!billingAddress.address) missingBilling.push("street address");
+        if (!billingAddress.city) missingBilling.push("city");
+        if (!billingAddress.province) missingBilling.push("province");
+        if (!billingAddress.postalCode) missingBilling.push("postal code");
+        
+        const missingConsent = [];
+        if (!billingAddress.agreeToTerms) missingConsent.push("Terms & Conditions");
+        if (!billingAddress.agreeToPrivacy) missingConsent.push("Privacy Policy");
+        if (!billingAddress.agreeToProcessing) missingConsent.push("Electronic Transactions");
+        
+        if (missingBilling.length > 0) {
+          issues.push(`Complete billing: ${missingBilling.join(", ")}`);
+        }
+        if (missingConsent.length > 0) {
+          issues.push(`Accept: ${missingConsent.join(", ")}`);
+        }
+      }
+    }
+    
+    return issues;
+  };
+
+  const validationIssues = getValidationIssues();
+
   const onCompleteOrder = () => {
     if (!validateCustomerTerms()) {
       return;
@@ -112,6 +173,21 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
           showNavigateButton={true}
         />
         
+        {/* Validation Issues Alert */}
+        {!isReadyToProcess && validationIssues.length > 0 && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <div className="font-medium mb-2">Please complete the following to proceed with payment:</div>
+              <ul className="list-disc list-inside space-y-1">
+                {validationIssues.map((issue, index) => (
+                  <li key={index} className="text-sm">{issue}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {/* Enhanced Legal Information */}
         <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg text-sm space-y-2">
           <p className="text-blue-800 font-medium mb-2">South African Legal Compliance</p>
@@ -138,24 +214,14 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
           ) : (
             <>
               <Check className="mr-2 h-4 w-4" />
-              Pay with PayFast - {formatCurrency(finalTotal)}
+              {isReadyToProcess ? (
+                `Pay with PayFast - ${formatCurrency(finalTotal)}`
+              ) : (
+                `Complete Required Fields to Pay - ${formatCurrency(finalTotal)}`
+              )}
             </>
           )}
         </Button>
-
-        {!isReadyToProcess && (
-          <div className="text-sm text-muted-foreground text-center space-y-1">
-            {!hasAcceptedTerms && (
-              <p className="text-red-600 font-medium">⚠ Please accept terms and conditions (SA law requirement)</p>
-            )}
-            {!isShippingValid && (
-              <p className="text-red-600">⚠ Please complete shipping information</p>
-            )}
-            {!isBillingValid && (
-              <p className="text-red-600">⚠ Please complete billing information and consent requirements</p>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
