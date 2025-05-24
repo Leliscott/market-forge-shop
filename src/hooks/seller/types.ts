@@ -5,7 +5,15 @@ export interface Order {
   store_id: string;
   status: string;
   total_amount: number;
-  shipping_address: string | null;
+  shipping_address: any; // Changed from string to any to match JSONB
+  billing_address?: any; // Added as optional JSONB field
+  delivery_charge?: number; // Added as optional
+  payment_method?: string; // Added as optional
+  payment_id?: string; // Added as optional
+  payment_status?: string; // Added as optional
+  paid_amount?: number; // Added as optional
+  payment_date?: string; // Added as optional
+  items?: any; // Added as optional JSONB field
   created_at: string;
   updated_at: string;
   order_items?: OrderItem[];

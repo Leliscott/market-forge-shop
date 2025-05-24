@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { 
@@ -24,10 +23,14 @@ interface Order {
   status: string;
   payment_status?: string;
   created_at: string;
-  shipping_address?: string;
-  billing_address?: string;
-  items?: any[];
+  shipping_address?: any; // Changed from string to any to match JSONB
+  billing_address?: any; // Changed from string to any to match JSONB
+  items?: any[]; // Changed to match JSONB
   payment_date?: string;
+  delivery_charge?: number;
+  payment_method?: string;
+  payment_id?: string;
+  paid_amount?: number;
 }
 
 interface OrderItem {
@@ -449,7 +452,9 @@ const Orders: React.FC = () => {
                     {selectedOrder.shipping_address ? (
                       (() => {
                         try {
-                          const address = JSON.parse(selectedOrder.shipping_address);
+                          const address = typeof selectedOrder.shipping_address === 'string' 
+                            ? JSON.parse(selectedOrder.shipping_address)
+                            : selectedOrder.shipping_address;
                           return (
                             <>
                               <p className="font-medium">{address.firstName} {address.lastName}</p>
