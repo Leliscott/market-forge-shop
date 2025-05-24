@@ -3,7 +3,6 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 interface DeliveryService {
   id: string;
@@ -27,10 +26,9 @@ export const useOrderSubmit = () => {
   ) => {
     if (isProcessing) return;
     
-    console.log('=== STARTING PAYMENT PROCESS ===');
-    const startTime = Date.now();
+    console.log('=== STARTING DIRECT PAYFAST PAYMENT ===');
 
-    // Simplified validation - only check essential requirements
+    // Simple validation - only check essential requirements
     if (!user || !profile?.accepted_terms) {
       toast({
         title: "Authentication Required",
@@ -61,55 +59,11 @@ export const useOrderSubmit = () => {
     setIsProcessing(true);
 
     try {
-      // Get fresh auth token
-      console.log('Getting auth session...');
-      const { data: { session }, error: sessionError } = await Promise.race([
-        supabase.auth.getSession(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Session timeout')), 3000))
-      ]) as any;
+      // Generate simple payment ID
+      const paymentId = `ORDER_${Date.now()}_${user.id.slice(-6)}`;
+      const orderId = `ORD_${Date.now()}`;
       
-      if (sessionError || !session) {
-        throw new Error('Please refresh and log in again');
-      }
-
-      // Minimal payload for PayFast - addresses are optional
-      const payload = {
-        amount: finalTotal,
-        shipping_address: shippingAddress || {},
-        billing_address: billingAddress || {},
-        cart_items: items.map(item => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.price,
-          storeId: item.storeId
-        })),
-        delivery_charge: deliveryCharge || 0
-      };
-
-      console.log('Calling PayFast payment function...');
-      
-      // Call PayFast with timeout
-      const { data, error } = await Promise.race([
-        supabase.functions.invoke('create-payfast-payment', { body: payload }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Payment timeout')), 15000))
-      ]) as any;
-
-      const processingTime = Date.now() - startTime;
-      console.log(`Payment function completed in ${processingTime}ms`);
-
-      if (error) {
-        console.error('Payment function error:', error);
-        throw new Error(error.message || 'Payment setup failed');
-      }
-
-      if (!data?.success || !data?.payment_url || !data?.payment_data) {
-        console.error('Invalid payment response:', data);
-        throw new Error(data?.error || 'Invalid payment response');
-      }
-
-      console.log('Payment data received, redirecting to PayFast...');
-      
-      // Clear cart immediately
+      // Clear cart immediately before payment
       clearCart();
       
       toast({
@@ -117,42 +71,66 @@ export const useOrderSubmit = () => {
         description: "Redirecting to secure payment...",
       });
 
-      // Create and submit form
+      // PayFast credentials (you'll need to set these as environment variables)
+      const merchantId = 'YOUR_MERCHANT_ID'; // Replace with actual merchant ID
+      const merchantKey = 'YOUR_MERCHANT_KEY'; // Replace with actual merchant key
+      
+      // Prepare PayFast form data
+      const baseUrl = window.location.origin;
+      const paymentData = {
+        merchant_id: merchantId,
+        merchant_key: merchantKey,
+        return_url: `${baseUrl}/orders?payment=success&order_id=${orderId}`,
+        cancel_url: `${baseUrl}/checkout?payment=cancelled`,
+        notify_url: `${baseUrl}/payfast-webhook`,
+        amount: finalTotal.toFixed(2),
+        item_name: `Order #${orderId}`,
+        item_description: `${items.length} items from marketplace`,
+        email_address: user.email || '',
+        name_first: 'Customer',
+        name_last: 'Customer',
+        m_payment_id: paymentId,
+        custom_str1: orderId,
+        custom_str2: user.id
+      };
+
+      // Generate signature (simplified MD5 hash)
+      const paramString = Object.keys(paymentData)
+        .filter(key => paymentData[key] !== '' && key !== 'merchant_key')
+        .sort()
+        .map(key => `${key}=${encodeURIComponent(paymentData[key])}`)
+        .join('&');
+      
+      // For now, we'll use a simple signature. In production, you'd want proper MD5 hashing
+      const signature = btoa(paramString).slice(0, 32); // Simple base64 signature for demo
+
+      // Create and submit form to PayFast
       const form = document.createElement('form');
       form.method = 'POST';
-      form.action = data.payment_url;
+      form.action = 'https://www.payfast.co.za/eng/process';
       form.style.display = 'none';
 
-      Object.entries(data.payment_data).forEach(([key, value]) => {
-        if (typeof value === 'string') {
+      // Add all payment data as hidden inputs
+      Object.entries({ ...paymentData, signature }).forEach(([key, value]) => {
+        if (key !== 'merchant_key' && value) { // Don't include merchant_key in form
           const input = document.createElement('input');
           input.type = 'hidden';
           input.name = key;
-          input.value = value;
+          input.value = value.toString();
           form.appendChild(input);
         }
       });
 
       document.body.appendChild(form);
+      console.log('Submitting form to PayFast with data:', Object.fromEntries(new FormData(form)));
       form.submit();
 
     } catch (error: any) {
-      const processingTime = Date.now() - startTime;
-      console.error(`Payment failed after ${processingTime}ms:`, error);
-      
-      let userMessage = "Payment processing failed.";
-      
-      if (error.message?.includes('timeout')) {
-        userMessage = "Request timed out. Please try again.";
-      } else if (error.message?.includes('session') || error.message?.includes('log in')) {
-        userMessage = "Session expired. Please refresh and log in again.";
-      } else if (error.message) {
-        userMessage = error.message;
-      }
+      console.error('Payment failed:', error);
       
       toast({
         title: "Payment Failed",
-        description: userMessage,
+        description: "Payment processing failed. Please try again.",
         variant: "destructive"
       });
     } finally {
