@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
@@ -20,36 +20,31 @@ export const useOrderSubmit = () => {
   const { validateCustomerTerms } = useTermsValidation();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleCompleteOrder = async (
+  const handleCompleteOrder = useCallback(async (
     finalTotal: number,
     shippingAddress: any,
     billingAddress: any,
     selectedDelivery: DeliveryService | null,
     deliveryCharge: number
   ) => {
+    if (isProcessing) return; // Prevent double submission
+    
+    const startTime = Date.now();
+
+    // Fast validation checks
     if (!user) {
       toast({
         title: "Authentication Required",
-        description: "Please log in to complete your order. This is required for consumer protection under South African law.",
+        description: "Please log in to complete your order.",
         variant: "destructive"
       });
       return;
     }
 
-    // Enhanced terms validation with SA law compliance
-    if (!validateCustomerTerms()) {
+    if (!validateCustomerTerms() || !profile?.accepted_terms) {
       toast({
         title: "Legal Compliance Required",
-        description: "You must accept our Terms and Conditions, including POPIA privacy provisions and Consumer Protection Act rights, before making a purchase. This is required by South African law.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!profile?.accepted_terms) {
-      toast({
-        title: "Terms and Conditions Required",
-        description: "You must accept our comprehensive terms and conditions, including POPIA compliance, before making a purchase. This is mandatory under South African e-commerce regulations.",
+        description: "You must accept our Terms and Conditions before making a purchase.",
         variant: "destructive"
       });
       return;
@@ -57,8 +52,18 @@ export const useOrderSubmit = () => {
 
     if (!shippingAddress || !billingAddress) {
       toast({
-        title: "Missing Required Information",
-        description: "Please complete both shipping and billing information. Complete customer details are required under the Consumer Protection Act.",
+        title: "Missing Information",
+        description: "Please complete both shipping and billing information.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate amount
+    if (!finalTotal || finalTotal <= 0 || finalTotal > 100000) {
+      toast({
+        title: "Invalid Amount",
+        description: "Order amount is invalid. Please refresh and try again.",
         variant: "destructive"
       });
       return;
@@ -67,112 +72,161 @@ export const useOrderSubmit = () => {
     setIsProcessing(true);
 
     try {
-      console.log('Initiating PayFast payment creation...');
+      console.log('Starting PayFast payment process...');
       
-      // Get the current session to ensure we have a valid token
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      // Get fresh session with timeout
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Session timeout')), 5000)
+      );
+      
+      const { data: { session }, error: sessionError } = await Promise.race([
+        sessionPromise, 
+        timeoutPromise
+      ]) as any;
       
       if (sessionError || !session) {
-        throw new Error('Authentication session expired. Please log in again.');
+        throw new Error('Authentication session expired. Please refresh and log in again.');
       }
 
-      // Call PayFast payment creation function with improved error handling
-      const { data, error } = await supabase.functions.invoke('create-payfast-payment', {
-        body: {
-          amount: finalTotal,
-          shipping_address: shippingAddress,
-          billing_address: billingAddress,
-          cart_items: items,
-          delivery_service: selectedDelivery,
-          delivery_charge: deliveryCharge,
-          legal_compliance: {
-            popia_consent: true,
-            cpa_acknowledged: true,
-            ect_act_consent: true,
-            terms_accepted_at: new Date().toISOString()
-          }
+      // Prepare optimized payload
+      const payload = {
+        amount: finalTotal,
+        shipping_address: shippingAddress,
+        billing_address: billingAddress,
+        cart_items: items.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+          storeId: item.storeId
+        })),
+        delivery_service: selectedDelivery,
+        delivery_charge: deliveryCharge,
+        legal_compliance: {
+          popia_consent: true,
+          cpa_acknowledged: true,
+          ect_act_consent: true,
+          terms_accepted_at: new Date().toISOString()
         }
-      });
+      };
 
-      console.log('PayFast function response:', { data, error });
+      // Call PayFast payment creation with timeout
+      const functionPromise = supabase.functions.invoke('create-payfast-payment', {
+        body: payload
+      });
+      
+      const functionTimeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Payment service timeout')), 15000)
+      );
+
+      const { data, error } = await Promise.race([
+        functionPromise,
+        functionTimeoutPromise
+      ]) as any;
+
+      const processingTime = Date.now() - startTime;
+      console.log('PayFast function completed in', processingTime + 'ms', { data, error });
 
       if (error) {
         console.error('Edge function error:', error);
-        // More specific error handling
-        if (error.message?.includes('PayFast credentials')) {
-          throw new Error('Payment system configuration error. Please contact support.');
-        } else if (error.message?.includes('Unauthorized')) {
-          throw new Error('Session expired. Please refresh the page and try again.');
-        } else if (error.message?.includes('Failed to create order')) {
-          throw new Error('Unable to create order. Please check your information and try again.');
+        
+        // Enhanced error categorization
+        if (error.message?.includes('timeout')) {
+          throw new Error('Payment service is taking too long. Please try again.');
+        } else if (error.message?.includes('configuration') || error.message?.includes('credentials')) {
+          throw new Error('Payment system temporarily unavailable. Please contact support.');
+        } else if (error.message?.includes('Unauthorized') || error.message?.includes('Authentication')) {
+          throw new Error('Your session has expired. Please refresh the page and try again.');
+        } else if (error.message?.includes('Invalid') || error.message?.includes('Missing')) {
+          throw new Error('Invalid order information. Please check your details and try again.');
         } else {
-          throw new Error(`Payment setup failed: ${error.message}`);
+          throw new Error(`Payment setup failed: ${error.message || 'Unknown error'}`);
         }
       }
 
-      if (!data) {
-        throw new Error('No response from payment service. Please try again.');
+      if (!data?.success || !data?.payment_url || !data?.payment_data) {
+        throw new Error(data?.error || 'Invalid payment response received');
       }
 
-      if (data.success && data.payment_url && data.payment_data) {
-        console.log('PayFast payment data received, redirecting to:', data.payment_url);
-        
-        // Clear cart before redirect for better UX
-        clearCart();
-        
-        toast({
-          title: "Redirecting to Secure Payment",
-          description: "You will be redirected to PayFast to complete your payment securely. Your transaction is protected under South African consumer laws.",
-        });
+      console.log('PayFast payment data received, processing time:', processingTime + 'ms');
+      
+      // Clear cart immediately for better UX
+      clearCart();
+      
+      toast({
+        title: "Redirecting to Secure Payment",
+        description: "Redirecting to PayFast for secure payment processing...",
+      });
 
-        // Create form and redirect to PayFast with small delay
-        setTimeout(() => {
+      // Create and submit form with security validation
+      setTimeout(() => {
+        try {
           const form = document.createElement('form');
           form.method = 'POST';
           form.action = data.payment_url;
           form.style.display = 'none';
+          form.setAttribute('target', '_self');
 
-          // Add all payment data as hidden fields
+          // Validate and add payment data as hidden fields
           Object.entries(data.payment_data).forEach(([key, value]) => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = key;
-            input.value = value as string;
-            form.appendChild(input);
+            if (typeof value === 'string' && value.length < 1000) { // Security check
+              const input = document.createElement('input');
+              input.type = 'hidden';
+              input.name = key;
+              input.value = value;
+              form.appendChild(input);
+            }
           });
+
+          if (form.children.length === 0) {
+            throw new Error('No valid payment data to submit');
+          }
 
           document.body.appendChild(form);
           form.submit();
-        }, 1500);
+        } catch (submitError) {
+          console.error('Form submission error:', submitError);
+          toast({
+            title: "Redirect Failed",
+            description: "Failed to redirect to payment page. Please try again.",
+            variant: "destructive"
+          });
+          setIsProcessing(false);
+        }
+      }, 1000);
 
-      } else {
-        throw new Error(data.error || 'Payment creation failed - invalid response format');
-      }
     } catch (error: any) {
-      console.error('Payment error:', error);
+      const processingTime = Date.now() - startTime;
+      console.error('Payment error after', processingTime + 'ms:', error);
       
-      // Enhanced error messaging
-      let userMessage = "There was an error processing your payment. Please try again.";
+      // Smart error messaging based on error type and timing
+      let userMessage = "Payment processing failed. Please try again.";
       
-      if (error.message?.includes('configuration') || error.message?.includes('credentials')) {
-        userMessage = "Payment system is temporarily unavailable. Please contact support.";
-      } else if (error.message?.includes('session') || error.message?.includes('Unauthorized')) {
-        userMessage = "Your session has expired. Please refresh the page and try again.";
+      if (processingTime > 10000) {
+        userMessage = "Payment service is slow. Please check your connection and try again.";
+      } else if (error.message?.includes('timeout')) {
+        userMessage = "Request timed out. Please check your connection and try again.";
+      } else if (error.message?.includes('configuration') || error.message?.includes('unavailable')) {
+        userMessage = "Payment system temporarily unavailable. Please try again in a few minutes.";
+      } else if (error.message?.includes('session') || error.message?.includes('expired')) {
+        userMessage = "Your session has expired. Please refresh the page and log in again.";
       } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
-        userMessage = "Network error. Please check your connection and try again.";
-      } else if (error.message?.includes('order')) {
-        userMessage = "Unable to process your order. Please verify your information and try again.";
+        userMessage = "Network error. Please check your internet connection.";
+      } else if (error.message?.includes('Invalid') || error.message?.includes('Missing')) {
+        userMessage = "Invalid order information. Please verify your details.";
+      } else if (error.message) {
+        userMessage = error.message;
       }
       
       toast({
-        title: "Payment Processing Failed",
-        description: `${userMessage} If the problem persists, you have rights under the Consumer Protection Act.`,
+        title: "Payment Failed",
+        description: userMessage,
         variant: "destructive"
       });
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [user, profile, items, validateCustomerTerms, clearCart, toast, isProcessing]);
 
   return {
     isProcessing,

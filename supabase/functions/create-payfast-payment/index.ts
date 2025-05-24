@@ -7,91 +7,139 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Cache for frequently used values
+const ENV_CACHE = {
+  supabaseUrl: Deno.env.get('SUPABASE_URL') ?? '',
+  serviceRoleKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  merchantId: Deno.env.get('PAYFAST_MERCHANT_ID') ?? '',
+  merchantKey: Deno.env.get('PAYFAST_MERCHANT_KEY') ?? '',
+}
+
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Handle CORS preflight requests immediately
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
+  const startTime = Date.now()
+  
   try {
-    // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    // Get the current user from the Authorization header
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      throw new Error('Authorization header missing')
+    // Validate method early
+    if (req.method !== 'POST') {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Method not allowed' }),
+        { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(
-      authHeader.replace('Bearer ', '')
+    // Initialize Supabase client with cached values
+    if (!ENV_CACHE.supabaseUrl || !ENV_CACHE.serviceRoleKey) {
+      throw new Error('Supabase configuration missing')
+    }
+
+    const supabaseClient = createClient(ENV_CACHE.supabaseUrl, ENV_CACHE.serviceRoleKey)
+
+    // Fast auth validation
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Authorization header missing or invalid' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Parse request body with error handling
+    let requestBody
+    try {
+      requestBody = await req.json()
+    } catch (error) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid JSON payload' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Validate required fields early
+    const { amount, shipping_address, billing_address, cart_items } = requestBody
+    if (!amount || !shipping_address || !billing_address || !cart_items?.length) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Missing required fields' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Validate amount
+    const numAmount = parseFloat(amount)
+    if (isNaN(numAmount) || numAmount <= 0 || numAmount > 100000) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid amount' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Verify PayFast credentials
+    if (!ENV_CACHE.merchantId || !ENV_CACHE.merchantKey) {
+      console.error('PayFast credentials missing')
+      return new Response(
+        JSON.stringify({ success: false, error: 'Payment system configuration error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Get user with timeout
+    const authPromise = supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''))
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Auth timeout')), 5000)
     )
+    
+    const { data: { user }, error: userError } = await Promise.race([authPromise, timeoutPromise]) as any
 
     if (userError || !user) {
       console.error('Auth error:', userError)
-      throw new Error('Unauthorized - invalid token')
+      return new Response(
+        JSON.stringify({ success: false, error: 'Authentication failed' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
-    if (req.method !== 'POST') {
-      throw new Error('Method not allowed')
-    }
+    console.log('Creating PayFast payment for user:', user.id, 'amount:', numAmount, 'time:', Date.now() - startTime + 'ms')
 
-    const requestBody = await req.json()
-    const { 
-      amount, 
-      shipping_address, 
-      billing_address, 
-      cart_items,
-      delivery_service,
-      delivery_charge,
-      legal_compliance
-    } = requestBody
-
-    console.log('Creating PayFast payment for user:', user.id, 'amount:', amount)
-
-    // Get PayFast credentials from environment
-    const merchantId = Deno.env.get('PAYFAST_MERCHANT_ID')
-    const merchantKey = Deno.env.get('PAYFAST_MERCHANT_KEY')
+    // Generate secure payment ID with timestamp and user validation
+    const timestamp = Date.now()
+    const paymentId = `${user.id.slice(-8)}_${timestamp}`
     
-    if (!merchantId || !merchantKey) {
-      console.error('PayFast credentials missing:', { merchantId: !!merchantId, merchantKey: !!merchantKey })
-      throw new Error('PayFast credentials not configured')
+    // Create order with optimized data structure
+    const orderData = {
+      user_id: user.id,
+      total_amount: numAmount,
+      status: 'pending',
+      payment_method: 'payfast',
+      payment_id: paymentId,
+      payment_status: 'pending',
+      shipping_address,
+      billing_address,
+      items: cart_items,
+      delivery_charge: requestBody.delivery_charge || 0,
+      store_id: cart_items[0]?.storeId || null,
+      created_at: new Date().toISOString()
     }
 
-    // Generate unique payment ID
-    const paymentId = `${user.id}_${Date.now()}`
-    
-    // Create order record in database with all required fields
     const { data: order, error: orderError } = await supabaseClient
       .from('orders')
-      .insert({
-        user_id: user.id,
-        total_amount: amount,
-        status: 'pending',
-        payment_method: 'payfast',
-        payment_id: paymentId,
-        payment_status: 'pending',
-        shipping_address: shipping_address,
-        billing_address: billing_address,
-        items: cart_items,
-        delivery_charge: delivery_charge || 0,
-        store_id: cart_items && cart_items.length > 0 ? cart_items[0]?.storeId : null
-      })
-      .select()
+      .insert(orderData)
+      .select('id')
       .single()
 
     if (orderError) {
-      console.error('Error creating order:', orderError)
-      throw new Error(`Failed to create order: ${orderError.message}`)
+      console.error('Order creation failed:', orderError)
+      return new Response(
+        JSON.stringify({ success: false, error: 'Failed to create order' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
-    console.log('Order created successfully:', order.id)
-
-    // Create order items if cart_items exist
-    if (cart_items && cart_items.length > 0) {
+    // Create order items in parallel (non-blocking)
+    if (cart_items?.length > 0) {
       const orderItems = cart_items.map(item => ({
         order_id: order.id,
         product_id: item.productId,
@@ -100,104 +148,149 @@ serve(async (req) => {
         total_price: item.price * item.quantity
       }))
 
-      const { error: itemsError } = await supabaseClient
-        .from('order_items')
-        .insert(orderItems)
-
-      if (itemsError) {
-        console.error('Error creating order items:', itemsError)
-        // Don't throw here, order items are not critical for payment
-      }
+      // Don't await this - let it run in background
+      supabaseClient.from('order_items').insert(orderItems).catch(error => 
+        console.error('Order items creation failed (non-critical):', error)
+      )
     }
 
-    // Prepare PayFast payment data for LIVE mode
-    const baseUrl = req.headers.get('origin') || 'https://xmacsqjdknfpfxzmwjrk.supabase.co'
+    // Prepare PayFast payment data with security validations
+    const baseUrl = req.headers.get('origin') || ENV_CACHE.supabaseUrl.replace('/auth/v1', '')
     
+    // Validate and sanitize user input
+    const firstName = (billing_address?.firstName || 'Customer').replace(/[^a-zA-Z\s]/g, '').slice(0, 50)
+    const lastName = (billing_address?.lastName || 'Customer').replace(/[^a-zA-Z\s]/g, '').slice(0, 50)
+    const email = user.email || billing_address?.email || ''
+    const phone = (billing_address?.phone || '').replace(/[^0-9+\-\s]/g, '').slice(0, 20)
+
     const paymentData = {
-      merchant_id: merchantId,
-      merchant_key: merchantKey,
+      merchant_id: ENV_CACHE.merchantId,
+      merchant_key: ENV_CACHE.merchantKey,
       return_url: `${baseUrl}/orders?payment=success&order_id=${order.id}`,
       cancel_url: `${baseUrl}/checkout?payment=cancelled`,
-      notify_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/payfast-webhook`,
-      name_first: billing_address?.firstName || 'Customer',
-      name_last: billing_address?.lastName || 'Customer',
-      email_address: user.email || billing_address?.email || '',
-      cell_number: billing_address?.phone || '',
+      notify_url: `${ENV_CACHE.supabaseUrl}/functions/v1/payfast-webhook`,
+      name_first: firstName,
+      name_last: lastName,
+      email_address: email,
+      cell_number: phone,
       m_payment_id: paymentId,
-      amount: amount.toFixed(2),
+      amount: numAmount.toFixed(2),
       item_name: `Order #${order.id.toString().slice(0, 8)}`,
-      item_description: `${cart_items?.length || 0} items from marketplace`,
+      item_description: `${cart_items.length} items from marketplace`,
       custom_str1: order.id.toString(),
       custom_str2: user.id,
     }
 
-    console.log('PayFast payment data:', paymentData)
-
-    // Generate signature for PayFast using Deno's built-in crypto
-    const signature = await generatePayFastSignature(paymentData, merchantKey)
+    // Generate signature with enhanced security
+    const signature = await generateSecurePayFastSignature(paymentData, ENV_CACHE.merchantKey)
     
+    const processingTime = Date.now() - startTime
+    console.log('PayFast payment prepared successfully in', processingTime + 'ms')
+
     const response = {
       success: true,
-      payment_url: 'https://www.payfast.co.za/eng/process', // Live PayFast URL
+      payment_url: 'https://www.payfast.co.za/eng/process',
       payment_data: {
         ...paymentData,
         signature
       },
-      order_id: order.id
+      order_id: order.id,
+      processing_time: processingTime
     }
-
-    console.log('PayFast payment data prepared successfully, signature:', signature)
 
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
   } catch (error) {
-    console.error('PayFast payment creation error:', error)
+    const processingTime = Date.now() - startTime
+    console.error('PayFast payment error:', error, 'time:', processingTime + 'ms')
+    
+    // Categorize errors for better user experience
+    let errorMessage = 'Payment creation failed'
+    let statusCode = 500
+    
+    if (error.message?.includes('timeout') || error.message?.includes('Auth timeout')) {
+      errorMessage = 'Request timeout - please try again'
+      statusCode = 408
+    } else if (error.message?.includes('configuration') || error.message?.includes('credentials')) {
+      errorMessage = 'Payment system temporarily unavailable'
+      statusCode = 503
+    } else if (error.message?.includes('Invalid') || error.message?.includes('Missing')) {
+      errorMessage = error.message
+      statusCode = 400
+    }
+    
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Payment creation failed' 
+        error: errorMessage,
+        processing_time: processingTime
       }),
       {
-        status: 500,
+        status: statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
   }
 })
 
-async function generatePayFastSignature(data: Record<string, string>, passphrase: string): Promise<string> {
+async function generateSecurePayFastSignature(data: Record<string, string>, passphrase: string): Promise<string> {
   try {
-    // Create parameter string - exclude merchant_key and signature from the string
+    // Validate inputs
+    if (!data || typeof data !== 'object' || !passphrase) {
+      throw new Error('Invalid signature parameters')
+    }
+
+    // Create parameter string with security checks
     const filteredData = { ...data }
     delete filteredData.merchant_key
     delete filteredData.signature
     
+    // Filter and validate parameters
     const params = Object.keys(filteredData)
-      .filter(key => filteredData[key] !== '' && filteredData[key] !== null && filteredData[key] !== undefined)
+      .filter(key => {
+        const value = filteredData[key]
+        return value !== '' && value !== null && value !== undefined && typeof value === 'string'
+      })
       .sort()
-      .map(key => `${key}=${encodeURIComponent(filteredData[key])}`)
+      .map(key => {
+        // Encode values properly for security
+        const encodedValue = encodeURIComponent(filteredData[key])
+        return `${key}=${encodedValue}`
+      })
       .join('&')
     
-    // Add passphrase if provided
-    const stringToSign = passphrase ? params + `&passphrase=${encodeURIComponent(passphrase)}` : params
+    if (!params) {
+      throw new Error('No valid parameters for signature')
+    }
     
-    console.log('String to sign for PayFast:', stringToSign)
+    // Add passphrase securely
+    const stringToSign = `${params}&passphrase=${encodeURIComponent(passphrase)}`
     
-    // Generate MD5 hash using Deno's built-in crypto
+    console.log('String to sign length:', stringToSign.length)
+    
+    // Generate MD5 hash with error handling
     const encoder = new TextEncoder()
-    const data_bytes = encoder.encode(stringToSign)
+    const dataBytes = encoder.encode(stringToSign)
     
-    // Use the built-in crypto API to generate MD5
-    const hashBuffer = await crypto.subtle.digest('MD5', data_bytes)
+    if (dataBytes.length === 0) {
+      throw new Error('Empty data for hashing')
+    }
+    
+    const hashBuffer = await crypto.subtle.digest('MD5', dataBytes)
     const hashArray = Array.from(new Uint8Array(hashBuffer))
     const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
     
-    console.log('Generated MD5 signature:', hash)
+    // Validate generated hash
+    if (!hash || hash.length !== 32) {
+      throw new Error('Invalid hash generated')
+    }
+    
+    console.log('Generated secure MD5 signature:', hash.slice(0, 8) + '...')
     return hash
   } catch (error) {
-    console.error('Error generating MD5 hash:', error)
-    throw new Error('Failed to generate payment signature')
+    console.error('Signature generation error:', error)
+    throw new Error('Failed to generate secure payment signature')
   }
 }
