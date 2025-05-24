@@ -1,23 +1,10 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-interface PaymentRequest {
-  amount: number
-  item_name: string
-  item_description: string
-  email_address: string
-  name_first: string
-  name_last: string
-  cell_number?: string
-  m_payment_id: string
-  return_url: string
-  cancel_url: string
-  notify_url: string
 }
 
 serve(async (req) => {
@@ -30,39 +17,38 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get the current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser()
+    // Get the current user from the Authorization header
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('Authorization header missing')
+    }
+
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    )
 
     if (userError || !user) {
-      throw new Error('Unauthorized')
+      console.error('Auth error:', userError)
+      throw new Error('Unauthorized - invalid token')
     }
 
     if (req.method !== 'POST') {
       throw new Error('Method not allowed')
     }
 
+    const requestBody = await req.json()
     const { 
       amount, 
       shipping_address, 
       billing_address, 
-      cart_items 
-    }: {
-      amount: number
-      shipping_address: any
-      billing_address: any
-      cart_items: any[]
-    } = await req.json()
+      cart_items,
+      delivery_service,
+      delivery_charge,
+      legal_compliance
+    } = requestBody
 
     console.log('Creating PayFast payment for user:', user.id, 'amount:', amount)
 
@@ -77,7 +63,7 @@ serve(async (req) => {
     // Generate unique payment ID
     const paymentId = `${user.id}_${Date.now()}`
     
-    // Create order record in database with additional fields
+    // Create order record in database with all required fields
     const { data: order, error: orderError } = await supabaseClient
       .from('orders')
       .insert({
@@ -86,38 +72,45 @@ serve(async (req) => {
         status: 'pending',
         payment_method: 'payfast',
         payment_id: paymentId,
-        shipping_address: JSON.stringify(shipping_address),
-        billing_address: JSON.stringify(billing_address),
+        payment_status: 'pending',
+        shipping_address: shipping_address,
+        billing_address: billing_address,
         items: cart_items,
-        store_id: cart_items[0]?.store_id || null // Assuming all items from same store
+        delivery_charge: delivery_charge || 0,
+        store_id: cart_items && cart_items.length > 0 ? cart_items[0]?.storeId : null
       })
       .select()
       .single()
 
     if (orderError) {
       console.error('Error creating order:', orderError)
-      throw new Error('Failed to create order')
+      throw new Error(`Failed to create order: ${orderError.message}`)
     }
 
-    // Also create order items
-    const orderItems = cart_items.map(item => ({
-      order_id: order.id,
-      product_id: item.productId,
-      quantity: item.quantity,
-      unit_price: item.price,
-      total_price: item.price * item.quantity
-    }))
+    console.log('Order created successfully:', order.id)
 
-    const { error: itemsError } = await supabaseClient
-      .from('order_items')
-      .insert(orderItems)
+    // Create order items if cart_items exist
+    if (cart_items && cart_items.length > 0) {
+      const orderItems = cart_items.map(item => ({
+        order_id: order.id,
+        product_id: item.productId,
+        quantity: item.quantity,
+        unit_price: item.price,
+        total_price: item.price * item.quantity
+      }))
 
-    if (itemsError) {
-      console.error('Error creating order items:', itemsError)
+      const { error: itemsError } = await supabaseClient
+        .from('order_items')
+        .insert(orderItems)
+
+      if (itemsError) {
+        console.error('Error creating order items:', itemsError)
+        // Don't throw here, order items are not critical for payment
+      }
     }
 
     // Prepare PayFast payment data for LIVE mode
-    const baseUrl = req.headers.get('origin') || 'https://yoursite.lovable.app'
+    const baseUrl = req.headers.get('origin') || 'https://xmacsqjdknfpfxzmwjrk.supabase.co'
     
     const paymentData = {
       merchant_id: merchantId,
@@ -125,14 +118,14 @@ serve(async (req) => {
       return_url: `${baseUrl}/orders?payment=success&order_id=${order.id}`,
       cancel_url: `${baseUrl}/checkout?payment=cancelled`,
       notify_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/payfast-webhook`,
-      name_first: billing_address.firstName,
-      name_last: billing_address.lastName,
-      email_address: user.email,
-      cell_number: billing_address.phone || '',
+      name_first: billing_address?.firstName || 'Customer',
+      name_last: billing_address?.lastName || 'Customer',
+      email_address: user.email || billing_address?.email || '',
+      cell_number: billing_address?.phone || '',
       m_payment_id: paymentId,
       amount: amount.toFixed(2),
       item_name: `Order #${order.id.toString().slice(0, 8)}`,
-      item_description: `${cart_items.length} items from marketplace`,
+      item_description: `${cart_items?.length || 0} items from marketplace`,
       custom_str1: order.id.toString(),
       custom_str2: user.id,
     }
@@ -149,6 +142,8 @@ serve(async (req) => {
       },
       order_id: order.id
     }
+
+    console.log('PayFast payment data prepared successfully')
 
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

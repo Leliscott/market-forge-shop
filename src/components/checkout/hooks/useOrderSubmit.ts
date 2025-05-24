@@ -67,6 +67,15 @@ export const useOrderSubmit = () => {
     setIsProcessing(true);
 
     try {
+      console.log('Initiating PayFast payment creation...');
+      
+      // Get the current session to ensure we have a valid token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('Authentication session expired. Please log in again.');
+      }
+
       // Call PayFast payment creation function
       const { data, error } = await supabase.functions.invoke('create-payfast-payment', {
         body: {
@@ -86,10 +95,17 @@ export const useOrderSubmit = () => {
       });
 
       if (error) {
-        throw new Error(error.message);
+        console.error('Edge function error:', error);
+        throw new Error(`Payment setup failed: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error('No response from payment service');
       }
 
       if (data.success) {
+        console.log('PayFast payment data received, redirecting...');
+        
         // Create form and redirect to PayFast
         const form = document.createElement('form');
         form.method = 'POST';
@@ -106,15 +122,20 @@ export const useOrderSubmit = () => {
         });
 
         document.body.appendChild(form);
-        form.submit();
-
-        // Clear cart after successful payment initiation
+        
+        // Clear cart before redirect
         clearCart();
-
+        
         toast({
           title: "Redirecting to Secure Payment",
           description: "You will be redirected to PayFast to complete your payment securely. Your transaction is protected under South African consumer laws.",
         });
+
+        // Small delay to ensure user sees the toast
+        setTimeout(() => {
+          form.submit();
+        }, 1000);
+
       } else {
         throw new Error(data.error || 'Payment creation failed');
       }

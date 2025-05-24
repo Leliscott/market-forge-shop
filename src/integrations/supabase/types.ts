@@ -406,11 +406,18 @@ export type Database = {
       }
       orders: {
         Row: {
+          billing_address: Json | null
           created_at: string
           delivery_charge: number | null
           delivery_service_id: string | null
           id: string
-          shipping_address: string | null
+          items: Json | null
+          paid_amount: number | null
+          payment_date: string | null
+          payment_id: string | null
+          payment_method: string | null
+          payment_status: string | null
+          shipping_address: Json | null
           status: string
           store_id: string
           total_amount: number
@@ -418,11 +425,18 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          billing_address?: Json | null
           created_at?: string
           delivery_charge?: number | null
           delivery_service_id?: string | null
           id?: string
-          shipping_address?: string | null
+          items?: Json | null
+          paid_amount?: number | null
+          payment_date?: string | null
+          payment_id?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          shipping_address?: Json | null
           status?: string
           store_id: string
           total_amount: number
@@ -430,11 +444,18 @@ export type Database = {
           user_id: string
         }
         Update: {
+          billing_address?: Json | null
           created_at?: string
           delivery_charge?: number | null
           delivery_service_id?: string | null
           id?: string
-          shipping_address?: string | null
+          items?: Json | null
+          paid_amount?: number | null
+          payment_date?: string | null
+          payment_id?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
+          shipping_address?: Json | null
           status?: string
           store_id?: string
           total_amount?: number
