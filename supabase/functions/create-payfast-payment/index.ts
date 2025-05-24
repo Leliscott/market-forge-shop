@@ -133,7 +133,7 @@ serve(async (req) => {
 
     console.log('PayFast payment data:', paymentData)
 
-    // Generate signature for PayFast using proper MD5 implementation
+    // Generate signature for PayFast using Deno's built-in crypto
     const signature = await generatePayFastSignature(paymentData, merchantKey)
     
     const response = {
@@ -168,26 +168,32 @@ serve(async (req) => {
 })
 
 async function generatePayFastSignature(data: Record<string, string>, passphrase: string): Promise<string> {
-  // Create parameter string - exclude merchant_key and signature from the string
-  const filteredData = { ...data }
-  delete filteredData.merchant_key
-  delete filteredData.signature
-  
-  const params = Object.keys(filteredData)
-    .filter(key => filteredData[key] !== '' && filteredData[key] !== null && filteredData[key] !== undefined)
-    .sort()
-    .map(key => `${key}=${encodeURIComponent(filteredData[key])}`)
-    .join('&')
-  
-  // Add passphrase if provided
-  const stringToSign = passphrase ? params + `&passphrase=${encodeURIComponent(passphrase)}` : params
-  
-  console.log('String to sign for PayFast:', stringToSign)
-  
-  // Generate MD5 hash using crypto-js
   try {
-    const { MD5 } = await import('https://deno.land/x/crypto_js@4.1.1/mod.ts')
-    const hash = MD5(stringToSign).toString()
+    // Create parameter string - exclude merchant_key and signature from the string
+    const filteredData = { ...data }
+    delete filteredData.merchant_key
+    delete filteredData.signature
+    
+    const params = Object.keys(filteredData)
+      .filter(key => filteredData[key] !== '' && filteredData[key] !== null && filteredData[key] !== undefined)
+      .sort()
+      .map(key => `${key}=${encodeURIComponent(filteredData[key])}`)
+      .join('&')
+    
+    // Add passphrase if provided
+    const stringToSign = passphrase ? params + `&passphrase=${encodeURIComponent(passphrase)}` : params
+    
+    console.log('String to sign for PayFast:', stringToSign)
+    
+    // Generate MD5 hash using Deno's built-in crypto
+    const encoder = new TextEncoder()
+    const data_bytes = encoder.encode(stringToSign)
+    
+    // Use the built-in crypto API to generate MD5
+    const hashBuffer = await crypto.subtle.digest('MD5', data_bytes)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    
     console.log('Generated MD5 signature:', hash)
     return hash
   } catch (error) {
