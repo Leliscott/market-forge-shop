@@ -20,22 +20,37 @@ interface CartItem {
   image?: string;
 }
 
+interface DeliveryService {
+  id: string;
+  service_name: string;
+  service_type: string;
+  charge_amount: number;
+}
+
 interface OrderSummaryProps {
   shippingAddress?: any;
   billingAddress?: any;
+  selectedDelivery?: DeliveryService | null;
 }
 
-const OrderSummary: React.FC<OrderSummaryProps> = ({ shippingAddress, billingAddress }) => {
+const OrderSummary: React.FC<OrderSummaryProps> = ({ 
+  shippingAddress, 
+  billingAddress, 
+  selectedDelivery 
+}) => {
   const { items, totalPrice, clearCart } = useCart();
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Calculate delivery charge
+  const deliveryCharge = selectedDelivery ? selectedDelivery.charge_amount : 0;
+
   // Calculate VAT and final total with VAT included
   const vatRate = 0.15; // 15% VAT
   const subtotalExcludingVAT = totalPrice / (1 + vatRate);
   const vatAmount = totalPrice - subtotalExcludingVAT;
-  const finalTotal = totalPrice; // VAT is already included in product prices
+  const finalTotal = totalPrice + deliveryCharge; // Add delivery charge to total
 
   const handleCompleteOrder = async () => {
     if (!user) {
@@ -75,7 +90,9 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ shippingAddress, billingAdd
           amount: finalTotal,
           shipping_address: shippingAddress,
           billing_address: billingAddress,
-          cart_items: items
+          cart_items: items,
+          delivery_service: selectedDelivery,
+          delivery_charge: deliveryCharge
         }
       });
 
@@ -163,17 +180,21 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ shippingAddress, billingAdd
           <span>{formatCurrency(vatAmount)}</span>
         </div>
         
-        {/* Shipping */}
+        {/* Delivery */}
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Shipping</span>
-          <span>Arranged with seller</span>
+          <span className="text-muted-foreground">
+            Delivery {selectedDelivery ? `(${selectedDelivery.service_name})` : ''}
+          </span>
+          <span>
+            {deliveryCharge > 0 ? formatCurrency(deliveryCharge) : 'Arrange with seller'}
+          </span>
         </div>
         
         <Separator />
         
         {/* Total */}
         <div className="flex justify-between font-medium text-lg">
-          <span>Total (incl. VAT)</span>
+          <span>Total (incl. VAT & Delivery)</span>
           <span>{formatCurrency(finalTotal)}</span>
         </div>
         
@@ -194,7 +215,9 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ shippingAddress, billingAdd
         {/* Fee Information */}
         <div className="bg-blue-50 p-3 rounded-lg text-sm">
           <p className="text-blue-800 font-medium mb-1">Payment & Delivery Information</p>
-          <p className="text-blue-700">VAT (15%) is included in all product prices. After payment, you'll receive seller contact details and must complete a delivery form to arrange delivery directly with the seller.</p>
+          <p className="text-blue-700">
+            VAT (15%) is included in product prices. Delivery charges are paid separately to the seller's selected delivery service. After payment, you'll receive seller contact details and must complete a delivery form.
+          </p>
         </div>
         
         <Button 

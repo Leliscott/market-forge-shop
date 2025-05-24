@@ -9,11 +9,25 @@ import Footer from '@/components/Footer';
 import ShippingForm from '@/components/checkout/ShippingForm';
 import PaymentForm from '@/components/checkout/PaymentForm';
 import OrderSummary from '@/components/checkout/OrderSummary';
+import DeliverySelector from '@/components/checkout/DeliverySelector';
+import { useCart } from '@/context/CartContext';
+
+interface DeliveryService {
+  id: string;
+  service_name: string;
+  service_type: string;
+  charge_amount: number;
+}
 
 const Checkout = () => {
+  const { items } = useCart();
   const [shippingAddress, setShippingAddress] = useState(null);
   const [billingAddress, setBillingAddress] = useState(null);
+  const [selectedDelivery, setSelectedDelivery] = useState<DeliveryService | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Get unique store IDs from cart items
+  const storeIds = [...new Set(items.map(item => item.storeId))].filter(Boolean);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -40,6 +54,15 @@ const Checkout = () => {
                   <ShippingForm onAddressChange={setShippingAddress} />
                 </CardContent>
               </Card>
+
+              {/* Delivery Options */}
+              {storeIds.map(storeId => (
+                <DeliverySelector
+                  key={storeId}
+                  storeId={storeId!}
+                  onDeliveryChange={setSelectedDelivery}
+                />
+              ))}
               
               {/* Payment Method */}
               <Card>
@@ -60,6 +83,7 @@ const Checkout = () => {
                   <OrderSummary 
                     shippingAddress={shippingAddress}
                     billingAddress={billingAddress}
+                    selectedDelivery={selectedDelivery}
                   />
                 </CardContent>
               </Card>

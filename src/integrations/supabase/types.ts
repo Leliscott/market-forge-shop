@@ -124,6 +124,47 @@ export type Database = {
           },
         ]
       }
+      delivery_services: {
+        Row: {
+          charge_amount: number
+          created_at: string
+          id: string
+          is_active: boolean
+          service_name: string
+          service_type: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          charge_amount: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          service_name: string
+          service_type: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          charge_amount?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          service_name?: string
+          service_type?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_services_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_logs: {
         Row: {
           action_type: string
@@ -267,6 +308,7 @@ export type Database = {
       order_financials: {
         Row: {
           created_at: string
+          delivery_charge: number | null
           gross_amount: number
           id: string
           marketplace_fee: number
@@ -278,6 +320,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          delivery_charge?: number | null
           gross_amount: number
           id?: string
           marketplace_fee: number
@@ -289,6 +332,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          delivery_charge?: number | null
           gross_amount?: number
           id?: string
           marketplace_fee?: number
@@ -363,6 +407,8 @@ export type Database = {
       orders: {
         Row: {
           created_at: string
+          delivery_charge: number | null
+          delivery_service_id: string | null
           id: string
           shipping_address: string | null
           status: string
@@ -373,6 +419,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          delivery_charge?: number | null
+          delivery_service_id?: string | null
           id?: string
           shipping_address?: string | null
           status?: string
@@ -383,6 +431,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          delivery_charge?: number | null
+          delivery_service_id?: string | null
           id?: string
           shipping_address?: string | null
           status?: string
@@ -392,6 +442,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_delivery_service_id_fkey"
+            columns: ["delivery_service_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_services"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_store_id_fkey"
             columns: ["store_id"]

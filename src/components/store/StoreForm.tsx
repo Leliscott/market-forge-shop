@@ -13,6 +13,7 @@ import { storeFormSchema, StoreFormValues, defaultValues } from './StoreFormSche
 import StoreBasicInfoForm from './StoreBasicInfoForm';
 import StoreContactInfoForm from './StoreContactInfoForm';
 import StoreImageUploader from './StoreImageUploader';
+import DeliveryServicesForm from './DeliveryServicesForm';
 
 interface StoreFormProps {
   isEditing?: boolean;
@@ -23,6 +24,7 @@ const StoreForm: React.FC<StoreFormProps> = ({ isEditing = false }) => {
   const { toast } = useToast();
   const { user, createStore, userStore } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentStoreId, setCurrentStoreId] = useState<string | null>(null);
   
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
@@ -38,6 +40,7 @@ const StoreForm: React.FC<StoreFormProps> = ({ isEditing = false }) => {
   // Load existing store data when editing
   useEffect(() => {
     if (isEditing && userStore) {
+      setCurrentStoreId(userStore.id);
       form.reset({
         name: userStore.name || '',
         description: userStore.description || '',
@@ -137,12 +140,14 @@ const StoreForm: React.FC<StoreFormProps> = ({ isEditing = false }) => {
         
         if (storeData) {
           console.log('Store created successfully:', storeData);
+          setCurrentStoreId(storeData.id);
+          
           toast({
             title: "Store created successfully",
-            description: `Your store "${data.name}" has been created. Welcome to your seller dashboard!`,
+            description: `Your store "${data.name}" has been created. Please configure your delivery services.`,
           });
           
-          navigate('/seller/dashboard');
+          // Don't navigate yet - let user configure delivery services first
         } else {
           throw new Error('Failed to create store');
         }
@@ -159,61 +164,123 @@ const StoreForm: React.FC<StoreFormProps> = ({ isEditing = false }) => {
     }
   };
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setLogoFile(file);
+      const reader = new FileReader();
+      
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setBannerFile(file);
+      const reader = new FileReader();
+      
+      reader.onloadend = () => {
+        setBannerPreview(reader.result as string);
+      };
+      
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const removeLogo = () => {
+    setLogoPreview(null);
+    setLogoFile(null);
+  };
+  
+  const removeBanner = () => {
+    setBannerPreview(null);
+    setBannerFile(null);
+  };
+
+  const handleFinishSetup = () => {
+    navigate('/seller/dashboard');
+  };
+
   return (
-    <Card>
-      <CardContent className="p-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <StoreBasicInfoForm form={form} />
-            
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Store Images</h2>
+    <div className="space-y-6">
+      <Card>
+        <CardContent className="p-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <StoreBasicInfoForm form={form} />
               
-              <div className="space-y-6">
-                <StoreImageUploader
-                  id="logo"
-                  label="Store Logo *"
-                  description="Upload a logo that represents your brand (recommended: 512x512px)"
-                  imagePreview={logoPreview}
-                  handleImageChange={handleLogoChange}
-                  removeImage={removeLogo}
-                />
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Store Images</h2>
                 
-                <StoreImageUploader
-                  id="banner"
-                  label="Store Banner"
-                  description="Upload a banner image for your store (recommended: 1200x400px)"
-                  imagePreview={bannerPreview}
-                  handleImageChange={handleBannerChange}
-                  removeImage={removeBanner}
-                />
+                <div className="space-y-6">
+                  <StoreImageUploader
+                    id="logo"
+                    label="Store Logo *"
+                    description="Upload a logo that represents your brand (recommended: 512x512px)"
+                    imagePreview={logoPreview}
+                    handleImageChange={handleLogoChange}
+                    removeImage={removeLogo}
+                  />
+                  
+                  <StoreImageUploader
+                    id="banner"
+                    label="Store Banner"
+                    description="Upload a banner image for your store (recommended: 1200x400px)"
+                    imagePreview={bannerPreview}
+                    handleImageChange={handleBannerChange}
+                    removeImage={removeBanner}
+                  />
+                </div>
               </div>
-            </div>
-            
-            <StoreContactInfoForm form={form} />
-            
-            <div className="pt-4 flex flex-col sm:flex-row gap-2 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate('/seller/dashboard')}
-              >
-                Cancel
+              
+              <StoreContactInfoForm form={form} />
+              
+              <div className="pt-4 flex flex-col sm:flex-row gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/seller/dashboard')}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting 
+                    ? (isEditing ? "Updating Store..." : "Creating Store...") 
+                    : (isEditing ? "Update Store" : "Create Store")
+                  }
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+
+      {/* Show delivery services form after store creation or when editing */}
+      {(currentStoreId || (isEditing && userStore)) && (
+        <div className="space-y-4">
+          <DeliveryServicesForm 
+            storeId={currentStoreId || userStore?.id || ''} 
+            isEditing={true}
+          />
+          
+          {!isEditing && currentStoreId && (
+            <div className="flex justify-center">
+              <Button onClick={handleFinishSetup} size="lg">
+                Complete Store Setup
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-              >
-                {isSubmitting 
-                  ? (isEditing ? "Updating Store..." : "Creating Store...") 
-                  : (isEditing ? "Update Store" : "Create Store")
-                }
-              </Button>
             </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 
