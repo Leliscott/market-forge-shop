@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 const PaymentTerms = () => {
@@ -20,6 +21,25 @@ const PaymentTerms = () => {
         We do not store your credit card or banking details on our servers - all payment information is processed
         securely by PayFast in compliance with PCI DSS standards.
       </p>
+
+      <h2>5.1. Delivery and Shipping Responsibility</h2>
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 my-4">
+        <p className="font-semibold text-amber-800 mb-2">IMPORTANT DELIVERY NOTICE:</p>
+        <p className="text-amber-700">
+          ShopMarket does NOT handle deliveries or shipping. All delivery arrangements are the exclusive 
+          responsibility of individual sellers. Customers must coordinate directly with sellers for all 
+          delivery matters including timing, location, and method of delivery.
+        </p>
+      </div>
+      <ul>
+        <li>Sellers are solely responsible for product delivery and fulfillment</li>
+        <li>Customers must complete a delivery information form after payment</li>
+        <li>Delivery arrangements are made directly between customer and seller</li>
+        <li>ShopMarket is not liable for delivery delays, damages, or non-delivery</li>
+        <li>Sellers must provide their contact details to customers after payment confirmation</li>
+        <li>Customers should verify delivery terms with sellers before purchase</li>
+        <li>All delivery disputes must be resolved directly between customer and seller</li>
+      </ul>
       
       <h2>6. Order Processing and Fulfillment</h2>
       <p>
@@ -27,9 +47,12 @@ const PaymentTerms = () => {
       </p>
       <ul>
         <li>Your order will be confirmed and you will receive an email notification</li>
+        <li>You will receive seller contact details for delivery coordination</li>
+        <li>You must complete a delivery information form within 24 hours</li>
         <li>The relevant seller will be notified to prepare your order for dispatch</li>
-        <li>Order tracking information will be provided where available</li>
-        <li>Delivery timeframes are estimates and may vary based on location and seller</li>
+        <li>You must coordinate delivery directly with the seller using provided contact details</li>
+        <li>Order tracking information will be provided where available from the seller</li>
+        <li>Delivery timeframes are estimates provided by sellers and may vary</li>
         <li>You can view all your orders and their status in your account dashboard</li>
       </ul>
 
@@ -76,6 +99,20 @@ const PaymentTerms = () => {
         <li>Sellers are responsible for declaring earnings for tax purposes</li>
         <li>Sellers with insufficient balance (below R15.00) cannot request withdrawals</li>
         <li>All withdrawal requests include seller verification and account summary for security purposes</li>
+      </ul>
+
+      <h2>10. Customer Delivery Responsibilities</h2>
+      <p>
+        As a customer purchasing from ShopMarket, you acknowledge and agree that:
+      </p>
+      <ul>
+        <li>You must provide accurate delivery information in the required delivery form</li>
+        <li>You are responsible for being available for delivery as arranged with the seller</li>
+        <li>You must communicate directly with sellers regarding delivery preferences</li>
+        <li>You accept that delivery costs and methods are determined by individual sellers</li>
+        <li>You understand that ShopMarket does not provide delivery services</li>
+        <li>You must resolve any delivery issues directly with the seller</li>
+        <li>You accept the risk of loss or damage during delivery arranged with sellers</li>
       </ul>
     </div>
   );

@@ -1,13 +1,15 @@
 
 import React, { useState } from 'react';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { formatCurrency } from '@/utils/constants';
+import DeliveryNotice from './DeliveryNotice';
 
 interface CartItem {
   id: string;
@@ -25,7 +27,7 @@ interface OrderSummaryProps {
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({ shippingAddress, billingAddress }) => {
   const { items, totalPrice, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -40,6 +42,16 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ shippingAddress, billingAdd
       toast({
         title: "Authentication required",
         description: "Please log in to complete your order.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check if user has accepted terms
+    if (!profile?.accepted_terms) {
+      toast({
+        title: "Terms and Conditions Required",
+        description: "You must accept our terms and conditions before making a purchase.",
         variant: "destructive"
       });
       return;
@@ -112,11 +124,14 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ shippingAddress, billingAdd
     }
   };
 
-  const isReadyToProcess = shippingAddress && billingAddress && items.length > 0;
+  const isReadyToProcess = shippingAddress && billingAddress && items.length > 0 && profile?.accepted_terms;
 
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Order Summary</h2>
+      
+      {/* Delivery Notice */}
+      <DeliveryNotice />
       
       <div className="space-y-4">
         {/* Items */}
@@ -151,7 +166,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ shippingAddress, billingAdd
         {/* Shipping */}
         <div className="flex justify-between">
           <span className="text-muted-foreground">Shipping</span>
-          <span>Free</span>
+          <span>Arranged with seller</span>
         </div>
         
         <Separator />
@@ -162,10 +177,24 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ shippingAddress, billingAdd
           <span>{formatCurrency(finalTotal)}</span>
         </div>
         
+        {/* Terms Acceptance Check */}
+        {!profile?.accepted_terms && (
+          <Alert className="border-red-200 bg-red-50">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              You must accept our{' '}
+              <a href="/terms" className="underline font-medium">
+                Terms and Conditions
+              </a>{' '}
+              before making a purchase.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {/* Fee Information */}
         <div className="bg-blue-50 p-3 rounded-lg text-sm">
-          <p className="text-blue-800 font-medium mb-1">Payment Information</p>
-          <p className="text-blue-700">VAT (15%) is included in all product prices. Sellers receive their profit after VAT and marketplace fees are deducted.</p>
+          <p className="text-blue-800 font-medium mb-1">Payment & Delivery Information</p>
+          <p className="text-blue-700">VAT (15%) is included in all product prices. After payment, you'll receive seller contact details and must complete a delivery form to arrange delivery directly with the seller.</p>
         </div>
         
         <Button 
@@ -188,9 +217,14 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ shippingAddress, billingAdd
         </Button>
 
         {!isReadyToProcess && (
-          <p className="text-sm text-muted-foreground text-center">
-            Please complete shipping and billing information to proceed
-          </p>
+          <div className="text-sm text-muted-foreground text-center space-y-1">
+            {!profile?.accepted_terms && (
+              <p>Please accept our terms and conditions</p>
+            )}
+            {(!shippingAddress || !billingAddress) && (
+              <p>Please complete shipping and billing information</p>
+            )}
+          </div>
         )}
       </div>
     </div>
