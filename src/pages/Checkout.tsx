@@ -71,6 +71,7 @@ const Checkout = () => {
                   <PaymentForm 
                     onBillingAddressChange={setBillingAddress}
                     isProcessing={isProcessing}
+                    shippingAddress={shippingAddress}
                   />
                 </CardContent>
               </Card>

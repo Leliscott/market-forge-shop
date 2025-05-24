@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,9 @@ import { Shield, Lock, CreditCard } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import {
   Form,
   FormControl,
@@ -37,17 +40,24 @@ type BillingAddressForm = z.infer<typeof billingAddressSchema>;
 interface PaymentFormProps {
   onBillingAddressChange: (address: any) => void;
   isProcessing: boolean;
+  shippingAddress?: any;
 }
 
-const PaymentForm: React.FC<PaymentFormProps> = ({ onBillingAddressChange, isProcessing }) => {
+const PaymentForm: React.FC<PaymentFormProps> = ({ 
+  onBillingAddressChange, 
+  isProcessing,
+  shippingAddress 
+}) => {
   const [sameAsShipping, setSameAsShipping] = useState(false);
+  const { profile, user } = useAuth();
+  const { toast } = useToast();
 
   const form = useForm<BillingAddressForm>({
     resolver: zodResolver(billingAddressSchema),
     defaultValues: {
       firstName: '',
       lastName: '',
-      email: '',
+      email: user?.email || '',
       phone: '',
       address: '',
       city: '',
@@ -61,11 +71,100 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ onBillingAddressChange, isPro
 
   const watchedValues = form.watch();
 
-  React.useEffect(() => {
-    if (form.formState.isValid) {
-      onBillingAddressChange(watchedValues);
+  // Load saved billing address
+  useEffect(() => {
+    if (profile?.location) {
+      try {
+        const savedData = JSON.parse(profile.location);
+        if (savedData.billingAddress) {
+          const billing = savedData.billingAddress;
+          form.setValue('firstName', billing.firstName || '');
+          form.setValue('lastName', billing.lastName || '');
+          form.setValue('phone', billing.phone || '');
+          form.setValue('address', billing.address || '');
+          form.setValue('city', billing.city || '');
+          form.setValue('province', billing.province || '');
+          form.setValue('postalCode', billing.postalCode || '');
+        }
+      } catch (error) {
+        console.log('No saved billing address found');
+      }
     }
+  }, [profile, form]);
+
+  // Auto-fill billing from shipping when checkbox is checked
+  useEffect(() => {
+    if (sameAsShipping && shippingAddress) {
+      form.setValue('firstName', shippingAddress.firstName || '');
+      form.setValue('lastName', shippingAddress.lastName || '');
+      form.setValue('address', shippingAddress.address || '');
+      form.setValue('city', shippingAddress.city || '');
+      form.setValue('province', shippingAddress.province || '');
+      form.setValue('postalCode', shippingAddress.postalCode || '');
+    }
+  }, [sameAsShipping, shippingAddress, form]);
+
+  useEffect(() => {
+    // Always pass the current form values, but mark as valid only when all required fields are filled
+    const isFormValid = form.formState.isValid && 
+                       watchedValues.agreeToTerms && 
+                       watchedValues.agreeToPrivacy && 
+                       watchedValues.agreeToProcessing;
+    
+    onBillingAddressChange({
+      ...watchedValues,
+      isValid: isFormValid
+    });
   }, [watchedValues, form.formState.isValid, onBillingAddressChange]);
+
+  const saveBillingAddress = async () => {
+    if (!user || !form.formState.isValid) return;
+
+    try {
+      // Get existing location data
+      let locationData = {};
+      if (profile?.location) {
+        try {
+          locationData = JSON.parse(profile.location);
+        } catch (error) {
+          console.log('Creating new location data');
+        }
+      }
+
+      // Update with billing address
+      const updatedData = {
+        ...locationData,
+        billingAddress: {
+          firstName: watchedValues.firstName,
+          lastName: watchedValues.lastName,
+          phone: watchedValues.phone,
+          address: watchedValues.address,
+          city: watchedValues.city,
+          province: watchedValues.province,
+          postalCode: watchedValues.postalCode,
+        }
+      };
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ location: JSON.stringify(updatedData) })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Billing Address Saved",
+        description: "Your billing address has been saved for future orders.",
+      });
+    } catch (error) {
+      console.error('Error saving billing address:', error);
+      toast({
+        title: "Save Failed",
+        description: "Could not save your billing address. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSameAsShippingChange = (checked: boolean | "indeterminate") => {
     setSameAsShipping(checked === true);
@@ -120,128 +219,139 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ onBillingAddressChange, isPro
                 id="sameAsShipping"
                 checked={sameAsShipping}
                 onCheckedChange={handleSameAsShippingChange}
+                disabled={!shippingAddress}
               />
               <Label htmlFor="sameAsShipping" className="text-sm">
                 Same as shipping address
               </Label>
             </div>
 
-            {!sameAsShipping && (
-              <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>First Name *</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="bg-white" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Last Name *</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="bg-white" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
+            <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField
                   control={form.control}
-                  name="email"
+                  name="firstName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email Address *</FormLabel>
+                      <FormLabel>First Name *</FormLabel>
                       <FormControl>
-                        <Input type="email" {...field} className="bg-white" />
+                        <Input {...field} className="bg-white" disabled={sameAsShipping} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
-                  name="phone"
+                  name="lastName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone Number *</FormLabel>
+                      <FormLabel>Last Name *</FormLabel>
                       <FormControl>
-                        <Input type="tel" {...field} className="bg-white" />
+                        <Input {...field} className="bg-white" disabled={sameAsShipping} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Street Address *</FormLabel>
-                      <FormControl>
-                        <Input {...field} className="bg-white" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City *</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="bg-white" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="province"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Province *</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="bg-white" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="postalCode"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Postal Code *</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="bg-white" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
               </div>
-            )}
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Address *</FormLabel>
+                    <FormControl>
+                      <Input type="email" {...field} className="bg-white" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number *</FormLabel>
+                    <FormControl>
+                      <Input type="tel" {...field} className="bg-white" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Street Address *</FormLabel>
+                    <FormControl>
+                      <Input {...field} className="bg-white" disabled={sameAsShipping} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City *</FormLabel>
+                      <FormControl>
+                        <Input {...field} className="bg-white" disabled={sameAsShipping} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="province"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Province *</FormLabel>
+                      <FormControl>
+                        <Input {...field} className="bg-white" disabled={sameAsShipping} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="postalCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Postal Code *</FormLabel>
+                      <FormControl>
+                        <Input {...field} className="bg-white" disabled={sameAsShipping} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {!sameAsShipping && form.formState.isValid && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={saveBillingAddress}
+                  className="mt-4"
+                >
+                  Save Billing Address
+                </Button>
+              )}
+            </div>
 
             {/* Enhanced Legal Compliance Section */}
             <div className="space-y-4 border-t pt-6">

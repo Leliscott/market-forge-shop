@@ -1,9 +1,13 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import {
   Form,
   FormControl,
@@ -29,6 +33,9 @@ interface ShippingFormProps {
 }
 
 const ShippingForm: React.FC<ShippingFormProps> = ({ onAddressChange }) => {
+  const { profile, user } = useAuth();
+  const { toast } = useToast();
+  
   const form = useForm<ShippingAddressForm>({
     resolver: zodResolver(shippingAddressSchema),
     defaultValues: {
@@ -43,11 +50,54 @@ const ShippingForm: React.FC<ShippingFormProps> = ({ onAddressChange }) => {
 
   const watchedValues = form.watch();
 
-  React.useEffect(() => {
+  // Load saved address from profile
+  useEffect(() => {
+    if (profile?.location) {
+      try {
+        const savedAddress = JSON.parse(profile.location);
+        form.setValue('firstName', savedAddress.firstName || '');
+        form.setValue('lastName', savedAddress.lastName || '');
+        form.setValue('address', savedAddress.address || '');
+        form.setValue('city', savedAddress.city || '');
+        form.setValue('province', savedAddress.province || '');
+        form.setValue('postalCode', savedAddress.postalCode || '');
+      } catch (error) {
+        console.log('No saved address found');
+      }
+    }
+  }, [profile, form]);
+
+  useEffect(() => {
     if (form.formState.isValid) {
       onAddressChange(watchedValues);
     }
   }, [watchedValues, form.formState.isValid, onAddressChange]);
+
+  const saveAddress = async () => {
+    if (!user || !form.formState.isValid) return;
+
+    try {
+      const addressData = JSON.stringify(watchedValues);
+      const { error } = await supabase
+        .from('profiles')
+        .update({ location: addressData })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Address Saved",
+        description: "Your shipping address has been saved for future orders.",
+      });
+    } catch (error) {
+      console.error('Error saving address:', error);
+      toast({
+        title: "Save Failed",
+        description: "Could not save your address. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <Form {...form}>
@@ -136,6 +186,18 @@ const ShippingForm: React.FC<ShippingFormProps> = ({ onAddressChange }) => {
             )}
           />
         </div>
+
+        {form.formState.isValid && (
+          <Button 
+            type="button" 
+            variant="outline" 
+            size="sm"
+            onClick={saveAddress}
+            className="mt-4"
+          >
+            Save Address for Future Orders
+          </Button>
+        )}
       </form>
     </Form>
   );

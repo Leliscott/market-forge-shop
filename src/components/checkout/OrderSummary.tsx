@@ -43,7 +43,33 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
     finalTotal
   } = useOrderCalculations(totalPrice, selectedDelivery);
 
-  const isReadyToProcess = shippingAddress && billingAddress && items.length > 0 && hasAcceptedTerms;
+  // Check if billing address is valid (including consent checkboxes)
+  const isBillingValid = billingAddress && billingAddress.isValid && 
+                        billingAddress.firstName && 
+                        billingAddress.lastName && 
+                        billingAddress.email && 
+                        billingAddress.phone && 
+                        billingAddress.address && 
+                        billingAddress.city && 
+                        billingAddress.province && 
+                        billingAddress.postalCode &&
+                        billingAddress.agreeToTerms &&
+                        billingAddress.agreeToPrivacy &&
+                        billingAddress.agreeToProcessing;
+
+  // Check if shipping address is valid
+  const isShippingValid = shippingAddress && 
+                         shippingAddress.firstName && 
+                         shippingAddress.lastName && 
+                         shippingAddress.address && 
+                         shippingAddress.city && 
+                         shippingAddress.province && 
+                         shippingAddress.postalCode;
+
+  const isReadyToProcess = isShippingValid && 
+                          isBillingValid && 
+                          items.length > 0 && 
+                          hasAcceptedTerms;
 
   const onCompleteOrder = () => {
     if (!validateCustomerTerms()) {
@@ -122,8 +148,11 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
             {!hasAcceptedTerms && (
               <p className="text-red-600 font-medium">⚠ Please accept terms and conditions (SA law requirement)</p>
             )}
-            {(!shippingAddress || !billingAddress) && (
-              <p>Please complete shipping and billing information</p>
+            {!isShippingValid && (
+              <p className="text-red-600">⚠ Please complete shipping information</p>
+            )}
+            {!isBillingValid && (
+              <p className="text-red-600">⚠ Please complete billing information and consent requirements</p>
             )}
           </div>
         )}
