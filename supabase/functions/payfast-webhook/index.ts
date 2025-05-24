@@ -32,7 +32,7 @@ serve(async (req) => {
       webhookData[key] = value.toString()
     }
 
-    console.log('PayFast webhook received:', webhookData)
+    console.log('PayFast ITN received:', webhookData)
 
     // Verify webhook signature
     const merchantKey = Deno.env.get('PAYFAST_MERCHANT_KEY')
@@ -78,11 +78,7 @@ serve(async (req) => {
       throw new Error('Failed to update order')
     }
 
-    // If payment is complete, clear user's cart
-    if (paymentStatus === 'COMPLETE') {
-      // Note: Cart is managed in localStorage on frontend, so we'll handle this there
-      console.log(`Payment completed for order ${orderId}`)
-    }
+    console.log(`Payment ${paymentStatus} for order ${orderId}`)
 
     return new Response('OK', {
       headers: corsHeaders,

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -78,7 +77,7 @@ serve(async (req) => {
     // Generate unique payment ID
     const paymentId = `${user.id}_${Date.now()}`
     
-    // Create order record in database
+    // Create order record in database with additional fields
     const { data: order, error: orderError } = await supabaseClient
       .from('orders')
       .insert({
@@ -87,9 +86,10 @@ serve(async (req) => {
         status: 'pending',
         payment_method: 'payfast',
         payment_id: paymentId,
-        shipping_address: shipping_address,
-        billing_address: billing_address,
-        items: cart_items
+        shipping_address: JSON.stringify(shipping_address),
+        billing_address: JSON.stringify(billing_address),
+        items: cart_items,
+        store_id: cart_items[0]?.store_id || null // Assuming all items from same store
       })
       .select()
       .single()
@@ -99,7 +99,24 @@ serve(async (req) => {
       throw new Error('Failed to create order')
     }
 
-    // Prepare PayFast payment data
+    // Also create order items
+    const orderItems = cart_items.map(item => ({
+      order_id: order.id,
+      product_id: item.productId,
+      quantity: item.quantity,
+      unit_price: item.price,
+      total_price: item.price * item.quantity
+    }))
+
+    const { error: itemsError } = await supabaseClient
+      .from('order_items')
+      .insert(orderItems)
+
+    if (itemsError) {
+      console.error('Error creating order items:', itemsError)
+    }
+
+    // Prepare PayFast payment data for LIVE mode
     const baseUrl = req.headers.get('origin') || 'https://yoursite.lovable.app'
     
     const paymentData = {
@@ -114,7 +131,7 @@ serve(async (req) => {
       cell_number: billing_address.phone || '',
       m_payment_id: paymentId,
       amount: amount.toFixed(2),
-      item_name: `Order #${order.id}`,
+      item_name: `Order #${order.id.toString().slice(0, 8)}`,
       item_description: `${cart_items.length} items from marketplace`,
       custom_str1: order.id.toString(),
       custom_str2: user.id,
@@ -125,7 +142,7 @@ serve(async (req) => {
     
     const response = {
       success: true,
-      payment_url: 'https://www.payfast.co.za/eng/process',
+      payment_url: 'https://www.payfast.co.za/eng/process', // Live PayFast URL
       payment_data: {
         ...paymentData,
         signature
