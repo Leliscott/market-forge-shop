@@ -27,16 +27,14 @@ const FastCheckout: React.FC<FastCheckoutProps> = ({
     finalTotal
   } = useOrderCalculations(totalPrice, selectedDelivery);
 
-  const isReadyToProcess = hasAcceptedTerms && 
-                          items.length > 0 && 
-                          shippingAddress?.firstName && 
-                          shippingAddress?.address;
+  // Only check terms acceptance and cart items
+  const isReadyToProcess = hasAcceptedTerms && items.length > 0;
 
   const onCompleteOrder = () => {
     handleCompleteOrder(
       finalTotal,
-      shippingAddress,
-      shippingAddress, // Use shipping as billing for speed
+      shippingAddress || {}, // Use empty object if no shipping address
+      shippingAddress || {}, // Use shipping as billing for speed
       selectedDelivery || null,
       deliveryCharge
     );
@@ -51,7 +49,6 @@ const FastCheckout: React.FC<FastCheckoutProps> = ({
             <p className="font-medium mb-2">Complete Required Information:</p>
             <ul className="text-sm space-y-1">
               {!hasAcceptedTerms && <li>• Accept Terms & Conditions</li>}
-              {!shippingAddress?.firstName && <li>• Complete shipping address</li>}
               {items.length === 0 && <li>• Add items to cart</li>}
             </ul>
           </div>
@@ -68,7 +65,7 @@ const FastCheckout: React.FC<FastCheckoutProps> = ({
           <span className="font-medium">Ready for Payment</span>
         </div>
         <div className="text-sm text-green-700 space-y-1">
-          <p>✓ Terms accepted • ✓ Address complete • ✓ {items.length} items</p>
+          <p>✓ Terms accepted • ✓ {items.length} items in cart</p>
           <p className="font-medium">Total: {formatCurrency(finalTotal)}</p>
         </div>
       </div>
