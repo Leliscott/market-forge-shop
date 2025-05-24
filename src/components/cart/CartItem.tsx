@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CartItem as CartItemType } from '@/context/CartContext';
+import { formatCurrency } from '@/utils/constants';
 
 interface CartItemProps {
   item: CartItemType;
@@ -64,8 +65,8 @@ const CartItem: React.FC<CartItemProps> = ({ item, updateQuantity, removeFromCar
           </div>
           
           <div className="text-right">
-            <div className="font-medium">${(item.price * item.quantity).toFixed(2)}</div>
-            <div className="text-xs text-muted-foreground">${item.price.toFixed(2)} each</div>
+            <div className="font-medium">{formatCurrency(item.price * item.quantity)}</div>
+            <div className="text-xs text-muted-foreground">{formatCurrency(item.price)} each</div>
           </div>
         </div>
       </div>

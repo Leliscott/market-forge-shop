@@ -4,7 +4,6 @@ import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Package } from 'lucide-react';
-import { formatCurrency } from '@/utils/constants';
 
 interface Product {
   id: string;

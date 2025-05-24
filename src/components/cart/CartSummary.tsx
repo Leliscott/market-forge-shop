@@ -5,6 +5,7 @@ import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { formatCurrency } from '@/utils/constants';
 
 interface CartSummaryProps {
   totalItems: number;
@@ -19,7 +20,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ totalItems, totalPrice }) => 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Items ({totalItems})</span>
-          <span>${totalPrice.toFixed(2)}</span>
+          <span>{formatCurrency(totalPrice)}</span>
         </div>
         
         <div className="flex items-center justify-between">
@@ -36,7 +37,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ totalItems, totalPrice }) => 
         
         <div className="flex items-center justify-between font-medium text-lg">
           <span>Total</span>
-          <span>${totalPrice.toFixed(2)}</span>
+          <span>{formatCurrency(totalPrice)}</span>
         </div>
         
         <Button className="w-full" asChild>
