@@ -5,14 +5,18 @@ export interface Order {
   status: string;
   payment_status?: string;
   created_at: string;
-  shipping_address?: any; // Changed from string to any to match JSONB
-  billing_address?: any; // Changed from string to any to match JSONB
-  items?: any; // Changed to match JSONB
+  shipping_address?: any; // JSONB from database
+  billing_address?: any; // JSONB from database
+  items?: any; // JSONB from database - changed from any[] to any to match Json type
   payment_date?: string;
   delivery_charge?: number;
   payment_method?: string;
   payment_id?: string;
   paid_amount?: number;
+  user_id?: string;
+  store_id?: string;
+  updated_at?: string;
+  delivery_service_id?: string;
 }
 
 export interface OrderItem {
