@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -48,10 +47,7 @@ const DeliveryFormPage = () => {
                 name,
                 contact_phone,
                 contact_email,
-                profiles:owner_id (
-                  name,
-                  email
-                )
+                owner_id
               )
             )
           `)
@@ -62,7 +58,17 @@ const DeliveryFormPage = () => {
 
         if (orderItems && orderItems.length > 0 && orderItems[0].products?.stores) {
           const store = orderItems[0].products.stores;
-          const storeOwner = store.profiles;
+          
+          // Fetch store owner profile separately
+          const { data: storeOwner, error: ownerError } = await supabase
+            .from('profiles')
+            .select('name, email')
+            .eq('id', store.owner_id)
+            .single();
+
+          if (ownerError) {
+            console.error('Error fetching store owner:', ownerError);
+          }
           
           setSellerContact({
             name: store.name,
