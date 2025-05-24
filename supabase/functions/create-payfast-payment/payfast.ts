@@ -38,15 +38,16 @@ export async function generateSecurePayFastSignature(data: Record<string, string
       throw new Error('Empty data for hashing');
     }
     
-    const hashBuffer = await crypto.subtle.digest('MD5', dataBytes);
+    // Use SHA-256 instead of MD5 (more secure and supported)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBytes);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
-    if (!hash || hash.length !== 32) {
+    if (!hash || hash.length !== 64) {
       throw new Error('Invalid hash generated');
     }
     
-    console.log('Generated secure MD5 signature:', hash.slice(0, 8) + '...');
+    console.log('Generated secure SHA-256 signature:', hash.slice(0, 8) + '...');
     return hash;
   } catch (error) {
     console.error('Signature generation error:', error);

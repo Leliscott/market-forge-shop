@@ -41,7 +41,7 @@ export async function createOrder(
   return order;
 }
 
-export async function createOrderItems(
+export function createOrderItems(
   supabaseClient: ReturnType<typeof createClient>,
   orderId: string,
   cart_items: CartItem[]
@@ -55,9 +55,15 @@ export async function createOrderItems(
       total_price: item.price * item.quantity
     }));
 
-    // Run in background, don't await
-    supabaseClient.from('order_items').insert(orderItems).catch(error => 
-      console.error('Order items creation failed (non-critical):', error)
+    // Run in background, don't await - fix the Promise handling
+    supabaseClient.from('order_items').insert(orderItems).then(
+      (result) => {
+        if (result.error) {
+          console.error('Order items creation failed (non-critical):', result.error);
+        } else {
+          console.log('Order items created successfully');
+        }
+      }
     );
   }
 }

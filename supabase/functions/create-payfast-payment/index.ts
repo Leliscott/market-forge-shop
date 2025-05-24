@@ -74,7 +74,7 @@ serve(async (req) => {
       validatedRequest.delivery_charge || 0
     );
 
-    // Create order items in background
+    // Create order items in background - fix the async call
     createOrderItems(supabaseClient, order.id, validatedRequest.cart_items);
 
     // Prepare PayFast payment data
