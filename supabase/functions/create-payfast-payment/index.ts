@@ -130,7 +130,7 @@ serve(async (req) => {
       custom_str2: user.id,
     }
 
-    // Generate signature for PayFast
+    // Generate signature for PayFast using proper MD5 implementation
     const signature = await generatePayFastSignature(paymentData, merchantKey)
     
     const response = {
@@ -175,12 +175,26 @@ async function generatePayFastSignature(data: Record<string, string>, passphrase
   // Add passphrase
   const stringToSign = params + `&passphrase=${encodeURIComponent(passphrase)}`
   
-  // Generate MD5 hash
-  const encoder = new TextEncoder()
-  const data_bytes = encoder.encode(stringToSign)
-  const hash = await crypto.subtle.digest('MD5', data_bytes)
-  const hashArray = Array.from(new Uint8Array(hash))
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+  console.log('String to sign:', stringToSign)
   
-  return hashHex
+  // Generate MD5 hash using a proper implementation
+  const md5Hash = await md5(stringToSign)
+  
+  return md5Hash
+}
+
+// Proper MD5 implementation for Deno
+async function md5(message: string): Promise<string> {
+  // Convert string to bytes
+  const encoder = new TextEncoder()
+  const data = encoder.encode(message)
+  
+  // Use SHA-256 instead of MD5 for now, as MD5 is not available in Deno
+  // PayFast documentation should be checked if SHA-256 is acceptable
+  // For now, let's implement a working MD5 using a different approach
+  
+  // Import crypto-js for MD5 hashing
+  const { MD5 } = await import('https://deno.land/x/crypto_js@4.1.1/mod.ts')
+  
+  return MD5(message).toString()
 }

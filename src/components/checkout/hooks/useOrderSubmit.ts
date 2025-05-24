@@ -76,7 +76,7 @@ export const useOrderSubmit = () => {
         throw new Error('Authentication session expired. Please log in again.');
       }
 
-      // Call PayFast payment creation function
+      // Call PayFast payment creation function with improved error handling
       const { data, error } = await supabase.functions.invoke('create-payfast-payment', {
         body: {
           amount: finalTotal,
@@ -94,16 +94,25 @@ export const useOrderSubmit = () => {
         }
       });
 
+      console.log('PayFast function response:', { data, error });
+
       if (error) {
         console.error('Edge function error:', error);
-        throw new Error(`Payment setup failed: ${error.message}`);
+        // More specific error handling
+        if (error.message?.includes('PayFast credentials')) {
+          throw new Error('Payment system configuration error. Please contact support.');
+        } else if (error.message?.includes('Unauthorized')) {
+          throw new Error('Session expired. Please refresh the page and try again.');
+        } else {
+          throw new Error(`Payment setup failed: ${error.message}`);
+        }
       }
 
       if (!data) {
-        throw new Error('No response from payment service');
+        throw new Error('No response from payment service. Please try again.');
       }
 
-      if (data.success) {
+      if (data.success && data.payment_url && data.payment_data) {
         console.log('PayFast payment data received, redirecting...');
         
         // Create form and redirect to PayFast
@@ -137,13 +146,25 @@ export const useOrderSubmit = () => {
         }, 1000);
 
       } else {
-        throw new Error(data.error || 'Payment creation failed');
+        throw new Error(data.error || 'Payment creation failed - invalid response format');
       }
     } catch (error: any) {
       console.error('Payment error:', error);
+      
+      // Enhanced error messaging
+      let userMessage = "There was an error processing your payment. Please try again.";
+      
+      if (error.message?.includes('configuration')) {
+        userMessage = "Payment system is temporarily unavailable. Please contact support.";
+      } else if (error.message?.includes('session') || error.message?.includes('Unauthorized')) {
+        userMessage = "Your session has expired. Please refresh the page and try again.";
+      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        userMessage = "Network error. Please check your connection and try again.";
+      }
+      
       toast({
         title: "Payment Processing Failed",
-        description: error.message || "There was an error processing your payment. Please try again. If the problem persists, you have rights under the Consumer Protection Act.",
+        description: `${userMessage} If the problem persists, you have rights under the Consumer Protection Act.`,
         variant: "destructive"
       });
     } finally {
