@@ -68,7 +68,8 @@ serve(async (req) => {
   try {
     console.log('=== CREATE YOCO PAYMENT FUNCTION STARTED ===')
     console.log('Request method:', req.method)
-    console.log('Request headers:', Object.fromEntries(req.headers.entries()))
+    console.log('Request URL:', req.url)
+    console.log('Content-Type:', req.headers.get('content-type'))
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -99,10 +100,30 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id)
 
-    const requestBody = await req.json()
-    console.log('Request body received:', requestBody)
+    // Parse request body with proper error handling
+    let requestBody: PaymentRequest
+    try {
+      const bodyText = await req.text()
+      console.log('Raw request body:', bodyText)
+      
+      if (!bodyText || bodyText.trim() === '') {
+        throw new Error('Request body is empty')
+      }
+      
+      requestBody = JSON.parse(bodyText)
+      console.log('Parsed request body:', requestBody)
+    } catch (parseError) {
+      console.error('Failed to parse request body:', parseError)
+      return new Response(JSON.stringify({ 
+        error: 'Invalid request body', 
+        details: parseError.message 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
     
-    const { token: paymentToken, amountInCents, currency, metadata }: PaymentRequest = requestBody
+    const { token: paymentToken, amountInCents, currency, metadata } = requestBody
 
     // Validate payment data
     if (!paymentToken || !amountInCents || !currency || !metadata) {

@@ -106,19 +106,26 @@ export const createYocoPayment = async (
 
                 console.log('Session verified, calling edge function...');
                 
+                // Prepare request payload
+                const requestPayload = {
+                  token: result.id,
+                  amountInCents: paymentData.amount,
+                  currency: paymentData.currency,
+                  metadata: paymentData.metadata
+                };
+
+                console.log('Sending request payload:', requestPayload);
+                
                 // Process payment on backend using Supabase Edge Function with proper auth
                 const { data, error } = await supabase.functions.invoke('create-yoco-payment', {
-                  body: {
-                    token: result.id,
-                    amountInCents: paymentData.amount,
-                    currency: paymentData.currency,
-                    metadata: paymentData.metadata
-                  },
+                  body: requestPayload,
                   headers: {
                     'Authorization': `Bearer ${session.access_token}`,
                     'Content-Type': 'application/json',
                   }
                 });
+
+                console.log('Edge function response:', { data, error });
 
                 if (error) {
                   console.error('Backend processing error:', error);
