@@ -30,10 +30,14 @@ export const useOrderSubmit = () => {
     if (isProcessing) return;
     
     console.log('=== STARTING YOCO PAYMENT ===');
+    console.log('Final total:', finalTotal);
+    console.log('Items:', items);
+    console.log('User:', user?.id);
 
     // Validate payment data
     const validation = validateYocoPayment(user, profile, finalTotal, items);
     if (!validation.isValid) {
+      console.error('Payment validation failed:', validation.message);
       toast({
         title: "Payment Validation Failed",
         description: validation.message,
@@ -47,6 +51,7 @@ export const useOrderSubmit = () => {
     try {
       // Generate order ID
       const orderId = `order_${Date.now()}_${user!.id.slice(-8)}`;
+      console.log('Generated order ID:', orderId);
       
       toast({
         title: "Processing Payment",
@@ -54,6 +59,7 @@ export const useOrderSubmit = () => {
       });
 
       // Create Yoco payment using new backend integration
+      console.log('Calling createYocoPayment...');
       const paymentResult = await createYocoPayment(
         finalTotal,
         orderId,
