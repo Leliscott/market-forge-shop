@@ -17,7 +17,8 @@ export interface YocoTokenResponse {
   amount: number;
 }
 
-export const YOCO_PUBLIC_KEY = 'pk_test_ed3c54a6gOol69qa7f45'; // Replace with your actual public key
+// Use your live public key here - replace with your actual live public key
+export const YOCO_PUBLIC_KEY = 'pk_live_YOUR_LIVE_PUBLIC_KEY_HERE'; // Update this with your live public key
 
 export const initializeYoco = () => {
   return new Promise((resolve, reject) => {
@@ -45,7 +46,7 @@ export const createYocoPayment = async (
   orderId: string,
   userId: string,
   items: any[]
-): Promise<YocoTokenResponse> => {
+): Promise<any> => {
   try {
     const yoco = await initializeYoco();
     
@@ -59,6 +60,8 @@ export const createYocoPayment = async (
       }
     };
 
+    console.log('Initiating Yoco payment:', paymentData);
+
     return new Promise((resolve, reject) => {
       (yoco as any).showPopup({
         amountInCents: paymentData.amount,
@@ -66,17 +69,44 @@ export const createYocoPayment = async (
         name: 'Marketplace Payment',
         description: `Order #${orderId}`,
         publicKey: YOCO_PUBLIC_KEY,
-        callback: function(result: any) {
+        callback: async function(result: any) {
           if (result.error) {
+            console.error('Yoco SDK error:', result.error);
             reject(new Error(result.error.message));
           } else {
-            resolve(result);
+            try {
+              // Process payment on backend
+              const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-yoco-payment`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}`
+                },
+                body: JSON.stringify({
+                  token: result.id,
+                  amountInCents: paymentData.amount,
+                  currency: paymentData.currency,
+                  metadata: paymentData.metadata
+                })
+              });
+
+              const data = await response.json();
+              
+              if (!response.ok) {
+                throw new Error(data.details || data.error || 'Payment processing failed');
+              }
+
+              resolve(data);
+            } catch (error) {
+              console.error('Backend payment processing failed:', error);
+              reject(error);
+            }
           }
         }
       });
     });
   } catch (error) {
-    console.error('Yoco payment failed:', error);
+    console.error('Yoco payment initialization failed:', error);
     throw error;
   }
 };

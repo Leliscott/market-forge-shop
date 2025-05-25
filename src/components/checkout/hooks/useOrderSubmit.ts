@@ -5,6 +5,7 @@ import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import { createYocoPayment } from '@/utils/yoco';
 import { validateYocoPayment } from '@/utils/yocoValidation';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DeliveryService {
   id: string;
@@ -52,7 +53,7 @@ export const useOrderSubmit = () => {
         description: "Opening secure payment window...",
       });
 
-      // Create Yoco payment
+      // Create Yoco payment using new backend integration
       const paymentResult = await createYocoPayment(
         finalTotal,
         orderId,
@@ -71,7 +72,7 @@ export const useOrderSubmit = () => {
       });
 
       // Redirect to success page or orders page
-      window.location.href = `/orders?payment=success&order_id=${orderId}`;
+      window.location.href = `/orders?payment=success&order_id=${paymentResult.order.id}`;
 
     } catch (error: any) {
       console.error('Yoco payment failed:', error);
