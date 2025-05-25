@@ -8,7 +8,7 @@ const Footer = () => {
       <div className="container px-4 py-8 mx-auto">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           <div className="space-y-3">
-            <h3 className="text-lg font-semibold">ShopMarket</h3>
+            <h3 className="text-lg font-semibold">Shop4ll</h3>
             <p className="text-sm text-muted-foreground">
               The marketplace where individuals can create their own stores and sell products.
             </p>
@@ -47,7 +47,7 @@ const Footer = () => {
         <div className="pt-8 mt-8 border-t">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} ShopMarket. All rights reserved.
+              &copy; {new Date().getFullYear()} Shop4ll. All rights reserved.
             </p>
             <div className="flex items-center space-x-4">
               <Link to="#" className="text-muted-foreground hover:text-foreground">

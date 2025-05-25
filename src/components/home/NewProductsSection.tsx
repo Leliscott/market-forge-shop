@@ -35,7 +35,7 @@ const NewProductsSection: React.FC<NewProductsSectionProps> = ({ products, loadi
         {loading ? (
           <div className="flex justify-center py-8">
             <div className="animate-pulse space-y-4">
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="bg-gray-200 h-64 rounded-lg"></div>
                 ))}
@@ -43,7 +43,7 @@ const NewProductsSection: React.FC<NewProductsSectionProps> = ({ products, loadi
             </div>
           </div>
         ) : products.length > 0 ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
             {products.map(product => (
               <ProductCard 
                 key={product.id} 

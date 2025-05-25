@@ -303,7 +303,7 @@ const Marketplace = () => {
                   <p className="mb-6 text-muted-foreground">
                     Showing {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'}
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
                     {filteredProducts.map(product => (
                       <ProductCard key={product.id} product={product} />
                     ))}
