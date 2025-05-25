@@ -6,9 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import ShippingForm from '@/components/checkout/ShippingForm';
+import QuickShippingForm from '@/components/checkout/QuickShippingForm';
 import SimplifiedOrderSummary from '@/components/checkout/SimplifiedOrderSummary';
-import DeliverySelector from '@/components/checkout/DeliverySelector';
 import { useCart } from '@/context/CartContext';
 
 interface DeliveryService {
@@ -23,47 +22,59 @@ const SimplifiedCheckout = () => {
   const [shippingAddress, setShippingAddress] = useState(null);
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryService | null>(null);
 
-  // Get unique store IDs from cart items
-  const storeIds = [...new Set(items.map(item => item.storeId))].filter(Boolean);
+  if (items.length === 0) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-4">Your cart is empty</h2>
+            <p className="text-gray-600 mb-6">Add some items to your cart before checkout</p>
+            <Button asChild>
+              <Link to="/marketplace">Continue Shopping</Link>
+            </Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
       
       <main className="flex-1">
-        <div className="container px-4 py-8 mx-auto">
+        <div className="container px-4 py-8 mx-auto max-w-6xl">
           <div className="mb-6">
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/cart" className="flex items-center gap-1">
+              <Link to="/cart" className="flex items-center gap-2">
                 <ArrowLeft className="w-4 h-4" /> Back to cart
               </Link>
             </Button>
           </div>
           
-          <h1 className="text-3xl font-bold mb-8">Quick Checkout</h1>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold">Quick Checkout</h1>
+            <p className="text-gray-600 mt-2">Complete your order in just a few steps</p>
+          </div>
           
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-            <div className="lg:col-span-2 space-y-6">
-              {/* Shipping Address */}
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
+            <div className="lg:col-span-3 space-y-6">
+              {/* Quick Shipping Form */}
               <Card>
                 <CardContent className="p-6">
-                  <h2 className="text-xl font-semibold mb-4">Shipping Address</h2>
-                  <ShippingForm onAddressChange={setShippingAddress} />
+                  <h2 className="text-xl font-semibold mb-4">Delivery Information</h2>
+                  <QuickShippingForm 
+                    onAddressChange={setShippingAddress}
+                    onDeliveryChange={setSelectedDelivery}
+                  />
                 </CardContent>
               </Card>
-
-              {/* Delivery Options */}
-              {storeIds.map(storeId => (
-                <DeliverySelector
-                  key={storeId}
-                  storeId={storeId!}
-                  onDeliveryChange={setSelectedDelivery}
-                />
-              ))}
             </div>
             
-            {/* Simplified Order Summary */}
-            <div className="lg:col-span-1">
+            {/* Order Summary */}
+            <div className="lg:col-span-2">
               <Card className="sticky top-20">
                 <CardContent className="p-6">
                   <SimplifiedOrderSummary 

@@ -1,51 +1,56 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { CreditCard, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
+import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/utils/constants';
 
-interface CartSummaryProps {
-  totalItems: number;
-  totalPrice: number;
-}
+const CartSummary = () => {
+  const { totalPrice, totalItems } = useCart();
 
-const CartSummary: React.FC<CartSummaryProps> = ({ totalItems, totalPrice }) => {
   return (
-    <div className="sticky top-20 border rounded-lg p-6 space-y-6">
-      <h2 className="text-lg font-semibold">Order Summary</h2>
+    <div className="bg-white p-6 rounded-lg shadow-sm border space-y-4">
+      <h2 className="text-xl font-semibold">Order Summary</h2>
       
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Items ({totalItems})</span>
+      <div className="space-y-2">
+        <div className="flex justify-between">
+          <span className="text-gray-600">Items ({totalItems})</span>
           <span>{formatCurrency(totalPrice)}</span>
         </div>
-        
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Shipping</span>
-          <span>Free</span>
+        <div className="flex justify-between">
+          <span className="text-gray-600">Delivery</span>
+          <span className="text-sm text-gray-500">Calculated at checkout</span>
         </div>
-        
-        <div className="flex gap-2">
-          <Input placeholder="Coupon code" className="flex-1" />
-          <Button variant="outline">Apply</Button>
+        <div className="border-t pt-2">
+          <div className="flex justify-between font-semibold text-lg">
+            <span>Total</span>
+            <span>{formatCurrency(totalPrice)}</span>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">Plus delivery charges</p>
         </div>
-        
-        <Separator />
-        
-        <div className="flex items-center justify-between font-medium text-lg">
-          <span>Total</span>
-          <span>{formatCurrency(totalPrice)}</span>
-        </div>
-        
-        <Button className="w-full" asChild>
-          <Link to="/checkout">
-            Proceed to Checkout
-            <ChevronRight className="h-4 w-4 ml-1" />
+      </div>
+
+      <div className="space-y-3">
+        <Button asChild className="w-full bg-blue-600 hover:bg-blue-700" size="lg">
+          <Link to="/checkout/quick" className="flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            Quick Checkout
           </Link>
         </Button>
+        
+        <Button variant="outline" asChild className="w-full" size="lg">
+          <Link to="/checkout" className="flex items-center gap-2">
+            <CreditCard className="w-4 h-4" />
+            Full Checkout
+          </Link>
+        </Button>
+      </div>
+
+      <div className="text-center">
+        <p className="text-xs text-gray-500">
+          Secure payment • SSL encrypted • VAT included
+        </p>
       </div>
     </div>
   );

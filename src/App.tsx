@@ -1,3 +1,4 @@
+
 import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -19,6 +20,7 @@ const Marketplace = lazy(() => import('@/pages/Marketplace'));
 const ProductDetail = lazy(() => import('@/pages/ProductDetail'));
 const Cart = lazy(() => import('@/pages/Cart'));
 const Checkout = lazy(() => import('@/pages/Checkout'));
+const SimplifiedCheckout = lazy(() => import('@/pages/SimplifiedCheckout'));
 const Orders = lazy(() => import('@/pages/Orders'));
 const Chats = lazy(() => import('@/pages/Chats'));
 const SellerDashboard = lazy(() => import('@/pages/SellerDashboard'));
@@ -53,6 +55,7 @@ function App() {
                       <Route path="/product/:id" element={<ProductDetail />} />
                       <Route path="/cart" element={<Cart />} />
                       <Route path="/checkout" element={<Checkout />} />
+                      <Route path="/checkout/quick" element={<SimplifiedCheckout />} />
                       <Route path="/orders" element={<Orders />} />
                       <Route path="/chats" element={<Chats />} />
                       <Route path="/seller/dashboard" element={<SellerDashboard />} />
