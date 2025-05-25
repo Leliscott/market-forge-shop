@@ -70,6 +70,7 @@ serve(async (req) => {
     console.log('Request method:', req.method)
     console.log('Request URL:', req.url)
     console.log('Content-Type:', req.headers.get('content-type'))
+    console.log('Authorization header present:', !!req.headers.get('authorization'))
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -100,23 +101,46 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id)
 
-    // Parse request body with proper error handling
+    // Get request body - handle both text and JSON
     let requestBody: PaymentRequest
     try {
       const bodyText = await req.text()
-      console.log('Raw request body:', bodyText)
+      console.log('Raw request body length:', bodyText.length)
+      console.log('Raw request body (first 100 chars):', bodyText.substring(0, 100))
       
       if (!bodyText || bodyText.trim() === '') {
-        throw new Error('Request body is empty')
+        console.error('Request body is empty')
+        return new Response(JSON.stringify({ 
+          error: 'Request body is empty',
+          debug: 'No body content received'
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
       }
       
-      requestBody = JSON.parse(bodyText)
-      console.log('Parsed request body:', requestBody)
-    } catch (parseError) {
-      console.error('Failed to parse request body:', parseError)
+      // Try to parse as JSON
+      try {
+        requestBody = JSON.parse(bodyText)
+        console.log('Successfully parsed request body:', requestBody)
+      } catch (jsonError) {
+        console.error('JSON parse error:', jsonError)
+        console.error('Body content:', bodyText)
+        return new Response(JSON.stringify({ 
+          error: 'Invalid JSON in request body',
+          details: jsonError.message,
+          receivedBody: bodyText.substring(0, 200)
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+      
+    } catch (bodyError) {
+      console.error('Failed to read request body:', bodyError)
       return new Response(JSON.stringify({ 
-        error: 'Invalid request body', 
-        details: parseError.message 
+        error: 'Failed to read request body',
+        details: bodyError.message 
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -127,7 +151,12 @@ serve(async (req) => {
 
     // Validate payment data
     if (!paymentToken || !amountInCents || !currency || !metadata) {
-      console.error('Missing required payment data')
+      console.error('Missing required payment data:', { 
+        hasToken: !!paymentToken, 
+        hasAmount: !!amountInCents, 
+        hasCurrency: !!currency, 
+        hasMetadata: !!metadata 
+      })
       return new Response(JSON.stringify({ error: 'Missing required payment data' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

@@ -106,7 +106,7 @@ export const createYocoPayment = async (
 
                 console.log('Session verified, calling edge function...');
                 
-                // Prepare request payload
+                // Prepare request payload - use JSON.stringify for the body
                 const requestPayload = {
                   token: result.id,
                   amountInCents: paymentData.amount,
@@ -116,9 +116,9 @@ export const createYocoPayment = async (
 
                 console.log('Sending request payload:', requestPayload);
                 
-                // Process payment on backend using Supabase Edge Function with proper auth
+                // Process payment on backend using Supabase Edge Function with explicit JSON body
                 const { data, error } = await supabase.functions.invoke('create-yoco-payment', {
-                  body: requestPayload,
+                  body: JSON.stringify(requestPayload),
                   headers: {
                     'Authorization': `Bearer ${session.access_token}`,
                     'Content-Type': 'application/json',
