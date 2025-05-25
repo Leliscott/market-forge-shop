@@ -3,8 +3,8 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
-import { createPayFastData, generatePayFastSignature, submitPayFastForm } from '@/utils/payfast';
 import { validatePaymentData } from '@/utils/paymentValidation';
+import { submitPayFastSimpleForm } from '@/utils/payfast-simple';
 
 interface DeliveryService {
   id: string;
@@ -28,7 +28,7 @@ export const useOrderSubmit = () => {
   ) => {
     if (isProcessing) return;
     
-    console.log('=== STARTING PAYFAST PAYMENT ===');
+    console.log('=== STARTING PAYFAST SIMPLE PAYMENT ===');
 
     // Validate payment data
     const validation = validatePaymentData(user, profile, finalTotal, items);
@@ -52,15 +52,8 @@ export const useOrderSubmit = () => {
         description: "Redirecting to secure payment...",
       });
 
-      // Prepare PayFast form data
-      const paymentData = createPayFastData(finalTotal, user, items);
-
-      // Generate signature
-      const signature = generatePayFastSignature(paymentData);
-      console.log('Generated MD5 signature:', signature);
-
-      // Submit form to PayFast
-      submitPayFastForm(paymentData, signature);
+      // Use simple PayFast form submission
+      submitPayFastSimpleForm(finalTotal);
 
     } catch (error: any) {
       console.error('Payment failed:', error);
