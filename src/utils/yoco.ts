@@ -1,4 +1,6 @@
 
+import { supabase } from '@/integrations/supabase/client';
+
 // Yoco payment integration utilities
 export interface YocoPaymentData {
   amount: number; // Amount in cents
