@@ -21,7 +21,7 @@ export interface YocoTokenResponse {
 
 // IMPORTANT: Replace this with your actual live public key from Yoco Dashboard
 // Your live public key should start with "pk_live_"
-export const YOCO_PUBLIC_KEY = 'pk_live_YOUR_ACTUAL_LIVE_PUBLIC_KEY_HERE';
+export const YOCO_PUBLIC_KEY = 'pk_live_41721577mWM4nmd948c4';
 
 export const initializeYoco = () => {
   return new Promise((resolve, reject) => {
