@@ -181,7 +181,7 @@ serve(async (req) => {
       }
 
       // Special handling for authorization errors
-      if (yocoResponse.status === 401) {
+      if (yocoResponse.status === 502) {
         userFriendlyMessage = 'Payment service authorization failed. Please contact support.'
         console.error('AUTHORIZATION ERROR - Check YOCO_SECRET_KEY configuration')
       }
