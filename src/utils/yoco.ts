@@ -34,10 +34,7 @@ export const initializeYoco = () => {
     script.src = 'https://js.yoco.com/sdk/v1/yoco-sdk-web.js';
     script.onload = () => {
       if ((window as any).YocoSDK) {
-        (window as any).yoco = new (window as any).YocoSDK({
-          publicKey: YOCO_PUBLIC_KEY,
-        });
-        resolve((window as any).yoco);
+        resolve((window as any).YocoSDK);
       } else {
         reject(new Error('Yoco SDK failed to load'));
       }
@@ -54,7 +51,7 @@ export const createYocoPayment = async (
   items: any[]
 ): Promise<any> => {
   try {
-    const yoco = await initializeYoco();
+    const YocoSDK = await initializeYoco();
     
     const paymentData: YocoPaymentData = {
       amount: Math.round(amount * 100), // Convert to cents
@@ -69,13 +66,13 @@ export const createYocoPayment = async (
     console.log('Initiating Yoco payment:', paymentData);
 
     return new Promise((resolve, reject) => {
-      // Try the newer checkout method first, fallback to showPopup if needed
-      const checkoutOptions = {
+      // Use FlexForm which is the correct method for the current SDK
+      const flexForm = new (YocoSDK as any).FlexForm({
+        publicKey: YOCO_PUBLIC_KEY,
         amountInCents: paymentData.amount,
         currency: paymentData.currency,
         name: 'Marketplace Payment',
         description: `Order #${orderId}`,
-        publicKey: YOCO_PUBLIC_KEY,
         callback: async function(result: any) {
           if (result.error) {
             console.error('Yoco payment error:', result.error);
@@ -105,24 +102,10 @@ export const createYocoPayment = async (
             }
           }
         }
-      };
+      });
 
-      // Try multiple methods to ensure compatibility
-      if (typeof (yoco as any).showPopup === 'function') {
-        (yoco as any).showPopup(checkoutOptions);
-      } else if (typeof (yoco as any).checkout === 'function') {
-        (yoco as any).checkout(checkoutOptions);
-      } else if (typeof (yoco as any).openCheckout === 'function') {
-        (yoco as any).openCheckout(checkoutOptions);
-      } else {
-        // Fallback to direct window method
-        if ((window as any).YocoSDK && typeof (window as any).YocoSDK.showPopup === 'function') {
-          (window as any).YocoSDK.showPopup(checkoutOptions);
-        } else {
-          console.error('Available Yoco methods:', Object.keys(yoco as any));
-          reject(new Error('Yoco payment method not available. Please check your Yoco SDK integration.'));
-        }
-      }
+      // Show the payment form
+      flexForm.show();
     });
   } catch (error) {
     console.error('Yoco payment initialization failed:', error);
