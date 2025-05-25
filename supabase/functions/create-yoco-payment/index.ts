@@ -51,6 +51,23 @@ serve(async (req) => {
     
     const { token, amountInCents, currency, metadata }: PaymentRequest = requestBody
 
+    // Validate payment data
+    if (!token || !amountInCents || !currency || !metadata) {
+      console.error('Missing required payment data')
+      return new Response(JSON.stringify({ error: 'Missing required payment data' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    if (amountInCents < 100) { // Minimum 1 ZAR
+      console.error('Amount too small:', amountInCents)
+      return new Response(JSON.stringify({ error: 'Amount must be at least 1 ZAR' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
     console.log('Processing Yoco payment:', { 
       amountInCents, 
       currency, 
@@ -69,6 +86,21 @@ serve(async (req) => {
     }
 
     console.log('Yoco secret key configured:', !!yocoSecretKey)
+    console.log('Yoco secret key length:', yocoSecretKey.length)
+
+    // Prepare Yoco payload
+    const yocoPayload = {
+      token,
+      amountInCents,
+      currency,
+      metadata: {
+        orderId: metadata.orderId,
+        userId: metadata.userId,
+        itemCount: metadata.items.length
+      }
+    }
+
+    console.log('Yoco payload:', JSON.stringify(yocoPayload, null, 2))
 
     // Create payment with Yoco API
     console.log('Calling Yoco API...')
@@ -77,30 +109,36 @@ serve(async (req) => {
       headers: {
         'Authorization': `Bearer ${yocoSecretKey}`,
         'Content-Type': 'application/json',
+        'User-Agent': 'Marketplace/1.0'
       },
-      body: JSON.stringify({
-        token,
-        amountInCents,
-        currency,
-        metadata: {
-          orderId: metadata.orderId,
-          userId: metadata.userId,
-          itemCount: metadata.items.length
-        }
-      })
+      body: JSON.stringify(yocoPayload)
     })
 
-    const yocoData = await yocoResponse.json()
     console.log('Yoco API response status:', yocoResponse.status)
-    console.log('Yoco API response:', yocoData)
+    console.log('Yoco API response headers:', Object.fromEntries(yocoResponse.headers.entries()))
+
+    const yocoData = await yocoResponse.json()
+    console.log('Yoco API response:', JSON.stringify(yocoData, null, 2))
 
     if (!yocoResponse.ok) {
       console.error('Yoco payment failed:', yocoData)
+      
+      // Enhanced error handling for different Yoco error types
+      let errorMessage = 'Payment processing failed'
+      if (yocoData.displayMessage) {
+        errorMessage = yocoData.displayMessage
+      } else if (yocoData.errorMessage) {
+        errorMessage = yocoData.errorMessage
+      } else if (yocoData.message) {
+        errorMessage = yocoData.message
+      }
+
       return new Response(JSON.stringify({ 
         error: 'Payment failed', 
-        details: yocoData.displayMessage || yocoData.errorMessage || 'Payment processing error' 
+        details: errorMessage,
+        yocoError: yocoData
       }), {
-        status: 400,
+        status: yocoResponse.status === 500 ? 502 : 400, // Use 502 for Yoco server errors
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
@@ -110,6 +148,16 @@ serve(async (req) => {
     // Determine store_id from items (use first item's store)
     const storeId = metadata.items[0]?.storeId || null
     console.log('Store ID:', storeId)
+
+    if (!storeId) {
+      console.error('No store ID found in items')
+      return new Response(JSON.stringify({ 
+        error: 'Invalid order data - no store found' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
 
     // Create order in database
     const orderData = {
@@ -124,7 +172,7 @@ serve(async (req) => {
       payment_date: new Date().toISOString()
     }
 
-    console.log('Creating order with data:', orderData)
+    console.log('Creating order with data:', JSON.stringify(orderData, null, 2))
 
     const { data: order, error: orderError } = await supabaseClient
       .from('orders')
