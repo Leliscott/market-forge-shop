@@ -106,7 +106,7 @@ export const createYocoPayment = async (
 
                 console.log('Session verified, calling edge function...');
                 
-                // Prepare request payload - use JSON.stringify for the body
+                // Prepare request payload with proper structure
                 const requestPayload = {
                   token: result.id,
                   amountInCents: paymentData.amount,
@@ -116,20 +116,35 @@ export const createYocoPayment = async (
 
                 console.log('Sending request payload:', requestPayload);
                 
-                // Process payment on backend using Supabase Edge Function with explicit JSON body
-                const { data, error } = await supabase.functions.invoke('create-yoco-payment', {
-                  body: JSON.stringify(requestPayload),
-                  headers: {
-                    'Authorization': `Bearer ${session.access_token}`,
-                    'Content-Type': 'application/json',
+                // Use fetch directly to ensure proper request handling
+                const response = await fetch(
+                  `${supabase.supabaseUrl}/functions/v1/create-yoco-payment`,
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${session.access_token}`,
+                      'Content-Type': 'application/json',
+                      'apikey': supabase.supabaseKey,
+                    },
+                    body: JSON.stringify(requestPayload),
                   }
-                });
+                );
 
-                console.log('Edge function response:', { data, error });
+                console.log('Edge function response status:', response.status);
+                console.log('Edge function response ok:', response.ok);
 
-                if (error) {
-                  console.error('Backend processing error:', error);
-                  throw new Error(error.message || 'Payment processing failed');
+                if (!response.ok) {
+                  const errorText = await response.text();
+                  console.error('Edge function error response:', errorText);
+                  throw new Error(`Edge function failed: ${response.status} - ${errorText}`);
+                }
+
+                const data = await response.json();
+                console.log('Edge function response:', data);
+
+                if (data.error) {
+                  console.error('Backend processing error:', data.error);
+                  throw new Error(data.error || 'Payment processing failed');
                 }
 
                 console.log('=== PAYMENT SUCCESSFUL ===');

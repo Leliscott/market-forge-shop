@@ -69,8 +69,7 @@ serve(async (req) => {
     console.log('=== CREATE YOCO PAYMENT FUNCTION STARTED ===')
     console.log('Request method:', req.method)
     console.log('Request URL:', req.url)
-    console.log('Content-Type:', req.headers.get('content-type'))
-    console.log('Authorization header present:', !!req.headers.get('authorization'))
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()))
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -101,18 +100,22 @@ serve(async (req) => {
 
     console.log('User authenticated:', user.id)
 
-    // Get request body - handle both text and JSON
+    // Enhanced request body parsing
     let requestBody: PaymentRequest
+    let bodyText: string
+
     try {
-      const bodyText = await req.text()
+      // First, read the raw text
+      bodyText = await req.text()
       console.log('Raw request body length:', bodyText.length)
-      console.log('Raw request body (first 100 chars):', bodyText.substring(0, 100))
+      console.log('Raw request body preview:', bodyText.substring(0, 200))
       
       if (!bodyText || bodyText.trim() === '') {
-        console.error('Request body is empty')
+        console.error('Request body is completely empty')
         return new Response(JSON.stringify({ 
           error: 'Request body is empty',
-          debug: 'No body content received'
+          debug: 'No body content received from client',
+          headers: Object.fromEntries(req.headers.entries())
         }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -125,11 +128,12 @@ serve(async (req) => {
         console.log('Successfully parsed request body:', requestBody)
       } catch (jsonError) {
         console.error('JSON parse error:', jsonError)
-        console.error('Body content:', bodyText)
+        console.error('Problematic body content:', bodyText)
         return new Response(JSON.stringify({ 
           error: 'Invalid JSON in request body',
           details: jsonError.message,
-          receivedBody: bodyText.substring(0, 200)
+          receivedBody: bodyText.substring(0, 500),
+          bodyLength: bodyText.length
         }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
