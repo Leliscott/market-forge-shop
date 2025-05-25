@@ -51,6 +51,7 @@ export const createYocoPayment = async (
   items: any[]
 ): Promise<any> => {
   try {
+    console.log('Initializing Yoco SDK...');
     const YocoSDK = await initializeYoco();
     
     const paymentData: YocoPaymentData = {
@@ -64,48 +65,59 @@ export const createYocoPayment = async (
     };
 
     console.log('Initiating Yoco payment:', paymentData);
+    console.log('Using public key:', YOCO_PUBLIC_KEY);
 
     return new Promise((resolve, reject) => {
-      // Use FlexForm which is the correct method for the current SDK
-      const flexForm = new (YocoSDK as any).FlexForm({
-        publicKey: YOCO_PUBLIC_KEY,
-        amountInCents: paymentData.amount,
-        currency: paymentData.currency,
-        name: 'Marketplace Payment',
-        description: `Order #${orderId}`,
-        callback: async function(result: any) {
-          if (result.error) {
-            console.error('Yoco payment error:', result.error);
-            reject(new Error(result.error.message || 'Payment failed'));
-          } else {
-            try {
-              console.log('Yoco payment token received:', result.id);
-              
-              // Process payment on backend using Supabase Edge Function
-              const { data, error } = await supabase.functions.invoke('create-yoco-payment', {
-                body: {
-                  token: result.id,
-                  amountInCents: paymentData.amount,
-                  currency: paymentData.currency,
-                  metadata: paymentData.metadata
+      try {
+        // Initialize Yoco with the public key
+        const yoco = new (YocoSDK as any)({
+          publicKey: YOCO_PUBLIC_KEY
+        });
+
+        console.log('Yoco instance created, calling showPopup...');
+
+        // Use the showPopup method
+        yoco.showPopup({
+          amountInCents: paymentData.amount,
+          currency: paymentData.currency,
+          name: 'Marketplace Payment',
+          description: `Order #${orderId}`,
+          callback: async function(result: any) {
+            console.log('Yoco callback received:', result);
+            
+            if (result.error) {
+              console.error('Yoco payment error:', result.error);
+              reject(new Error(result.error.message || 'Payment failed'));
+            } else {
+              try {
+                console.log('Yoco payment token received:', result.id);
+                
+                // Process payment on backend using Supabase Edge Function
+                const { data, error } = await supabase.functions.invoke('create-yoco-payment', {
+                  body: {
+                    token: result.id,
+                    amountInCents: paymentData.amount,
+                    currency: paymentData.currency,
+                    metadata: paymentData.metadata
+                  }
+                });
+
+                if (error) {
+                  throw new Error(error.message || 'Payment processing failed');
                 }
-              });
 
-              if (error) {
-                throw new Error(error.message || 'Payment processing failed');
+                resolve(data);
+              } catch (error) {
+                console.error('Backend payment processing failed:', error);
+                reject(error);
               }
-
-              resolve(data);
-            } catch (error) {
-              console.error('Backend payment processing failed:', error);
-              reject(error);
             }
           }
-        }
-      });
-
-      // Show the payment form
-      flexForm.show();
+        });
+      } catch (initError) {
+        console.error('Error creating Yoco instance:', initError);
+        reject(new Error('Failed to initialize Yoco payment'));
+      }
     });
   } catch (error) {
     console.error('Yoco payment initialization failed:', error);
