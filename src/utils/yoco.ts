@@ -97,13 +97,26 @@ export const createYocoPayment = async (
                 console.log('Payment token received, processing with backend...');
                 console.log('Token:', result.id);
                 
-                // Process payment on backend using Supabase Edge Function
+                // Get the current session to ensure we have a valid token
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                
+                if (sessionError || !session) {
+                  throw new Error('User not authenticated');
+                }
+
+                console.log('Session verified, calling edge function...');
+                
+                // Process payment on backend using Supabase Edge Function with proper auth
                 const { data, error } = await supabase.functions.invoke('create-yoco-payment', {
                   body: {
                     token: result.id,
                     amountInCents: paymentData.amount,
                     currency: paymentData.currency,
                     metadata: paymentData.metadata
+                  },
+                  headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json',
                   }
                 });
 

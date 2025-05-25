@@ -5,6 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 interface PaymentRequest {
@@ -56,22 +57,37 @@ async function retryApiCall(fn: () => Promise<Response>, maxRetries = 2, delay =
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 200
+    })
   }
 
   try {
     console.log('=== CREATE YOCO PAYMENT FUNCTION STARTED ===')
+    console.log('Request method:', req.method)
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()))
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     )
 
-    const authHeader = req.headers.get('Authorization')!
+    const authHeader = req.headers.get('Authorization')
     console.log('Auth header present:', !!authHeader)
     
-    const { data: { user } } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''))
+    if (!authHeader) {
+      console.error('No authorization header provided')
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+    
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user } } = await supabaseClient.auth.getUser(token)
     
     if (!user) {
       console.error('User not authenticated')
@@ -86,10 +102,10 @@ serve(async (req) => {
     const requestBody = await req.json()
     console.log('Request body received:', requestBody)
     
-    const { token, amountInCents, currency, metadata }: PaymentRequest = requestBody
+    const { token: paymentToken, amountInCents, currency, metadata }: PaymentRequest = requestBody
 
     // Validate payment data
-    if (!token || !amountInCents || !currency || !metadata) {
+    if (!paymentToken || !amountInCents || !currency || !metadata) {
       console.error('Missing required payment data')
       return new Response(JSON.stringify({ error: 'Missing required payment data' }), {
         status: 400,
@@ -109,7 +125,7 @@ serve(async (req) => {
       amountInCents, 
       currency, 
       orderId: metadata.orderId,
-      token: token.substring(0, 10) + '...' // Log partial token for security
+      token: paymentToken.substring(0, 10) + '...' // Log partial token for security
     })
 
     // Get Yoco secret key
@@ -128,7 +144,7 @@ serve(async (req) => {
 
     // Prepare Yoco payload - use exact format from Yoco docs
     const yocoPayload = {
-      token,
+      token: paymentToken,
       amountInCents,
       currency,
       metadata: {
@@ -147,7 +163,7 @@ serve(async (req) => {
       
       // Ensure proper authorization header format
       const authorizationHeader = `Bearer ${yocoSecretKey.trim()}`
-      console.log('Authorization header format verified:', authorizationHeader.substring(0, 20) + '...')
+      console.log('Authorization header format verified')
       
       return fetch('https://online.yoco.com/v1/charges/', {
         method: 'POST',
