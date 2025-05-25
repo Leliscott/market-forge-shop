@@ -116,39 +116,28 @@ export const createYocoPayment = async (
 
                 console.log('Sending request payload:', requestPayload);
                 
-                // Use hardcoded Supabase URL and key instead of accessing protected properties
-                const SUPABASE_URL = "https://xmacsqjdknfpfxzmwjrk.supabase.co";
-                const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtYWNzcWpka25mcGZ4em13anJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3Mzc4ODksImV4cCI6MjA2MzMxMzg4OX0.ExHB0UemoQU0x7eOIdEMyzL5JNDfot6gR4zQZocW_E8";
-                
-                // Use fetch directly to ensure proper request handling
-                const response = await fetch(
-                  `${SUPABASE_URL}/functions/v1/create-yoco-payment`,
-                  {
-                    method: 'POST',
-                    headers: {
-                      'Authorization': `Bearer ${session.access_token}`,
-                      'Content-Type': 'application/json',
-                      'apikey': SUPABASE_KEY,
-                    },
-                    body: JSON.stringify(requestPayload),
+                // Use Supabase client's invoke method for better error handling
+                const { data, error } = await supabase.functions.invoke('create-yoco-payment', {
+                  body: requestPayload,
+                });
+
+                console.log('Edge function response:', { data, error });
+
+                if (error) {
+                  console.error('Edge function error:', error);
+                  
+                  // Check if it's a Yoco server error (500) that might be retryable
+                  if (error.message?.includes('500') || error.message?.includes('server_error')) {
+                    throw new Error('Payment service is temporarily unavailable. Please try again in a few minutes.');
+                  } else if (error.message?.includes('401')) {
+                    throw new Error('Payment authorization failed. Please contact support.');
+                  } else {
+                    throw new Error(error.message || 'Payment processing failed');
                   }
-                );
-
-                console.log('Edge function response status:', response.status);
-                console.log('Edge function response ok:', response.ok);
-
-                if (!response.ok) {
-                  const errorText = await response.text();
-                  console.error('Edge function error response:', errorText);
-                  throw new Error(`Edge function failed: ${response.status} - ${errorText}`);
                 }
 
-                const data = await response.json();
-                console.log('Edge function response:', data);
-
-                if (data.error) {
-                  console.error('Backend processing error:', data.error);
-                  throw new Error(data.error || 'Payment processing failed');
+                if (!data) {
+                  throw new Error('No response received from payment processor');
                 }
 
                 console.log('=== PAYMENT SUCCESSFUL ===');

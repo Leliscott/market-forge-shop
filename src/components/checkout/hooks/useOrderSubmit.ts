@@ -2,10 +2,9 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { createYocoPayment } from '@/utils/yoco';
 import { validateYocoPayment } from '@/utils/yocoValidation';
-import { supabase } from '@/integrations/supabase/client';
 
 interface DeliveryService {
   id: string;
@@ -17,7 +16,6 @@ interface DeliveryService {
 export const useOrderSubmit = () => {
   const { user, profile } = useAuth();
   const { items, clearCart } = useCart();
-  const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleCompleteOrder = useCallback(async (
@@ -38,10 +36,8 @@ export const useOrderSubmit = () => {
     const validation = validateYocoPayment(user, profile, finalTotal, items);
     if (!validation.isValid) {
       console.error('Payment validation failed:', validation.message);
-      toast({
-        title: "Payment Validation Failed",
+      toast.error("Payment Validation Failed", {
         description: validation.message,
-        variant: "destructive"
       });
       return;
     }
@@ -53,8 +49,7 @@ export const useOrderSubmit = () => {
       const orderId = `order_${Date.now()}_${user!.id.slice(-8)}`;
       console.log('Generated order ID:', orderId);
       
-      toast({
-        title: "Processing Payment",
+      toast.info("Processing Payment", {
         description: "Opening secure payment window...",
       });
 
@@ -72,8 +67,7 @@ export const useOrderSubmit = () => {
       // Clear cart after successful payment
       clearCart();
       
-      toast({
-        title: "Payment Successful!",
+      toast.success("Payment Successful!", {
         description: "Your order has been processed successfully.",
       });
 
@@ -83,15 +77,25 @@ export const useOrderSubmit = () => {
     } catch (error: any) {
       console.error('Yoco payment failed:', error);
       
-      toast({
-        title: "Payment Failed",
-        description: error.message || "Payment processing failed. Please try again.",
-        variant: "destructive"
+      // Provide more specific error messages
+      let errorMessage = "Payment processing failed. Please try again.";
+      let errorDescription = error.message;
+
+      if (error.message?.includes('temporarily unavailable')) {
+        errorMessage = "Payment Service Unavailable";
+        errorDescription = "The payment service is experiencing issues. Please try again in a few minutes.";
+      } else if (error.message?.includes('authorization failed')) {
+        errorMessage = "Payment Authorization Failed";
+        errorDescription = "There was an issue with payment authorization. Please contact support.";
+      }
+      
+      toast.error(errorMessage, {
+        description: errorDescription,
       });
     } finally {
       setIsProcessing(false);
     }
-  }, [user, profile, items, clearCart, toast, isProcessing]);
+  }, [user, profile, items, clearCart, isProcessing]);
 
   return {
     isProcessing,
