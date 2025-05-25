@@ -3,8 +3,8 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
-import { createPayFastData, generatePayFastSignature, submitPayFastForm } from '@/utils/payfast';
-import { validatePaymentData } from '@/utils/paymentValidation';
+import { createYocoPayment } from '@/utils/yoco';
+import { validateYocoPayment } from '@/utils/yocoValidation';
 
 interface DeliveryService {
   id: string;
@@ -28,13 +28,13 @@ export const useOrderSubmit = () => {
   ) => {
     if (isProcessing) return;
     
-    console.log('=== STARTING PAYFAST PAYMENT ===');
+    console.log('=== STARTING YOCO PAYMENT ===');
 
     // Validate payment data
-    const validation = validatePaymentData(user, profile, finalTotal, items);
+    const validation = validateYocoPayment(user, profile, finalTotal, items);
     if (!validation.isValid) {
       toast({
-        title: "Authentication Required",
+        title: "Payment Validation Failed",
         description: validation.message,
         variant: "destructive"
       });
@@ -44,30 +44,41 @@ export const useOrderSubmit = () => {
     setIsProcessing(true);
 
     try {
-      // Clear cart immediately before payment
+      // Generate order ID
+      const orderId = `order_${Date.now()}_${user!.id.slice(-8)}`;
+      
+      toast({
+        title: "Processing Payment",
+        description: "Opening secure payment window...",
+      });
+
+      // Create Yoco payment
+      const paymentResult = await createYocoPayment(
+        finalTotal,
+        orderId,
+        user!.id,
+        items
+      );
+
+      console.log('Yoco payment successful:', paymentResult);
+
+      // Clear cart after successful payment
       clearCart();
       
       toast({
-        title: "Redirecting to PayFast",
-        description: "Redirecting to secure payment...",
+        title: "Payment Successful!",
+        description: "Your order has been processed successfully.",
       });
 
-      // Prepare PayFast form data
-      const paymentData = createPayFastData(finalTotal, user, items);
-
-      // Generate signature
-      const signature = generatePayFastSignature(paymentData);
-      console.log('Generated MD5 signature:', signature);
-
-      // Submit form to PayFast
-      submitPayFastForm(paymentData, signature);
+      // Redirect to success page or orders page
+      window.location.href = `/orders?payment=success&order_id=${orderId}`;
 
     } catch (error: any) {
-      console.error('Payment failed:', error);
+      console.error('Yoco payment failed:', error);
       
       toast({
         title: "Payment Failed",
-        description: "Payment processing failed. Please try again.",
+        description: error.message || "Payment processing failed. Please try again.",
         variant: "destructive"
       });
     } finally {

@@ -13,14 +13,14 @@ const PaymentMethodSelector: React.FC = () => {
       <div className="border rounded-lg p-4 bg-white shadow-sm">
         <div className="flex items-center space-x-3">
           <div className="flex-shrink-0">
-            <div className="h-8 w-20 bg-gradient-to-r from-blue-500 to-green-500 rounded flex items-center justify-center">
-              <span className="text-white text-xs font-bold">PayFast</span>
+            <div className="h-8 w-20 bg-gradient-to-r from-blue-600 to-blue-800 rounded flex items-center justify-center">
+              <span className="text-white text-xs font-bold">Yoco</span>
             </div>
           </div>
           <div>
-            <p className="font-medium">PayFast Secure Payment</p>
+            <p className="font-medium">Yoco Secure Payment</p>
             <p className="text-sm text-muted-foreground">
-              Credit Card, Debit Card, EFT, or Instant EFT
+              Credit Card, Debit Card - Powered by Yoco
             </p>
           </div>
         </div>

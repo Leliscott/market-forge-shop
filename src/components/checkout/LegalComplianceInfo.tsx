@@ -11,6 +11,7 @@ const LegalComplianceInfo: React.FC = () => {
         <p>• Consumer Protection Act rights apply to all purchases</p>
         <p>• Electronic transaction records maintained per ECT Act</p>
         <p>• Personal data processed according to POPIA requirements</p>
+        <p>• Secure payment processing by Yoco (PCI DSS compliant)</p>
       </div>
     </div>
   );

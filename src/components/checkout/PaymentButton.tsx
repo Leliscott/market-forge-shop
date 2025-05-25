@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Check, Loader2 } from 'lucide-react';
+import { CreditCard, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/utils/constants';
 
@@ -19,7 +19,7 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
 }) => {
   return (
     <Button 
-      className="w-full" 
+      className="w-full bg-blue-600 hover:bg-blue-700" 
       size="lg"
       onClick={onCompleteOrder}
       disabled={!isReadyToProcess || isProcessing}
@@ -27,13 +27,13 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
       {isProcessing ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Processing...
+          Processing Payment...
         </>
       ) : (
         <>
-          <Check className="mr-2 h-4 w-4" />
+          <CreditCard className="mr-2 h-4 w-4" />
           {isReadyToProcess ? (
-            `Pay with PayFast - ${formatCurrency(finalTotal)}`
+            `Pay with Yoco - ${formatCurrency(finalTotal)}`
           ) : (
             `Complete Required Fields to Pay - ${formatCurrency(finalTotal)}`
           )}

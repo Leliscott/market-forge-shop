@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Check, Loader2, AlertTriangle } from 'lucide-react';
+import { CreditCard, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCart } from '@/context/CartContext';
@@ -61,7 +61,7 @@ const FastCheckout: React.FC<FastCheckoutProps> = ({
     <div className="space-y-4">
       <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
         <div className="flex items-center gap-2 text-green-800 mb-2">
-          <Check className="h-4 w-4" />
+          <CreditCard className="h-4 w-4" />
           <span className="font-medium">Ready for Payment</span>
         </div>
         <div className="text-sm text-green-700 space-y-1">
@@ -71,7 +71,7 @@ const FastCheckout: React.FC<FastCheckoutProps> = ({
       </div>
 
       <Button 
-        className="w-full" 
+        className="w-full bg-blue-600 hover:bg-blue-700" 
         size="lg"
         onClick={onCompleteOrder}
         disabled={isProcessing}
@@ -83,14 +83,14 @@ const FastCheckout: React.FC<FastCheckoutProps> = ({
           </>
         ) : (
           <>
-            <Check className="mr-2 h-4 w-4" />
-            Pay {formatCurrency(finalTotal)} with PayFast
+            <CreditCard className="mr-2 h-4 w-4" />
+            Pay {formatCurrency(finalTotal)} with Yoco
           </>
         )}
       </Button>
 
       <p className="text-xs text-gray-500 text-center">
-        Secure payment powered by PayFast • SSL encrypted
+        Secure payment powered by Yoco • SSL encrypted
       </p>
     </div>
   );
