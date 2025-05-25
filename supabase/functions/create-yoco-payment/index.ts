@@ -124,6 +124,7 @@ serve(async (req) => {
 
     console.log('Yoco secret key configured:', !!yocoSecretKey)
     console.log('Yoco secret key length:', yocoSecretKey.length)
+    console.log('Yoco secret key prefix:', yocoSecretKey.substring(0, 8) + '...')
 
     // Prepare Yoco payload
     const yocoPayload = {
@@ -142,6 +143,7 @@ serve(async (req) => {
     // Create payment with Yoco API with retry logic
     console.log('Calling Yoco API with retry logic...')
     const yocoResponse = await retryApiCall(async () => {
+      console.log('Making API call to Yoco with Authorization header...')
       return fetch('https://online.yoco.com/v1/charges/', {
         method: 'POST',
         headers: {
@@ -176,6 +178,12 @@ serve(async (req) => {
       } else if (yocoData.message) {
         errorMessage = yocoData.message
         userFriendlyMessage = yocoData.message
+      }
+
+      // Special handling for authorization errors
+      if (yocoResponse.status === 401) {
+        userFriendlyMessage = 'Payment service authorization failed. Please contact support.'
+        console.error('AUTHORIZATION ERROR - Check YOCO_SECRET_KEY configuration')
       }
 
       // Special handling for server errors
