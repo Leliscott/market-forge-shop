@@ -8,7 +8,7 @@ import CartItem from '@/components/cart/CartItem';
 import CartSummary from '@/components/cart/CartSummary';
 
 const Cart = () => {
-  const { items, updateQuantity, removeFromCart, totalItems, totalPrice } = useCart();
+  const { items, updateQuantity, removeFromCart } = useCart();
   
   if (items.length === 0) {
     return (
@@ -45,7 +45,7 @@ const Cart = () => {
             
             {/* Order summary */}
             <div>
-              <CartSummary totalItems={totalItems} totalPrice={totalPrice} />
+              <CartSummary />
             </div>
           </div>
         </div>
