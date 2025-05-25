@@ -17,8 +17,9 @@ export interface YocoTokenResponse {
   amount: number;
 }
 
-// Use your live public key here - replace with your actual live public key
-export const YOCO_PUBLIC_KEY = 'pk_live_YOUR_LIVE_PUBLIC_KEY_HERE'; // Update this with your live public key
+// IMPORTANT: Replace this with your actual live public key from Yoco Dashboard
+// Your live public key should start with "pk_live_"
+export const YOCO_PUBLIC_KEY = 'pk_live_YOUR_ACTUAL_LIVE_PUBLIC_KEY_HERE';
 
 export const initializeYoco = () => {
   return new Promise((resolve, reject) => {
@@ -75,25 +76,18 @@ export const createYocoPayment = async (
             reject(new Error(result.error.message));
           } else {
             try {
-              // Process payment on backend
-              const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-yoco-payment`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}`
-                },
-                body: JSON.stringify({
+              // Process payment on backend using Supabase Edge Function
+              const { data, error } = await supabase.functions.invoke('create-yoco-payment', {
+                body: {
                   token: result.id,
                   amountInCents: paymentData.amount,
                   currency: paymentData.currency,
                   metadata: paymentData.metadata
-                })
+                }
               });
 
-              const data = await response.json();
-              
-              if (!response.ok) {
-                throw new Error(data.details || data.error || 'Payment processing failed');
+              if (error) {
+                throw new Error(error.message || 'Payment processing failed');
               }
 
               resolve(data);
