@@ -92,21 +92,56 @@ export const createYocoPayment = async (
               try {
                 console.log('Yoco payment token received:', result.id);
                 
-                // Process payment on backend using Supabase Edge Function
-                const { data, error } = await supabase.functions.invoke('create-yoco-payment', {
-                  body: {
-                    token: result.id,
-                    amountInCents: paymentData.amount,
-                    currency: paymentData.currency,
-                    metadata: paymentData.metadata
+                // Process payment on backend using Supabase Edge Function with retry logic
+                let lastError: any = null;
+                let success = false;
+                
+                // Try up to 3 times for server errors
+                for (let attempt = 0; attempt < 3 && !success; attempt++) {
+                  try {
+                    const { data, error } = await supabase.functions.invoke('create-yoco-payment', {
+                      body: {
+                        token: result.id,
+                        amountInCents: paymentData.amount,
+                        currency: paymentData.currency,
+                        metadata: paymentData.metadata
+                      }
+                    });
+
+                    if (error) {
+                      throw new Error(error.message || 'Payment processing failed');
+                    }
+
+                    resolve(data);
+                    success = true;
+                  } catch (error: any) {
+                    lastError = error;
+                    console.error(`Payment attempt ${attempt + 1} failed:`, error);
+                    
+                    // Check if it's a retryable error (server error)
+                    const isServerError = error.message?.includes('502') || 
+                                         error.message?.includes('temporarily unavailable') ||
+                                         error.message?.includes('server error');
+                    
+                    if (isServerError && attempt < 2) {
+                      console.log(`Retrying payment in ${(attempt + 1) * 2000}ms...`);
+                      await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 2000));
+                    } else {
+                      break;
+                    }
                   }
-                });
-
-                if (error) {
-                  throw new Error(error.message || 'Payment processing failed');
                 }
-
-                resolve(data);
+                
+                if (!success) {
+                  console.error('All payment attempts failed:', lastError);
+                  
+                  // Provide user-friendly error messages
+                  if (lastError?.message?.includes('temporarily unavailable')) {
+                    reject(new Error('Payment service is temporarily unavailable. Your card was not charged. Please try again in a few minutes.'));
+                  } else {
+                    reject(lastError || new Error('Payment processing failed after multiple attempts'));
+                  }
+                }
               } catch (error) {
                 console.error('Backend payment processing failed:', error);
                 reject(error);

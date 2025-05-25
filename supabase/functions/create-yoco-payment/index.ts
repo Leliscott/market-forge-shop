@@ -18,6 +18,43 @@ interface PaymentRequest {
   }
 }
 
+// Helper function to retry API calls
+async function retryApiCall(fn: () => Promise<Response>, maxRetries = 2, delay = 1000): Promise<Response> {
+  let lastError: Error | null = null
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fn()
+      
+      // If it's not a server error (5xx), return immediately
+      if (response.status < 500) {
+        return response
+      }
+      
+      // If it's the last attempt, return the response
+      if (attempt === maxRetries) {
+        return response
+      }
+      
+      console.log(`Attempt ${attempt + 1} failed with status ${response.status}, retrying in ${delay}ms...`)
+      await new Promise(resolve => setTimeout(resolve, delay))
+      delay *= 2 // Exponential backoff
+      
+    } catch (error) {
+      lastError = error as Error
+      if (attempt === maxRetries) {
+        throw lastError
+      }
+      
+      console.log(`Attempt ${attempt + 1} failed with error: ${error.message}, retrying in ${delay}ms...`)
+      await new Promise(resolve => setTimeout(resolve, delay))
+      delay *= 2
+    }
+  }
+  
+  throw lastError || new Error('All retry attempts failed')
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -102,16 +139,19 @@ serve(async (req) => {
 
     console.log('Yoco payload:', JSON.stringify(yocoPayload, null, 2))
 
-    // Create payment with Yoco API
-    console.log('Calling Yoco API...')
-    const yocoResponse = await fetch('https://online.yoco.com/v1/charges/', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${yocoSecretKey}`,
-        'Content-Type': 'application/json',
-        'User-Agent': 'Marketplace/1.0'
-      },
-      body: JSON.stringify(yocoPayload)
+    // Create payment with Yoco API with retry logic
+    console.log('Calling Yoco API with retry logic...')
+    const yocoResponse = await retryApiCall(async () => {
+      return fetch('https://online.yoco.com/v1/charges/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${yocoSecretKey}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'Marketplace/1.0',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(yocoPayload)
+      })
     })
 
     console.log('Yoco API response status:', yocoResponse.status)
@@ -121,24 +161,35 @@ serve(async (req) => {
     console.log('Yoco API response:', JSON.stringify(yocoData, null, 2))
 
     if (!yocoResponse.ok) {
-      console.error('Yoco payment failed:', yocoData)
+      console.error('Yoco payment failed after retries:', yocoData)
       
       // Enhanced error handling for different Yoco error types
       let errorMessage = 'Payment processing failed'
+      let userFriendlyMessage = 'Payment could not be processed at this time. Please try again.'
+      
       if (yocoData.displayMessage) {
         errorMessage = yocoData.displayMessage
+        userFriendlyMessage = yocoData.displayMessage
       } else if (yocoData.errorMessage) {
         errorMessage = yocoData.errorMessage
+        userFriendlyMessage = yocoData.errorMessage
       } else if (yocoData.message) {
         errorMessage = yocoData.message
+        userFriendlyMessage = yocoData.message
+      }
+
+      // Special handling for server errors
+      if (yocoResponse.status >= 500) {
+        userFriendlyMessage = 'Payment service is temporarily unavailable. Please try again in a few minutes.'
       }
 
       return new Response(JSON.stringify({ 
         error: 'Payment failed', 
-        details: errorMessage,
-        yocoError: yocoData
+        details: userFriendlyMessage,
+        yocoError: yocoData,
+        retryable: yocoResponse.status >= 500
       }), {
-        status: yocoResponse.status === 500 ? 502 : 400, // Use 502 for Yoco server errors
+        status: yocoResponse.status === 500 ? 502 : 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
