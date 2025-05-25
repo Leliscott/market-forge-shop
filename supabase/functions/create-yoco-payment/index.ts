@@ -116,7 +116,7 @@ serve(async (req) => {
     const yocoSecretKey = Deno.env.get('YOCO_SECRET_KEY')
     if (!yocoSecretKey) {
       console.error('YOCO_SECRET_KEY not found in environment')
-      return new Response(JSON.stringify({ error: 'Payment configuration error' }), {
+      return new Response(JSON.stringify({ error: 'Payment configuration error - secret key not configured' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
@@ -124,9 +124,9 @@ serve(async (req) => {
 
     console.log('Yoco secret key configured:', !!yocoSecretKey)
     console.log('Yoco secret key length:', yocoSecretKey.length)
-    console.log('Yoco secret key prefix:', yocoSecretKey.substring(0, 8) + '...')
+    console.log('Yoco secret key starts with sk_live_:', yocoSecretKey.startsWith('sk_live_'))
 
-    // Prepare Yoco payload
+    // Prepare Yoco payload - use exact format from Yoco docs
     const yocoPayload = {
       token,
       amountInCents,
@@ -138,38 +138,52 @@ serve(async (req) => {
       }
     }
 
-    console.log('Yoco payload:', JSON.stringify(yocoPayload, null, 2))
+    console.log('Yoco payload prepared:', JSON.stringify(yocoPayload, null, 2))
 
-    // Create payment with Yoco API with retry logic
-    console.log('Calling Yoco API with retry logic...')
+    // Create payment with Yoco API - improved headers and error handling
+    console.log('Making Yoco API call...')
     const yocoResponse = await retryApiCall(async () => {
-      console.log('Making API call to Yoco with Authorization header...')
+      console.log('Calling Yoco API with optimized headers...')
+      
+      // Ensure proper authorization header format
+      const authorizationHeader = `Bearer ${yocoSecretKey.trim()}`
+      console.log('Authorization header format verified:', authorizationHeader.substring(0, 20) + '...')
+      
       return fetch('https://online.yoco.com/v1/charges/', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${yocoSecretKey}`,
+          'Authorization': authorizationHeader,
           'Content-Type': 'application/json',
-          'User-Agent': 'Marketplace/1.0',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'User-Agent': 'Marketplace-App/1.0'
         },
         body: JSON.stringify(yocoPayload)
       })
     })
 
     console.log('Yoco API response status:', yocoResponse.status)
-    console.log('Yoco API response headers:', Object.fromEntries(yocoResponse.headers.entries()))
+    console.log('Yoco API response ok:', yocoResponse.ok)
 
     const yocoData = await yocoResponse.json()
-    console.log('Yoco API response:', JSON.stringify(yocoData, null, 2))
+    console.log('Yoco API response data:', JSON.stringify(yocoData, null, 2))
 
     if (!yocoResponse.ok) {
-      console.error('Yoco payment failed after retries:', yocoData)
+      console.error('Yoco payment failed:', {
+        status: yocoResponse.status,
+        statusText: yocoResponse.statusText,
+        data: yocoData
+      })
       
-      // Enhanced error handling for different Yoco error types
+      // Enhanced error handling for different error types
       let errorMessage = 'Payment processing failed'
-      let userFriendlyMessage = 'Payment could not be processed at this time. Please try again.'
+      let userFriendlyMessage = 'Payment could not be processed. Please try again.'
       
-      if (yocoData.displayMessage) {
+      // Handle specific 401 authorization errors
+      if (yocoResponse.status === 401 || yocoData.code === 401) {
+        console.error('CRITICAL: 401 Authorization Error - Check YOCO_SECRET_KEY')
+        userFriendlyMessage = 'Payment service authorization failed. Please contact support.'
+        errorMessage = 'Authorization failed - invalid or missing secret key'
+      } else if (yocoData.displayMessage) {
         errorMessage = yocoData.displayMessage
         userFriendlyMessage = yocoData.displayMessage
       } else if (yocoData.errorMessage) {
@@ -180,33 +194,23 @@ serve(async (req) => {
         userFriendlyMessage = yocoData.message
       }
 
-      // Special handling for authorization errors
-      if (yocoResponse.status === 502) {
-        userFriendlyMessage = 'Payment service authorization failed. Please contact support.'
-        console.error('AUTHORIZATION ERROR - Check YOCO_SECRET_KEY configuration')
-      }
-
-      // Special handling for server errors
-      if (yocoResponse.status >= 500) {
-        userFriendlyMessage = 'Payment service is temporarily unavailable. Please try again in a few minutes.'
-      }
-
       return new Response(JSON.stringify({ 
         error: 'Payment failed', 
         details: userFriendlyMessage,
         yocoError: yocoData,
-        retryable: yocoResponse.status >= 500
+        statusCode: yocoResponse.status,
+        retryable: yocoResponse.status >= 500 && yocoResponse.status !== 502
       }), {
-        status: yocoResponse.status === 500 ? 502 : 400,
+        status: yocoResponse.status === 401 ? 401 : (yocoResponse.status >= 500 ? 502 : 400),
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    console.log('Yoco payment successful, creating order in database...')
+    console.log('Yoco payment successful! Payment ID:', yocoData.id)
 
     // Determine store_id from items (use first item's store)
     const storeId = metadata.items[0]?.storeId || null
-    console.log('Store ID:', storeId)
+    console.log('Store ID for order:', storeId)
 
     if (!storeId) {
       console.error('No store ID found in items')
@@ -258,15 +262,15 @@ serve(async (req) => {
       order: order
     }
 
-    console.log('=== CREATE YOCO PAYMENT FUNCTION COMPLETED SUCCESSFULLY ===')
+    console.log('=== YOCO PAYMENT COMPLETED SUCCESSFULLY ===')
 
     return new Response(JSON.stringify(successResponse), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
 
   } catch (error) {
-    console.error('=== CREATE YOCO PAYMENT FUNCTION ERROR ===')
-    console.error('Error processing payment:', error)
+    console.error('=== PAYMENT FUNCTION CRITICAL ERROR ===')
+    console.error('Error details:', error)
     console.error('Error stack:', error.stack)
     
     return new Response(JSON.stringify({ 
