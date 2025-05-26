@@ -12,6 +12,7 @@ interface OrderNotificationRequest {
   type: 'approved' | 'order_confirmation' | 'seller_notification';
   customerEmail?: string;
   sellerEmail?: string;
+  masterAgentEmails?: string[];
   orderDetails?: any;
 }
 
@@ -25,7 +26,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { orderId, type, customerEmail, sellerEmail, orderDetails }: OrderNotificationRequest = await req.json();
+    const { orderId, type, customerEmail, sellerEmail, masterAgentEmails, orderDetails }: OrderNotificationRequest = await req.json();
 
     let notifications = [];
 
@@ -39,11 +40,14 @@ const handler = async (req: Request): Promise<Response> => {
           Great news! Your order payment has been approved.
           
           Order ID: ${orderId}
+          Store: ${orderDetails?.storeName || 'Unknown Store'}
           Total: R${orderDetails?.total || 'N/A'}
           Status: Payment Approved
           
           Your order is now being processed and will be shipped soon.
           You can track your order status in your account dashboard.
+          
+          Thank you for shopping with us!
         `,
         order_id: orderId
       });
@@ -66,8 +70,37 @@ const handler = async (req: Request): Promise<Response> => {
             ${orderDetails?.items?.map((item: any) => `- ${item.name} (Qty: ${item.quantity})`).join('\n') || 'Items details not available'}
             
             You can view full order details in your seller dashboard.
+            
+            Please ensure prompt processing and shipping of this order.
           `,
           order_id: orderId
+        });
+      }
+
+      // Send notifications to master agents
+      if (masterAgentEmails && masterAgentEmails.length > 0) {
+        masterAgentEmails.forEach(agentEmail => {
+          notifications.push({
+            recipient_email: agentEmail,
+            email_type: 'master_agent_notification',
+            subject: `Order Approved - ${orderId}`,
+            content: `
+              Order payment has been approved and processed.
+              
+              Order ID: ${orderId}
+              Customer: ${customerEmail}
+              Store: ${orderDetails?.storeName || 'Unknown Store'}
+              Seller: ${sellerEmail || 'Not available'}
+              Total: R${orderDetails?.total || 'N/A'}
+              
+              All notifications have been sent to customer and seller.
+              Order is now in processing stage.
+              
+              Items:
+              ${orderDetails?.items?.map((item: any) => `- ${item.name} (Qty: ${item.quantity})`).join('\n') || 'Items details not available'}
+            `,
+            order_id: orderId
+          });
         });
       }
     }
@@ -87,7 +120,8 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         success: true, 
         message: `${notifications.length} email notifications sent`,
-        notificationCount: notifications.length
+        notificationCount: notifications.length,
+        recipients: notifications.map(n => n.recipient_email)
       }),
       {
         status: 200,

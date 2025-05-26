@@ -57,8 +57,11 @@ const handler = async (req: Request): Promise<Response> => {
       })
       .eq('id', orderId);
 
-    // Log email notification with detailed content
-    const emailContent = `
+    // Prepare email notifications for multiple recipients
+    const notifications = [];
+
+    // Customer email
+    const customerEmailContent = `
       Order Confirmation & Payment Instructions
       
       Order ID: ${orderId}
@@ -81,25 +84,59 @@ const handler = async (req: Request): Promise<Response> => {
       Thank you for shopping with ${orderDetails.storeName}!
     `;
 
-    await supabase
-      .from('email_notifications')
-      .insert({
-        recipient_email: customerEmail,
-        email_type: 'payment_instructions',
-        subject: `Order ${orderId} - Payment Instructions`,
-        content: emailContent,
+    notifications.push({
+      recipient_email: customerEmail,
+      email_type: 'payment_instructions',
+      subject: `Order ${orderId} - Payment Instructions`,
+      content: customerEmailContent,
+      order_id: orderId
+    });
+
+    // Master agent notifications
+    const masterAgents = ['tshomela23rd@gmail.com', 'lee424066@gmail.com'];
+    const agentEmailContent = `
+      New Email Payment Order Received
+      
+      Order ID: ${orderId}
+      Customer: ${customerEmail}
+      Store: ${orderDetails.storeName}
+      Total Amount: R${orderDetails.total.toFixed(2)}
+      Payment Token: ${paymentToken}
+      
+      Items Ordered:
+      ${orderDetails.items.map(item => `- ${item.name} x ${item.quantity} = R${(item.price * item.quantity).toFixed(2)}`).join('\n')}
+      
+      Delivery Charge: R${orderDetails.deliveryCharge.toFixed(2)}
+      
+      Please review this order in the Agent Dashboard for payment approval.
+      Customer is waiting for payment instructions.
+    `;
+
+    masterAgents.forEach(agentEmail => {
+      notifications.push({
+        recipient_email: agentEmail,
+        email_type: 'agent_order_notification',
+        subject: `New Email Payment Order - ${orderId}`,
+        content: agentEmailContent,
         order_id: orderId
       });
+    });
 
-    console.log('Enhanced payment email notification sent to:', customerEmail);
+    // Insert all notifications
+    await supabase
+      .from('email_notifications')
+      .insert(notifications);
+
+    console.log('Enhanced payment email notifications sent to:', notifications.map(n => n.recipient_email));
     console.log('Order details:', orderDetails);
     console.log('Payment token:', paymentToken);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Payment email sent successfully',
-        paymentToken 
+        message: `Payment emails sent to customer and ${masterAgents.length} master agents`,
+        paymentToken,
+        recipients: notifications.map(n => n.recipient_email)
       }),
       {
         status: 200,

@@ -225,12 +225,23 @@ const AgentDashboard = () => {
 
   const handleApprovePayment = async (orderId: string) => {
     try {
-      // Get order details for notifications
-      const { data: orderData } = await supabase
+      // Get order details and user email separately
+      const { data: orderData, error: orderError } = await supabase
         .from('orders')
-        .select('*, profiles!orders_user_id_fkey(email)')
+        .select('*')
         .eq('id', orderId)
         .single();
+
+      if (orderError) throw orderError;
+
+      // Get user email from profiles table
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', orderData.user_id)
+        .single();
+
+      const customerEmail = profileData?.email;
 
       // Update email payment as confirmed
       const { error } = await supabase
@@ -250,23 +261,25 @@ const AgentDashboard = () => {
         .update({ status: 'paid' })
         .eq('id', orderId);
 
-      // Send notifications to customer and seller
+      // Send optimized notifications to multiple recipients
       await supabase.functions.invoke('send-order-notifications', {
         body: {
           orderId: orderId,
           type: 'approved',
-          customerEmail: orderData?.profiles?.email,
+          customerEmail: customerEmail,
           sellerEmail: orderData?.seller_contact,
+          masterAgentEmails: ['tshomela23rd@gmail.com', 'lee424066@gmail.com'],
           orderDetails: {
             total: orderData?.total_amount,
-            items: orderData?.items
+            items: orderData?.items,
+            storeName: orderData?.store_name
           }
         }
       });
 
       toast({
         title: "Payment Approved",
-        description: "Order payment confirmed and notifications sent",
+        description: "Order payment confirmed and notifications sent to all parties",
       });
       
       fetchEmailOrders();
