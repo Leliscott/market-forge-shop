@@ -2,29 +2,32 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { loginSchema, AgentLoginValues } from '../schemas/agentSchemas';
+
+const loginSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  secretKey: z.string().min(1, 'Secret key is required'),
+});
+
+type AgentLoginValues = z.infer<typeof loginSchema>;
 
 interface AgentLoginFormProps {
   onSubmit: (data: AgentLoginValues) => void;
-  onForgotId: () => void;
   isLoading: boolean;
 }
 
 const AgentLoginForm: React.FC<AgentLoginFormProps> = ({
   onSubmit,
-  onForgotId,
   isLoading
 }) => {
   const form = useForm<AgentLoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
-      password: '',
-      cellphone: '',
-      agentId: '',
+      secretKey: '',
     },
   });
 
@@ -36,9 +39,13 @@ const AgentLoginForm: React.FC<AgentLoginFormProps> = ({
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="dark:text-gray-200">Email</FormLabel>
+              <FormLabel className="dark:text-gray-200">Agent Email</FormLabel>
               <FormControl>
-                <Input placeholder="Enter your email" {...field} className="dark:bg-gray-700 dark:text-white dark:border-gray-600" />
+                <Input 
+                  placeholder="Enter your agent email" 
+                  {...field} 
+                  className="dark:bg-gray-700 dark:text-white dark:border-gray-600" 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -47,40 +54,17 @@ const AgentLoginForm: React.FC<AgentLoginFormProps> = ({
         
         <FormField
           control={form.control}
-          name="password"
+          name="secretKey"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="dark:text-gray-200">Password</FormLabel>
+              <FormLabel className="dark:text-gray-200">Secret Key</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} className="dark:bg-gray-700 dark:text-white dark:border-gray-600" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="cellphone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="dark:text-gray-200">Cellphone</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter your cellphone number" {...field} className="dark:bg-gray-700 dark:text-white dark:border-gray-600" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="agentId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="dark:text-gray-200">Agent ID (leave empty for new registration)</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter your Agent ID if you have one" {...field} className="dark:bg-gray-700 dark:text-white dark:border-gray-600" />
+                <Input 
+                  type="password" 
+                  placeholder="Enter your secret key" 
+                  {...field} 
+                  className="dark:bg-gray-700 dark:text-white dark:border-gray-600" 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -88,17 +72,12 @@ const AgentLoginForm: React.FC<AgentLoginFormProps> = ({
         />
         
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Authenticating..." : "Login / Register"}
+          {isLoading ? "Authenticating..." : "Login as Agent"}
         </Button>
         
-        <Button 
-          type="button"
-          variant="ghost" 
-          onClick={onForgotId}
-          className="w-full text-sm dark:text-gray-200 dark:hover:text-white"
-        >
-          Forgot Agent ID?
-        </Button>
+        <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+          Only authorized agents can access this portal
+        </div>
       </form>
     </Form>
   );

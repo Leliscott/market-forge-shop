@@ -9,6 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      agent_secrets: {
+        Row: {
+          agent_email: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          secret_key: string
+          updated_at: string | null
+        }
+        Insert: {
+          agent_email: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          secret_key: string
+          updated_at?: string | null
+        }
+        Update: {
+          agent_email?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          secret_key?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       agents: {
         Row: {
           agent_id: string
@@ -161,6 +188,54 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_payments: {
+        Row: {
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string | null
+          email_sent_at: string | null
+          id: string
+          order_id: string
+          payment_confirmed: boolean | null
+          payment_link_token: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string | null
+          email_sent_at?: string | null
+          id?: string
+          order_id: string
+          payment_confirmed?: boolean | null
+          payment_link_token: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string | null
+          email_sent_at?: string | null
+          id?: string
+          order_id?: string
+          payment_confirmed?: boolean | null
+          payment_link_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_payments_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -410,6 +485,7 @@ export type Database = {
           created_at: string
           delivery_charge: number | null
           delivery_service_id: string | null
+          email_payment_id: string | null
           id: string
           items: Json | null
           paid_amount: number | null
@@ -417,9 +493,11 @@ export type Database = {
           payment_id: string | null
           payment_method: string | null
           payment_status: string | null
+          seller_contact: string | null
           shipping_address: Json | null
           status: string
           store_id: string
+          store_name: string | null
           total_amount: number
           updated_at: string
           user_id: string
@@ -429,6 +507,7 @@ export type Database = {
           created_at?: string
           delivery_charge?: number | null
           delivery_service_id?: string | null
+          email_payment_id?: string | null
           id?: string
           items?: Json | null
           paid_amount?: number | null
@@ -436,9 +515,11 @@ export type Database = {
           payment_id?: string | null
           payment_method?: string | null
           payment_status?: string | null
+          seller_contact?: string | null
           shipping_address?: Json | null
           status?: string
           store_id: string
+          store_name?: string | null
           total_amount: number
           updated_at?: string
           user_id: string
@@ -448,6 +529,7 @@ export type Database = {
           created_at?: string
           delivery_charge?: number | null
           delivery_service_id?: string | null
+          email_payment_id?: string | null
           id?: string
           items?: Json | null
           paid_amount?: number | null
@@ -455,9 +537,11 @@ export type Database = {
           payment_id?: string | null
           payment_method?: string | null
           payment_status?: string | null
+          seller_contact?: string | null
           shipping_address?: Json | null
           status?: string
           store_id?: string
+          store_name?: string | null
           total_amount?: number
           updated_at?: string
           user_id?: string
@@ -468,6 +552,13 @@ export type Database = {
             columns: ["delivery_service_id"]
             isOneToOne: false
             referencedRelation: "delivery_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_email_payment_id_fkey"
+            columns: ["email_payment_id"]
+            isOneToOne: false
+            referencedRelation: "email_payments"
             referencedColumns: ["id"]
           },
           {

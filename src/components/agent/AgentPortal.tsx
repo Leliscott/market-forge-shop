@@ -5,14 +5,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useAgentAuth } from './hooks/useAgentAuth';
 import { useDoubleTap } from './hooks/useDoubleTap';
 import AgentLoginForm from './forms/AgentLoginForm';
-import ForgotIdForm from './forms/ForgotIdForm';
 
 const AgentPortal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [forgotIdMode, setForgotIdMode] = useState(false);
-  const [idSent, setIdSent] = useState(false);
-  
-  const { isLoading, handleLogin, handleForgotId } = useAgentAuth();
+  const { isLoading, handleLogin } = useAgentAuth();
   
   const handleDoubleTap = useDoubleTap(() => {
     setIsOpen(true);
@@ -23,19 +19,6 @@ const AgentPortal: React.FC = () => {
     setIsOpen(false);
   };
 
-  const onForgotIdSubmit = async (data: any) => {
-    const success = await handleForgotId(data);
-    if (success) {
-      setIdSent(true);
-    }
-    return success;
-  };
-
-  const handleBackToLogin = () => {
-    setIdSent(false);
-    setForgotIdMode(false);
-  };
-
   return (
     <>
       <div className="mt-12 mb-2 py-4 border-t border-b text-center dark:border-gray-700">
@@ -43,7 +26,7 @@ const AgentPortal: React.FC = () => {
           className="text-xs text-muted-foreground cursor-pointer"
           onClick={handleDoubleTap}
         >
-          © 2025 ShopMarket. All rights reserved.
+          © 2025 Shop4ll. All rights reserved.
         </div>
       </div>
 
@@ -52,36 +35,14 @@ const AgentPortal: React.FC = () => {
           <DialogHeader>
             <DialogTitle className="dark:text-white">Agent Portal</DialogTitle>
             <DialogDescription className="dark:text-gray-300">
-              {forgotIdMode 
-                ? 'Enter your email to retrieve your Agent ID' 
-                : 'Enter your credentials to access the agent dashboard.'
-              }
+              Enter your agent credentials to access the dashboard.
             </DialogDescription>
           </DialogHeader>
           
-          {idSent ? (
-            <div className="space-y-4">
-              <p className="text-sm text-green-600 dark:text-green-400">Agent ID has been sent to your email address.</p>
-              <Button 
-                onClick={handleBackToLogin}
-                className="w-full"
-              >
-                Back to Login
-              </Button>
-            </div>
-          ) : forgotIdMode ? (
-            <ForgotIdForm
-              onSubmit={onForgotIdSubmit}
-              onBack={() => setForgotIdMode(false)}
-              isLoading={isLoading}
-            />
-          ) : (
-            <AgentLoginForm
-              onSubmit={onLogin}
-              onForgotId={() => setForgotIdMode(true)}
-              isLoading={isLoading}
-            />
-          )}
+          <AgentLoginForm
+            onSubmit={onLogin}
+            isLoading={isLoading}
+          />
         </DialogContent>
       </Dialog>
     </>

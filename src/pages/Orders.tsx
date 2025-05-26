@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Check } from 'lucide-react';
@@ -31,8 +30,15 @@ const Orders: React.FC = () => {
   useEffect(() => {
     const paymentStatus = searchParams.get('payment');
     const orderId = searchParams.get('order_id');
+    const orderCount = searchParams.get('order_count');
     
-    if (paymentStatus === 'success' && orderId) {
+    if (paymentStatus === 'email' && orderCount) {
+      toast({
+        title: "Orders Placed Successfully!",
+        description: `${orderCount} order(s) created. Payment instructions sent to your email.`,
+        duration: 5000,
+      });
+    } else if (paymentStatus === 'success' && orderId) {
       toast({
         title: "Payment Successful!",
         description: `Your order has been placed successfully. Order ID: ${orderId.slice(0, 8)}`,
@@ -54,16 +60,30 @@ const Orders: React.FC = () => {
     try {
       setLoading(true);
       
-      // Fetch orders
+      // Fetch orders with email payment status
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          email_payments (
+            payment_confirmed,
+            email_sent_at
+          )
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (ordersError) throw ordersError;
 
-      setOrders(ordersData || []);
+      // Transform orders to include proper status based on email payment
+      const transformedOrders = ordersData?.map(order => ({
+        ...order,
+        status: order.payment_method === 'email' 
+          ? (order.email_payments?.payment_confirmed ? 'paid' : 'pending_payment')
+          : order.status
+      })) || [];
+
+      setOrders(transformedOrders);
 
       // Fetch order items for each order
       if (ordersData && ordersData.length > 0) {

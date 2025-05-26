@@ -1,15 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
 import { Home } from 'lucide-react';
 import DashboardStats from '@/components/agent/DashboardStats';
 import VerificationRequestsTable from '@/components/agent/VerificationRequestsTable';
 import VerificationDialog from '@/components/agent/VerificationDialog';
+import OrderApprovalTable from '@/components/agent/OrderApprovalTable';
 
 interface VerificationRequest {
   id: string;
@@ -23,36 +22,44 @@ interface VerificationRequest {
   owner_id: string;
 }
 
+interface Order {
+  id: string;
+  user_id: string;
+  store_name: string;
+  total_amount: number;
+  created_at: string;
+  payment_method: string;
+  status: string;
+  email_payments?: {
+    payment_confirmed: boolean;
+    email_sent_at: string;
+  };
+}
+
 const AgentDashboard = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
   const [viewingRequest, setViewingRequest] = useState<VerificationRequest | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [requests, setRequests] = useState<VerificationRequest[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(true);
   const [currentAgent, setCurrentAgent] = useState<any>(null);
 
   useEffect(() => {
-    if (user) {
-      fetchAgentData();
-      fetchVerificationRequests();
+    // Check agent session
+    const agentSession = localStorage.getItem('agentSession');
+    if (!agentSession) {
+      window.location.href = '/';
+      return;
     }
-  }, [user]);
 
-  const fetchAgentData = async () => {
-    if (!user) return;
+    const session = JSON.parse(agentSession);
+    setCurrentAgent(session);
     
-    const { data, error } = await supabase
-      .from('agents')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
-
-    if (error) {
-      console.error('Error fetching agent data:', error);
-    } else {
-      setCurrentAgent(data);
-    }
-  };
+    fetchVerificationRequests();
+    fetchEmailOrders();
+  }, []);
 
   const fetchVerificationRequests = async () => {
     setLoading(true);
@@ -76,6 +83,98 @@ const AgentDashboard = () => {
       console.error('Error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchEmailOrders = async () => {
+    setOrdersLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          email_payments (
+            payment_confirmed,
+            email_sent_at
+          )
+        `)
+        .eq('payment_method', 'email')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching orders:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load orders",
+          variant: "destructive"
+        });
+      } else {
+        setOrders(data || []);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  const handleApprovePayment = async (orderId: string) => {
+    try {
+      // Update email payment as confirmed
+      const { error } = await supabase
+        .from('email_payments')
+        .update({
+          payment_confirmed: true,
+          confirmed_at: new Date().toISOString(),
+          confirmed_by: currentAgent?.agentId
+        })
+        .eq('order_id', orderId);
+
+      if (error) throw error;
+
+      // Update order status
+      await supabase
+        .from('orders')
+        .update({ status: 'paid' })
+        .eq('id', orderId);
+
+      toast({
+        title: "Payment Approved",
+        description: "Order payment has been confirmed and order updated",
+      });
+      
+      fetchEmailOrders();
+    } catch (error: any) {
+      console.error('Error approving payment:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to approve payment",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleRejectPayment = async (orderId: string) => {
+    try {
+      // Update order status to failed
+      await supabase
+        .from('orders')
+        .update({ status: 'failed' })
+        .eq('id', orderId);
+
+      toast({
+        title: "Payment Rejected",
+        description: "Order has been marked as failed",
+      });
+      
+      fetchEmailOrders();
+    } catch (error: any) {
+      console.error('Error rejecting payment:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject payment",
+        variant: "destructive"
+      });
     }
   };
 
@@ -179,7 +278,11 @@ const AgentDashboard = () => {
     return requests.filter(req => status === 'all' || req.status === status);
   };
 
-  if (loading) {
+  const pendingOrders = orders.filter(order => 
+    order.payment_method === 'email' && !order.email_payments?.payment_confirmed
+  );
+
+  if (loading && ordersLoading) {
     return (
       <div className="flex flex-col min-h-screen">
         <div className="bg-white dark:bg-gray-900 border-b px-4 py-2">
@@ -198,28 +301,53 @@ const AgentDashboard = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <div className="bg-white dark:bg-gray-900 border-b px-4 py-2">
-        <Link to="/" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary">
-          <Home className="mr-1 h-4 w-4" />
-          Back to Home
-        </Link>
+        <div className="flex justify-between items-center">
+          <Link to="/" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary">
+            <Home className="mr-1 h-4 w-4" />
+            Back to Home
+          </Link>
+          <div className="text-sm text-gray-600">
+            Agent: {currentAgent?.email} {currentAgent?.isMaster && '(Master)'}
+          </div>
+        </div>
       </div>
       
       <main className="flex-1 container mx-auto px-4 py-8">
-        <DashboardStats agentId={currentAgent?.agent_id} />
+        <DashboardStats agentId={currentAgent?.agentId} />
         
-        <Tabs defaultValue="all" className="space-y-4">
+        <Tabs defaultValue="orders" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="all">All Requests ({requests.length})</TabsTrigger>
-            <TabsTrigger value="pending">Pending ({filteredRequests('pending').length})</TabsTrigger>
-            <TabsTrigger value="approved">Approved ({filteredRequests('approved').length})</TabsTrigger>
-            <TabsTrigger value="rejected">Rejected ({filteredRequests('rejected').length})</TabsTrigger>
+            <TabsTrigger value="orders">Email Orders ({pendingOrders.length})</TabsTrigger>
+            <TabsTrigger value="verifications">Merchant Verifications ({requests.length})</TabsTrigger>
           </TabsList>
           
-          {['all', 'pending', 'approved', 'rejected'].map(status => (
-            <TabsContent key={status} value={status} className="space-y-4">
-              <Card>
+          <TabsContent value="orders" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Email Payment Orders</CardTitle>
+                <CardDescription>
+                  Approve or reject orders with email payment method
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <OrderApprovalTable 
+                  orders={orders}
+                  onApprove={handleApprovePayment}
+                  onReject={handleRejectPayment}
+                  onViewDetails={setSelectedOrder}
+                  loading={ordersLoading}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="verifications" className="space-y-4">
+            {['all', 'pending', 'approved', 'rejected'].map(status => (
+              <Card key={status}>
                 <CardHeader>
-                  <CardTitle>Merchant Verification Requests</CardTitle>
+                  <CardTitle>
+                    {status.charAt(0).toUpperCase() + status.slice(1)} Merchant Verifications
+                  </CardTitle>
                   <CardDescription>
                     Review and manage verification documents from merchants
                   </CardDescription>
@@ -231,8 +359,8 @@ const AgentDashboard = () => {
                   />
                 </CardContent>
               </Card>
-            </TabsContent>
-          ))}
+            ))}
+          </TabsContent>
         </Tabs>
       </main>
       
