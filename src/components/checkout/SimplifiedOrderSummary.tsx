@@ -5,6 +5,7 @@ import DeliveryNotice from './DeliveryNotice';
 import OrderItems from './OrderItems';
 import PricingBreakdown from './PricingBreakdown';
 import SimpleTermsCheck from './SimpleTermsCheck';
+import PaymentMethodSelector from './forms/PaymentMethodSelector';
 import FastCheckout from './FastCheckout';
 import { useOrderCalculations } from './hooks/useOrderCalculations';
 
@@ -49,6 +50,8 @@ const SimplifiedOrderSummary: React.FC<SimplifiedOrderSummaryProps> = ({
           finalTotal={finalTotal}
           selectedDelivery={selectedDelivery}
         />
+        
+        <PaymentMethodSelector />
         
         <SimpleTermsCheck />
         

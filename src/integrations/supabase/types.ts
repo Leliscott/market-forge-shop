@@ -192,6 +192,50 @@ export type Database = {
           },
         ]
       }
+      email_notifications: {
+        Row: {
+          content: string
+          created_at: string | null
+          email_type: string
+          id: string
+          order_id: string | null
+          recipient_email: string
+          sent_at: string | null
+          status: string | null
+          subject: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          email_type: string
+          id?: string
+          order_id?: string | null
+          recipient_email: string
+          sent_at?: string | null
+          status?: string | null
+          subject: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          email_type?: string
+          id?: string
+          order_id?: string | null
+          recipient_email?: string
+          sent_at?: string | null
+          status?: string | null
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_notifications_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_payments: {
         Row: {
           confirmed_at: string | null
@@ -650,6 +694,45 @@ export type Database = {
           name?: string | null
           role?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      secret_key_requests: {
+        Row: {
+          created_at: string | null
+          generated_secret: string
+          id: string
+          notes: string | null
+          processed_at: string | null
+          processed_by: string | null
+          requested_at: string | null
+          requester_email: string
+          requester_name: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          generated_secret: string
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_at?: string | null
+          requester_email: string
+          requester_name?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          generated_secret?: string
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_at?: string | null
+          requester_email?: string
+          requester_name?: string | null
+          status?: string | null
         }
         Relationships: []
       }

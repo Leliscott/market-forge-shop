@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useAgentAuth } from './hooks/useAgentAuth';
 import { useDoubleTap } from './hooks/useDoubleTap';
 import AgentLoginForm from './forms/AgentLoginForm';
+import SecretKeyRequest from './SecretKeyRequest';
 
 const AgentPortal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -43,6 +44,15 @@ const AgentPortal: React.FC = () => {
             onSubmit={onLogin}
             isLoading={isLoading}
           />
+          
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+            <div className="text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                Don't have agent access?
+              </p>
+              <SecretKeyRequest />
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>

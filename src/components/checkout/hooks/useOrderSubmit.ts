@@ -128,11 +128,12 @@ export const useOrderSubmit = () => {
             });
         }
 
-        // Send payment email
+        // Send enhanced payment email with user's profile email
+        const customerEmail = user.email || profile.email;
         const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-payment-email', {
           body: {
             orderId: order.id,
-            customerEmail: user.email,
+            customerEmail: customerEmail,
             orderDetails: {
               items: storeItems,
               total: orderTotal,

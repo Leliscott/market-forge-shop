@@ -9,6 +9,7 @@ import DashboardStats from '@/components/agent/DashboardStats';
 import VerificationRequestsTable from '@/components/agent/VerificationRequestsTable';
 import VerificationDialog from '@/components/agent/VerificationDialog';
 import OrderApprovalTable from '@/components/agent/OrderApprovalTable';
+import SecretKeyRequestsTable from '@/components/agent/SecretKeyRequestsTable';
 
 interface VerificationRequest {
   id: string;
@@ -36,14 +37,28 @@ interface Order {
   };
 }
 
+interface SecretKeyRequest {
+  id: string;
+  requester_email: string;
+  requester_name: string;
+  generated_secret: string;
+  status: string;
+  requested_at: string;
+  processed_at?: string;
+  processed_by?: string;
+  notes?: string;
+}
+
 const AgentDashboard = () => {
   const { toast } = useToast();
   const [viewingRequest, setViewingRequest] = useState<VerificationRequest | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [requests, setRequests] = useState<VerificationRequest[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [secretKeyRequests, setSecretKeyRequests] = useState<SecretKeyRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [ordersLoading, setOrdersLoading] = useState(true);
+  const [secretKeysLoading, setSecretKeysLoading] = useState(true);
   const [currentAgent, setCurrentAgent] = useState<any>(null);
 
   useEffect(() => {
@@ -59,6 +74,7 @@ const AgentDashboard = () => {
     
     fetchVerificationRequests();
     fetchEmailOrders();
+    fetchSecretKeyRequests();
   }, []);
 
   const fetchVerificationRequests = async () => {
@@ -118,8 +134,104 @@ const AgentDashboard = () => {
     }
   };
 
+  const fetchSecretKeyRequests = async () => {
+    setSecretKeysLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('secret_key_requests')
+        .select('*')
+        .order('requested_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching secret key requests:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load secret key requests",
+          variant: "destructive"
+        });
+      } else {
+        setSecretKeyRequests(data || []);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setSecretKeysLoading(false);
+    }
+  };
+
+  const handleApproveSecretKey = async (requestId: string, email: string, secret: string) => {
+    try {
+      // Update request status
+      await supabase
+        .from('secret_key_requests')
+        .update({
+          status: 'approved',
+          processed_at: new Date().toISOString(),
+          processed_by: currentAgent?.email
+        })
+        .eq('id', requestId);
+
+      // Add secret to agent_secrets table
+      await supabase
+        .from('agent_secrets')
+        .insert({
+          agent_email: email,
+          secret_key: secret,
+          created_by: currentAgent?.email
+        });
+
+      toast({
+        title: "Secret Key Approved",
+        description: `Agent access granted for ${email}`,
+      });
+      
+      fetchSecretKeyRequests();
+    } catch (error: any) {
+      console.error('Error approving secret key:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to approve secret key",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleRejectSecretKey = async (requestId: string) => {
+    try {
+      await supabase
+        .from('secret_key_requests')
+        .update({
+          status: 'rejected',
+          processed_at: new Date().toISOString(),
+          processed_by: currentAgent?.email
+        })
+        .eq('id', requestId);
+
+      toast({
+        title: "Secret Key Rejected",
+        description: "Request has been rejected",
+      });
+      
+      fetchSecretKeyRequests();
+    } catch (error: any) {
+      console.error('Error rejecting secret key:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reject secret key",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleApprovePayment = async (orderId: string) => {
     try {
+      // Get order details for notifications
+      const { data: orderData } = await supabase
+        .from('orders')
+        .select('*, profiles!orders_user_id_fkey(email)')
+        .eq('id', orderId)
+        .single();
+
       // Update email payment as confirmed
       const { error } = await supabase
         .from('email_payments')
@@ -138,9 +250,23 @@ const AgentDashboard = () => {
         .update({ status: 'paid' })
         .eq('id', orderId);
 
+      // Send notifications to customer and seller
+      await supabase.functions.invoke('send-order-notifications', {
+        body: {
+          orderId: orderId,
+          type: 'approved',
+          customerEmail: orderData?.profiles?.email,
+          sellerEmail: orderData?.seller_contact,
+          orderDetails: {
+            total: orderData?.total_amount,
+            items: orderData?.items
+          }
+        }
+      });
+
       toast({
         title: "Payment Approved",
-        description: "Order payment has been confirmed and order updated",
+        description: "Order payment confirmed and notifications sent",
       });
       
       fetchEmailOrders();
@@ -282,7 +408,7 @@ const AgentDashboard = () => {
     order.payment_method === 'email' && !order.email_payments?.payment_confirmed
   );
 
-  if (loading && ordersLoading) {
+  if (loading && ordersLoading && secretKeysLoading) {
     return (
       <div className="flex flex-col min-h-screen">
         <div className="bg-white dark:bg-gray-900 border-b px-4 py-2">
@@ -318,6 +444,7 @@ const AgentDashboard = () => {
         <Tabs defaultValue="orders" className="space-y-4">
           <TabsList>
             <TabsTrigger value="orders">Email Orders ({pendingOrders.length})</TabsTrigger>
+            <TabsTrigger value="secret-keys">Secret Key Requests ({secretKeyRequests.filter(r => r.status === 'pending').length})</TabsTrigger>
             <TabsTrigger value="verifications">Merchant Verifications ({requests.length})</TabsTrigger>
           </TabsList>
           
@@ -336,6 +463,25 @@ const AgentDashboard = () => {
                   onReject={handleRejectPayment}
                   onViewDetails={setSelectedOrder}
                   loading={ordersLoading}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="secret-keys" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Secret Key Requests</CardTitle>
+                <CardDescription>
+                  Manage agent access requests and approve/reject secret keys
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SecretKeyRequestsTable 
+                  requests={secretKeyRequests}
+                  onApprove={handleApproveSecretKey}
+                  onReject={handleRejectSecretKey}
+                  loading={secretKeysLoading}
                 />
               </CardContent>
             </Card>
@@ -367,8 +513,8 @@ const AgentDashboard = () => {
       <VerificationDialog 
         request={viewingRequest}
         onClose={() => setViewingRequest(null)}
-        onApprove={handleApprove}
-        onReject={handleReject}
+        onApprove={() => {}}
+        onReject={() => {}}
       />
     </div>
   );

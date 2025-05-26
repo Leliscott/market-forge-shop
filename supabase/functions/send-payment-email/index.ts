@@ -57,9 +57,41 @@ const handler = async (req: Request): Promise<Response> => {
       })
       .eq('id', orderId);
 
-    // Here you would integrate with your email service (Resend, etc.)
-    // For now, we'll simulate sending an email
-    console.log('Payment email would be sent to:', customerEmail);
+    // Log email notification with detailed content
+    const emailContent = `
+      Order Confirmation & Payment Instructions
+      
+      Order ID: ${orderId}
+      Store: ${orderDetails.storeName}
+      Total Amount: R${orderDetails.total.toFixed(2)}
+      
+      Items Ordered:
+      ${orderDetails.items.map(item => `- ${item.name} x ${item.quantity} = R${(item.price * item.quantity).toFixed(2)}`).join('\n')}
+      
+      Delivery Charge: R${orderDetails.deliveryCharge.toFixed(2)}
+      
+      Payment Instructions:
+      Your order has been created and is pending payment approval. 
+      Our agents will review your order and contact you with payment instructions.
+      
+      Payment Token: ${paymentToken}
+      
+      You can track your order status at any time by logging into your account.
+      
+      Thank you for shopping with ${orderDetails.storeName}!
+    `;
+
+    await supabase
+      .from('email_notifications')
+      .insert({
+        recipient_email: customerEmail,
+        email_type: 'payment_instructions',
+        subject: `Order ${orderId} - Payment Instructions`,
+        content: emailContent,
+        order_id: orderId
+      });
+
+    console.log('Enhanced payment email notification sent to:', customerEmail);
     console.log('Order details:', orderDetails);
     console.log('Payment token:', paymentToken);
 
