@@ -83,7 +83,7 @@ export const createYocoPayment = async (
         yoco.showPopup({
           amountInCents: paymentData.amount,
           currency: paymentData.currency,
-          name: 'Marketplace Payment',
+          name: 'Shop4ll Payment',
           description: `Order #${orderId}`,
           callback: async function(result: any) {
             console.log('=== YOCO CALLBACK RECEIVED ===');
@@ -126,18 +126,30 @@ export const createYocoPayment = async (
                 if (error) {
                   console.error('Edge function error:', error);
                   
-                  // Check if it's a Yoco server error (500) that might be retryable
-                  if (error.message?.includes('500') || error.message?.includes('server_error')) {
-                    throw new Error('Payment service is temporarily unavailable. Please try again in a few minutes.');
-                  } else if (error.message?.includes('401')) {
-                    throw new Error('Payment authorization failed. Please contact support.');
-                  } else {
-                    throw new Error(error.message || 'Payment processing failed');
+                  // Parse the error response to get detailed information
+                  let errorMessage = 'Payment processing failed. Please try again.';
+                  
+                  if (error.message?.includes('Edge Function returned a non-2xx status code')) {
+                    // This indicates a server error from the edge function
+                    errorMessage = 'Payment service is temporarily unavailable. Please try again in a few minutes.';
                   }
+                  
+                  throw new Error(errorMessage);
                 }
 
                 if (!data) {
                   throw new Error('No response received from payment processor');
+                }
+
+                // Check if the response indicates a server error
+                if (data.error && data.yocoError) {
+                  console.log('Yoco server error detected:', data.yocoError);
+                  
+                  if (data.yocoError.errorType === 'server_error') {
+                    throw new Error('Payment service is experiencing technical difficulties. Please try again in a few minutes.');
+                  } else {
+                    throw new Error(data.yocoError.displayMessage || 'Payment failed. Please try again.');
+                  }
                 }
 
                 console.log('=== PAYMENT SUCCESSFUL ===');

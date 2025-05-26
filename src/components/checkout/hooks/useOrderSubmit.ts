@@ -77,20 +77,28 @@ export const useOrderSubmit = () => {
     } catch (error: any) {
       console.error('Yoco payment failed:', error);
       
-      // Provide more specific error messages
-      let errorMessage = "Payment processing failed. Please try again.";
-      let errorDescription = error.message;
+      // Provide specific error messages based on the error type
+      let errorMessage = "Payment Processing Failed";
+      let errorDescription = "Please try again or contact support if the problem persists.";
 
-      if (error.message?.includes('temporarily unavailable')) {
+      if (error.message?.includes('temporarily unavailable') || 
+          error.message?.includes('technical difficulties') ||
+          error.message?.includes('experiencing')) {
         errorMessage = "Payment Service Unavailable";
         errorDescription = "The payment service is experiencing issues. Please try again in a few minutes.";
       } else if (error.message?.includes('authorization failed')) {
         errorMessage = "Payment Authorization Failed";
         errorDescription = "There was an issue with payment authorization. Please contact support.";
+      } else if (error.message?.includes('User not authenticated')) {
+        errorMessage = "Authentication Required";
+        errorDescription = "Please log in again to continue with payment.";
+      } else if (error.message) {
+        errorDescription = error.message;
       }
       
       toast.error(errorMessage, {
         description: errorDescription,
+        duration: 6000, // Show error longer for user to read
       });
     } finally {
       setIsProcessing(false);
