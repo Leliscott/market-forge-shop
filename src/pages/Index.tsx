@@ -19,7 +19,9 @@ const Index: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Use Promise.allSettled to handle cases where tables might be empty
+        setLoading(true);
+        
+        // Use Promise.allSettled for better error handling and performance
         const [productResult, storeResult] = await Promise.allSettled([
           supabase
             .from('products')
@@ -36,7 +38,6 @@ const Index: React.FC = () => {
         if (productResult.status === 'fulfilled' && productResult.value.data) {
           setNewProducts(productResult.value.data);
         } else {
-          console.warn('No products found or error fetching products');
           setNewProducts([]);
         }
         
@@ -44,13 +45,11 @@ const Index: React.FC = () => {
         if (storeResult.status === 'fulfilled' && storeResult.value.data) {
           setFeaturedStores(storeResult.value.data);
         } else {
-          console.warn('No stores found or error fetching stores');
           setFeaturedStores([]);
         }
         
       } catch (error) {
         console.error('Error fetching featured data:', error);
-        // Set empty arrays on error to prevent UI issues
         setNewProducts([]);
         setFeaturedStores([]);
       } finally {
@@ -58,7 +57,10 @@ const Index: React.FC = () => {
       }
     };
     
-    fetchData();
+    // Add a small delay to prevent blocking the main thread
+    const timeoutId = setTimeout(fetchData, 0);
+    
+    return () => clearTimeout(timeoutId);
   }, []);
 
   return (
