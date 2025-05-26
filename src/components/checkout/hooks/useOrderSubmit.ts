@@ -80,6 +80,17 @@ export const useOrderSubmit = () => {
           .eq('id', storeId)
           .single();
 
+        // Convert cart items to JSON-compatible format
+        const itemsForStorage = storeItems.map(item => ({
+          id: item.id,
+          productId: item.productId,
+          storeId: item.storeId,
+          name: item.name,
+          price: item.price,
+          image: item.image,
+          quantity: item.quantity
+        }));
+
         // Create order
         const { data: order, error: orderError } = await supabase
           .from('orders')
@@ -92,7 +103,7 @@ export const useOrderSubmit = () => {
             billing_address: billingAddress,
             delivery_service_id: selectedDelivery?.id,
             delivery_charge: deliveryCharge,
-            items: storeItems,
+            items: itemsForStorage,
             payment_method: 'email',
             store_name: store?.name || 'Unknown Store',
             seller_contact: store?.contact_email
