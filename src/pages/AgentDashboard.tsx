@@ -1,10 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Home } from 'lucide-react';
+import { Home, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import DashboardStats from '@/components/agent/DashboardStats';
 import VerificationRequestsTable from '@/components/agent/VerificationRequestsTable';
 import VerificationDialog from '@/components/agent/VerificationDialog';
@@ -62,7 +64,7 @@ const AgentDashboard = () => {
   const [currentAgent, setCurrentAgent] = useState<any>(null);
 
   useEffect(() => {
-    // Check agent session
+    // Check agent session - only allow master agent
     const agentSession = localStorage.getItem('agentSession');
     if (!agentSession) {
       window.location.href = '/';
@@ -70,11 +72,21 @@ const AgentDashboard = () => {
     }
 
     const session = JSON.parse(agentSession);
+    if (session.email !== 'tshomela23rd@gmail.com' || !session.isMaster) {
+      localStorage.removeItem('agentSession');
+      window.location.href = '/';
+      return;
+    }
+    
     setCurrentAgent(session);
     
     fetchVerificationRequests();
     fetchEmailOrders();
     fetchSecretKeyRequests();
+
+    // Auto-refresh pending orders every 30 seconds
+    const interval = setInterval(fetchEmailOrders, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchVerificationRequests = async () => {
@@ -225,23 +237,19 @@ const AgentDashboard = () => {
 
   const handleApprovePayment = async (orderId: string) => {
     try {
-      // Get order details and user email separately
+      // Get order details with user email
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          profiles!inner(email)
+        `)
         .eq('id', orderId)
         .single();
 
       if (orderError) throw orderError;
 
-      // Get user email from profiles table
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('id', orderData.user_id)
-        .single();
-
-      const customerEmail = profileData?.email;
+      const customerEmail = orderData.profiles?.email;
 
       // Update email payment as confirmed
       const { error } = await supabase
@@ -261,7 +269,7 @@ const AgentDashboard = () => {
         .update({ status: 'paid' })
         .eq('id', orderId);
 
-      // Send optimized notifications to multiple recipients
+      // Send approval notifications using Resend SMTP
       await supabase.functions.invoke('send-order-notifications', {
         body: {
           orderId: orderId,
@@ -279,7 +287,7 @@ const AgentDashboard = () => {
 
       toast({
         title: "Payment Approved",
-        description: "Order payment confirmed and notifications sent to all parties",
+        description: "Order payment confirmed and notifications sent via Resend SMTP",
       });
       
       fetchEmailOrders();
@@ -431,7 +439,7 @@ const AgentDashboard = () => {
           </Link>
         </div>
         <main className="flex-1 container mx-auto px-4 py-8">
-          <div className="text-center">Loading...</div>
+          <div className="text-center">Loading Master Agent Dashboard...</div>
         </main>
       </div>
     );
@@ -446,17 +454,39 @@ const AgentDashboard = () => {
             Back to Home
           </Link>
           <div className="text-sm text-gray-600">
-            Agent: {currentAgent?.email} {currentAgent?.isMaster && '(Master)'}
+            Master Agent: {currentAgent?.email}
           </div>
         </div>
       </div>
       
       <main className="flex-1 container mx-auto px-4 py-8">
+        {/* Priority Alert for Pending Orders */}
+        {pendingOrders.length > 0 && (
+          <Alert className="mb-6 border-red-200 bg-red-50">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription>
+              <span className="font-medium text-red-800">
+                {pendingOrders.length} order(s) awaiting your approval!
+              </span>
+              <span className="text-red-700 block mt-1">
+                New email payment orders require immediate review and approval.
+              </span>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <DashboardStats agentId={currentAgent?.agentId} />
         
         <Tabs defaultValue="orders" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="orders">Email Orders ({pendingOrders.length})</TabsTrigger>
+            <TabsTrigger value="orders" className="relative">
+              Email Orders
+              {pendingOrders.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {pendingOrders.length}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="secret-keys">Secret Key Requests ({secretKeyRequests.filter(r => r.status === 'pending').length})</TabsTrigger>
             <TabsTrigger value="verifications">Merchant Verifications ({requests.length})</TabsTrigger>
           </TabsList>
@@ -464,9 +494,16 @@ const AgentDashboard = () => {
           <TabsContent value="orders" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Email Payment Orders</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  Email Payment Orders 
+                  {pendingOrders.length > 0 && (
+                    <span className="bg-red-100 text-red-800 text-sm px-2 py-1 rounded-full">
+                      {pendingOrders.length} Pending
+                    </span>
+                  )}
+                </CardTitle>
                 <CardDescription>
-                  Approve or reject orders with email payment method
+                  Review and approve email payment orders. All notifications sent via Resend SMTP.
                 </CardDescription>
               </CardHeader>
               <CardContent>

@@ -5,7 +5,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useAgentAuth } from './hooks/useAgentAuth';
 import { useDoubleTap } from './hooks/useDoubleTap';
 import AgentLoginForm from './forms/AgentLoginForm';
-import SecretKeyRequest from './SecretKeyRequest';
 
 const AgentPortal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,9 +33,13 @@ const AgentPortal: React.FC = () => {
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="dark:bg-gray-800">
           <DialogHeader>
-            <DialogTitle className="dark:text-white">Agent Portal</DialogTitle>
+            <DialogTitle className="dark:text-white">Master Agent Portal</DialogTitle>
             <DialogDescription className="dark:text-gray-300">
-              Enter your agent credentials to access the dashboard.
+              Restricted access for authorized master agent only.
+              <br />
+              <span className="text-xs text-red-600 dark:text-red-400">
+                Only tshomela23rd@gmail.com is authorized to access this portal.
+              </span>
             </DialogDescription>
           </DialogHeader>
           
@@ -47,10 +50,9 @@ const AgentPortal: React.FC = () => {
           
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
             <div className="text-center">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                Don't have agent access?
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Master agent creates and manages all secret keys and approvals.
               </p>
-              <SecretKeyRequest />
             </div>
           </div>
         </DialogContent>

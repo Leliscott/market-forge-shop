@@ -63,7 +63,7 @@ export const useOrderSubmit = () => {
       }, {} as Record<string, typeof items>);
 
       toast.info("Processing Order", {
-        description: "Creating your order and sending payment instructions...",
+        description: "Creating your order and sending for agent approval...",
       });
 
       // Create orders for each store
@@ -91,7 +91,7 @@ export const useOrderSubmit = () => {
           quantity: item.quantity
         }));
 
-        // Create order
+        // Create order with pending status for agent approval
         const { data: order, error: orderError } = await supabase
           .from('orders')
           .insert({
@@ -105,6 +105,7 @@ export const useOrderSubmit = () => {
             delivery_charge: deliveryCharge,
             items: itemsForStorage,
             payment_method: 'email',
+            status: 'pending', // Pending agent approval
             store_name: store?.name || 'Unknown Store',
             seller_contact: store?.contact_email
           })
@@ -128,44 +129,50 @@ export const useOrderSubmit = () => {
             });
         }
 
-        // Send enhanced payment email with user's profile email
+        // Send immediate notification emails to all parties using Resend
         const customerEmail = user.email || profile.email;
-        const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-payment-email', {
-          body: {
-            orderId: order.id,
-            customerEmail: customerEmail,
-            orderDetails: {
-              items: storeItems,
-              total: orderTotal,
-              storeName: store?.name || 'Unknown Store',
-              deliveryCharge: deliveryCharge
+        
+        try {
+          const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-payment-email', {
+            body: {
+              orderId: order.id,
+              customerEmail: customerEmail,
+              orderDetails: {
+                items: storeItems,
+                total: orderTotal,
+                storeName: store?.name || 'Unknown Store',
+                deliveryCharge: deliveryCharge
+              }
             }
-          }
-        });
-
-        if (emailError) {
-          console.error('Email sending failed:', emailError);
-          // Don't fail the order creation, just warn the user
-          toast.warning("Order Created", {
-            description: "Your order was created but email sending failed. Please contact support.",
           });
+
+          if (emailError) {
+            console.error('Email sending failed:', emailError);
+            toast.warning("Order Created", {
+              description: "Order created but email notification failed. Agent has been notified.",
+            });
+          } else {
+            console.log('Payment email sent successfully:', emailResult);
+          }
+        } catch (emailSendError) {
+          console.error('Email function error:', emailSendError);
         }
 
         createdOrders.push(order);
       }
 
-      console.log('=== ORDERS CREATED SUCCESSFULLY ===');
+      console.log('=== ORDERS CREATED AND SUBMITTED TO AGENT ===');
       console.log('Created orders:', createdOrders);
 
       // Clear cart after successful order creation
       clearCart();
       
-      toast.success("Order Placed Successfully!", {
-        description: "Payment instructions have been sent to your email.",
+      toast.success("Order Submitted Successfully!", {
+        description: `${createdOrders.length} order(s) submitted to agent for approval. You'll receive email confirmation shortly.`,
       });
 
       // Redirect to orders page
-      window.location.href = `/orders?payment=email&order_count=${createdOrders.length}`;
+      window.location.href = `/orders?payment=email&order_count=${createdOrders.length}&status=pending`;
 
     } catch (error: any) {
       console.error('Order creation failed:', error);
