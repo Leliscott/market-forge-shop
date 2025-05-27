@@ -237,19 +237,28 @@ const AgentDashboard = () => {
 
   const handleApprovePayment = async (orderId: string) => {
     try {
-      // Get order details with user email
+      // Get order details first
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
-        .select(`
-          *,
-          profiles!inner(email)
-        `)
+        .select('*')
         .eq('id', orderId)
         .single();
 
       if (orderError) throw orderError;
 
-      const customerEmail = orderData.profiles?.email;
+      // Get customer profile separately using user_id from order
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', orderData.user_id)
+        .single();
+
+      if (profileError) {
+        console.error('Profile not found:', profileError);
+        // Fallback: proceed without customer email
+      }
+
+      const customerEmail = profileData?.email;
 
       // Update email payment as confirmed
       const { error } = await supabase
