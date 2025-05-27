@@ -1,6 +1,9 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.5';
+import { Resend } from "npm:resend@2.0.0";
+
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -57,86 +60,99 @@ const handler = async (req: Request): Promise<Response> => {
       })
       .eq('id', orderId);
 
-    // Prepare email notifications for multiple recipients
-    const notifications = [];
-
-    // Customer email
-    const customerEmailContent = `
-      Order Confirmation & Payment Instructions
-      
-      Order ID: ${orderId}
-      Store: ${orderDetails.storeName}
-      Total Amount: R${orderDetails.total.toFixed(2)}
-      
-      Items Ordered:
-      ${orderDetails.items.map(item => `- ${item.name} x ${item.quantity} = R${(item.price * item.quantity).toFixed(2)}`).join('\n')}
-      
-      Delivery Charge: R${orderDetails.deliveryCharge.toFixed(2)}
-      
-      Payment Instructions:
-      Your order has been created and is pending payment approval. 
-      Our agents will review your order and contact you with payment instructions.
-      
-      Payment Token: ${paymentToken}
-      
-      You can track your order status at any time by logging into your account.
-      
-      Thank you for shopping with ${orderDetails.storeName}!
+    // Send customer email using Resend
+    const customerEmailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #2563eb;">Order Confirmation & Payment Instructions</h1>
+        
+        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h2>Order Details</h2>
+          <p><strong>Order ID:</strong> ${orderId}</p>
+          <p><strong>Store:</strong> ${orderDetails.storeName}</p>
+          <p><strong>Total Amount:</strong> R${orderDetails.total.toFixed(2)}</p>
+          <p><strong>Payment Token:</strong> ${paymentToken}</p>
+        </div>
+        
+        <div style="margin: 20px 0;">
+          <h3>Items Ordered:</h3>
+          <ul>
+            ${orderDetails.items.map(item => 
+              `<li>${item.name} x ${item.quantity} = R${(item.price * item.quantity).toFixed(2)}</li>`
+            ).join('')}
+          </ul>
+          <p><strong>Delivery Charge:</strong> R${orderDetails.deliveryCharge.toFixed(2)}</p>
+        </div>
+        
+        <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <h3>Payment Instructions</h3>
+          <p>Your order has been created and is pending payment approval. Our agents will review your order and contact you with payment instructions.</p>
+          <p>You can track your order status by logging into your account.</p>
+        </div>
+        
+        <p>Thank you for shopping with ${orderDetails.storeName}!</p>
+      </div>
     `;
 
-    notifications.push({
-      recipient_email: customerEmail,
-      email_type: 'payment_instructions',
+    await resend.emails.send({
+      from: "ShopMarket <noreply@shop4ll.co.za>",
+      to: [customerEmail],
       subject: `Order ${orderId} - Payment Instructions`,
-      content: customerEmailContent,
-      order_id: orderId
+      html: customerEmailHtml,
     });
 
-    // Master agent notifications
+    // Send master agent notifications using Resend
     const masterAgents = ['tshomela23rd@gmail.com', 'lee424066@gmail.com'];
-    const agentEmailContent = `
-      New Email Payment Order Received
-      
-      Order ID: ${orderId}
-      Customer: ${customerEmail}
-      Store: ${orderDetails.storeName}
-      Total Amount: R${orderDetails.total.toFixed(2)}
-      Payment Token: ${paymentToken}
-      
-      Items Ordered:
-      ${orderDetails.items.map(item => `- ${item.name} x ${item.quantity} = R${(item.price * item.quantity).toFixed(2)}`).join('\n')}
-      
-      Delivery Charge: R${orderDetails.deliveryCharge.toFixed(2)}
-      
-      Please review this order in the Agent Dashboard for payment approval.
-      Customer is waiting for payment instructions.
+    
+    const agentEmailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #dc2626;">New Email Payment Order Received</h1>
+        
+        <div style="background-color: #fee2e2; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h2>Order Details</h2>
+          <p><strong>Order ID:</strong> ${orderId}</p>
+          <p><strong>Customer:</strong> ${customerEmail}</p>
+          <p><strong>Store:</strong> ${orderDetails.storeName}</p>
+          <p><strong>Total Amount:</strong> R${orderDetails.total.toFixed(2)}</p>
+          <p><strong>Payment Token:</strong> ${paymentToken}</p>
+        </div>
+        
+        <div style="margin: 20px 0;">
+          <h3>Items Ordered:</h3>
+          <ul>
+            ${orderDetails.items.map(item => 
+              `<li>${item.name} x ${item.quantity} = R${(item.price * item.quantity).toFixed(2)}</li>`
+            ).join('')}
+          </ul>
+          <p><strong>Delivery Charge:</strong> R${orderDetails.deliveryCharge.toFixed(2)}</p>
+        </div>
+        
+        <div style="background-color: #ddd6fe; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p><strong>Action Required:</strong> Please review this order in the Agent Dashboard for payment approval.</p>
+          <p>Customer is waiting for payment instructions.</p>
+        </div>
+      </div>
     `;
 
-    masterAgents.forEach(agentEmail => {
-      notifications.push({
-        recipient_email: agentEmail,
-        email_type: 'agent_order_notification',
+    // Send to all master agents
+    for (const agentEmail of masterAgents) {
+      await resend.emails.send({
+        from: "ShopMarket <noreply@shop4ll.co.za>",
+        to: [agentEmail],
         subject: `New Email Payment Order - ${orderId}`,
-        content: agentEmailContent,
-        order_id: orderId
+        html: agentEmailHtml,
       });
-    });
+    }
 
-    // Insert all notifications
-    await supabase
-      .from('email_notifications')
-      .insert(notifications);
-
-    console.log('Enhanced payment email notifications sent to:', notifications.map(n => n.recipient_email));
+    console.log('Enhanced payment email notifications sent via Resend to:', [customerEmail, ...masterAgents]);
     console.log('Order details:', orderDetails);
     console.log('Payment token:', paymentToken);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Payment emails sent to customer and ${masterAgents.length} master agents`,
+        message: `Payment emails sent via Resend to customer and ${masterAgents.length} master agents`,
         paymentToken,
-        recipients: notifications.map(n => n.recipient_email)
+        recipients: [customerEmail, ...masterAgents]
       }),
       {
         status: 200,
