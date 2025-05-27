@@ -70,3 +70,6 @@ verify_jwt = true
 
 [functions.create-yoco-payment]
 verify_jwt = true
+
+[functions.validate-master-key]
+verify_jwt = false

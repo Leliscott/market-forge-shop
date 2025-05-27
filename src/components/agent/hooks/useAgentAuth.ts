@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AgentLoginValues {
@@ -29,28 +29,15 @@ export const useAgentAuth = () => {
         return;
       }
 
-      // Check master agent credentials
-      const { data: secretData, error: secretError } = await supabase
-        .from('agent_secrets')
-        .select('secret_key')
-        .eq('agent_email', data.email)
-        .single();
+      // Validate secret key against MASTER_KEY from Supabase secrets
+      const { data: secretValidation, error: secretError } = await supabase.functions.invoke('validate-master-key', {
+        body: { secretKey: data.secretKey }
+      });
 
-      if (secretError || !secretData) {
+      if (secretError || !secretValidation?.isValid) {
         toast({
           title: "Authentication failed",
-          description: "Master agent credentials not found",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const isAuthorized = data.secretKey === secretData.secret_key;
-
-      if (!isAuthorized) {
-        toast({
-          title: "Authentication failed",
-          description: "Invalid secret key",
+          description: "Invalid master secret key",
           variant: "destructive"
         });
         return;
