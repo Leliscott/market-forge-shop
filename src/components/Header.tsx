@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ShoppingCart, Bell, User } from "lucide-react";
+import { Search, ShoppingCart, Bell, User, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -40,9 +40,23 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-30 w-full bg-white dark:bg-gray-900 border-b shadow-sm">
       <div className="container flex items-center justify-between h-16 px-4 mx-auto">
-        {/* Logo and brand name */}
-        <Link to="/" className="flex items-center space-x-2">
-          <span className="text-2xl font-bold text-brand-teal">Shop4ll</span>
+        {/* Logo and brand name with unique Shop4ll branding */}
+        <Link to="/" className="flex items-center space-x-3">
+          <div className="relative">
+            {/* Unique Shop4ll Logo */}
+            <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform">
+              <div className="w-6 h-6 bg-white rounded-md flex items-center justify-center">
+                <span className="text-teal-600 font-bold text-xs">S4</span>
+              </div>
+            </div>
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-orange-400 rounded-full"></div>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-2xl font-bold bg-gradient-to-r from-teal-600 to-blue-600 bg-clip-text text-transparent">
+              Shop4ll
+            </span>
+            <span className="text-xs text-gray-500 -mt-1">Your Trusted Marketplace</span>
+          </div>
         </Link>
 
         {/* Search bar (conditionally rendered) */}
@@ -60,6 +74,14 @@ const Header: React.FC<HeaderProps> = ({
           <Link to="/marketplace" className="hidden text-sm font-medium transition-colors hover:text-primary md:block">
             Marketplace
           </Link>
+
+          {/* Support Email Link */}
+          <Button variant="ghost" size="sm" asChild className="hidden md:flex">
+            <a href="mailto:mainshop@shop4ll.co.za" className="flex items-center gap-2 text-sm">
+              <Mail className="w-4 h-4" />
+              Support
+            </a>
+          </Button>
 
           {/* Theme toggle */}
           <ThemeToggle />

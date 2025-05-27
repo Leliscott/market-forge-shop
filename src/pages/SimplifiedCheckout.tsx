@@ -1,14 +1,16 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Mail, TestTube } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { toast } from 'sonner';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import QuickShippingForm from '@/components/checkout/QuickShippingForm';
 import SimplifiedOrderSummary from '@/components/checkout/SimplifiedOrderSummary';
 import { useCart } from '@/context/CartContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DeliveryService {
   id: string;
@@ -21,6 +23,35 @@ const SimplifiedCheckout = () => {
   const { items } = useCart();
   const [shippingAddress, setShippingAddress] = useState(null);
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryService | null>(null);
+  const [isTestingEmail, setIsTestingEmail] = useState(false);
+
+  const testEmailSystem = async () => {
+    setIsTestingEmail(true);
+    try {
+      console.log('Testing email system...');
+      
+      const { data, error } = await supabase.functions.invoke('test-email', {
+        body: {}
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      console.log('Test email result:', data);
+      
+      toast.success("Test Email Sent!", {
+        description: "Check the console logs and your email for the test message.",
+      });
+    } catch (error: any) {
+      console.error('Test email failed:', error);
+      toast.error("Test Email Failed", {
+        description: error.message || "Failed to send test email. Check console for details.",
+      });
+    } finally {
+      setIsTestingEmail(false);
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -46,11 +77,32 @@ const SimplifiedCheckout = () => {
       
       <main className="flex-1">
         <div className="container px-4 py-8 mx-auto max-w-6xl">
-          <div className="mb-6">
+          <div className="mb-6 flex items-center justify-between">
             <Button variant="ghost" size="sm" asChild>
               <Link to="/cart" className="flex items-center gap-2">
                 <ArrowLeft className="w-4 h-4" /> Back to cart
               </Link>
+            </Button>
+            
+            {/* Test Email Button */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={testEmailSystem}
+              disabled={isTestingEmail}
+              className="flex items-center gap-2"
+            >
+              {isTestingEmail ? (
+                <>
+                  <TestTube className="w-4 h-4 animate-spin" />
+                  Testing...
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4" />
+                  Test Email System
+                </>
+              )}
             </Button>
           </div>
           

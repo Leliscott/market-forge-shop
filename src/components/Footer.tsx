@@ -1,17 +1,32 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Mail, Phone, MapPin, Shield } from 'lucide-react';
 
 const Footer = () => {
   return (
     <footer className="bg-white border-t">
       <div className="container px-4 py-8 mx-auto">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold">Shop4ll</h3>
+          {/* Brand Section with Logo */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-blue-500 rounded-lg flex items-center justify-center">
+                <div className="w-5 h-5 bg-white rounded-sm flex items-center justify-center">
+                  <span className="text-teal-600 font-bold text-xs">S4</span>
+                </div>
+              </div>
+              <span className="text-xl font-bold bg-gradient-to-r from-teal-600 to-blue-600 bg-clip-text text-transparent">
+                Shop4ll
+              </span>
+            </div>
             <p className="text-sm text-muted-foreground">
-              The marketplace where individuals can create their own stores and sell products.
+              Your trusted marketplace where individuals can create their own stores and sell products with confidence.
             </p>
+            <div className="flex items-center gap-2 text-sm text-green-600">
+              <Shield className="w-4 h-4" />
+              <span className="font-medium">Verified & Secure Platform</span>
+            </div>
           </div>
           
           <div>
@@ -33,11 +48,20 @@ const Footer = () => {
             </ul>
           </div>
           
+          {/* Support & Contact Section */}
           <div>
-            <h3 className="mb-3 text-sm font-semibold">Company</h3>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/about" className="text-muted-foreground hover:text-foreground">About Us</Link></li>
-              <li><Link to="/contact" className="text-muted-foreground hover:text-foreground">Contact</Link></li>
+            <h3 className="mb-3 text-sm font-semibold">Support & Contact</h3>
+            <ul className="space-y-3 text-sm">
+              <li>
+                <a href="mailto:mainshop@shop4ll.co.za" className="flex items-center gap-2 text-muted-foreground hover:text-teal-600 transition-colors">
+                  <Mail className="w-4 h-4" />
+                  mainshop@shop4ll.co.za
+                </a>
+              </li>
+              <li className="flex items-center gap-2 text-muted-foreground">
+                <MapPin className="w-4 h-4" />
+                South Africa
+              </li>
               <li><Link to="/terms" className="text-muted-foreground hover:text-foreground">Terms of Service</Link></li>
               <li><Link to="/privacy" className="text-muted-foreground hover:text-foreground">Privacy Policy</Link></li>
             </ul>
@@ -45,10 +69,16 @@ const Footer = () => {
         </div>
         
         <div className="pt-8 mt-8 border-t">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} Shop4ll. All rights reserved.
-            </p>
+          <div className="flex items-center justify-between flex-col md:flex-row gap-4">
+            <div className="flex flex-col md:flex-row items-center gap-4">
+              <p className="text-sm text-muted-foreground">
+                &copy; {new Date().getFullYear()} Shop4ll. All rights reserved.
+              </p>
+              <div className="flex items-center gap-2 text-sm text-green-600">
+                <Shield className="w-4 h-4" />
+                <span>Trusted by thousands of South African businesses</span>
+              </div>
+            </div>
             <div className="flex items-center space-x-4">
               <Link to="#" className="text-muted-foreground hover:text-foreground">
                 <span className="sr-only">Facebook</span>
