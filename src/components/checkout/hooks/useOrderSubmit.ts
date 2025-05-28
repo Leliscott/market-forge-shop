@@ -119,13 +119,17 @@ export const useOrderSubmit = () => {
 
         console.log('Order created successfully:', order);
 
-        // Create email payment record
+        // Generate payment token for email payments
+        const paymentToken = `pay_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+        
+        // Create email payment record with required payment_link_token
         const { error: emailPaymentError } = await supabase
           .from('email_payments')
           .insert({
             order_id: order.id,
             email_sent_at: new Date().toISOString(),
-            payment_confirmed: false
+            payment_confirmed: false,
+            payment_link_token: paymentToken
           });
 
         if (emailPaymentError) {
