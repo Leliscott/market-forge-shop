@@ -219,7 +219,7 @@ serve(async (req) => {
       const authorizationHeader = `Bearer ${yocoSecretKey.trim()}`
       console.log('Authorization header format verified')
       
-      return fetch('https://online.yoco.com/v1/charges/', {
+      return fetch('https://payments.yoco.com/api/charges', {
         method: 'POST',
         headers: {
           'Authorization': authorizationHeader,
