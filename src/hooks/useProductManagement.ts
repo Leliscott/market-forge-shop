@@ -73,12 +73,20 @@ export const useProductManagement = () => {
 
   const deleteProduct = async (productId: string) => {
     try {
+      console.log('Deleting product:', productId);
+      
       const { error } = await supabase
         .from('products')
         .delete()
-        .eq('id', productId);
+        .eq('id', productId)
+        .eq('store_id', userStore?.id); // Add store_id check for security
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase delete error:', error);
+        throw error;
+      }
+      
+      console.log('Product deleted successfully');
       
       // Remove from local state immediately for better UX
       setProducts(prev => prev.filter(product => product.id !== productId));
@@ -91,7 +99,7 @@ export const useProductManagement = () => {
       console.error('Error deleting product:', err);
       toast({
         title: "Error",
-        description: "Failed to delete product. Please try again.",
+        description: `Failed to delete product: ${err.message}`,
         variant: "destructive"
       });
       // Refresh the list in case of error to ensure consistency

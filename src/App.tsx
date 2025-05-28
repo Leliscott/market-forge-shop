@@ -1,3 +1,4 @@
+
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -64,7 +65,7 @@ function App() {
                       <Route path="/seller/store-settings" element={<StoreSettings />} />
                       <Route path="/store/:storeId" element={<StoreView />} />
                       <Route path="/terms" element={<TermsAndConditions />} />
-                      <Route path="/agent" element={<AgentDashboard />} />
+                      <Route path="/agent/dashboard" element={<AgentDashboard />} />
                       <Route path="/auth/callback" element={<AuthCallback />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
