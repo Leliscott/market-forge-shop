@@ -79,30 +79,54 @@ export const useAgentDashboard = () => {
   const fetchEmailOrders = async () => {
     setOrdersLoading(true);
     try {
-      const { data, error } = await supabase
+      console.log('Fetching email orders...');
+      
+      // Fetch all orders first
+      const { data: allOrders, error: ordersError } = await supabase
         .from('orders')
-        .select(`
-          *,
-          email_payments (
-            payment_confirmed,
-            email_sent_at
-          )
-        `)
-        .eq('payment_method', 'email')
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching orders:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load orders",
-          variant: "destructive"
-        });
-      } else {
-        setOrders(data || []);
+      if (ordersError) {
+        console.error('Error fetching orders:', ordersError);
+        throw ordersError;
       }
+
+      console.log('All orders found:', allOrders?.length || 0);
+
+      // Fetch email payments separately
+      const { data: emailPayments, error: emailError } = await supabase
+        .from('email_payments')
+        .select('*');
+
+      if (emailError) {
+        console.error('Error fetching email payments:', emailError);
+      }
+
+      console.log('Email payments found:', emailPayments?.length || 0);
+
+      // Combine the data
+      const ordersWithEmailData = (allOrders || []).map(order => {
+        const emailPayment = emailPayments?.find(ep => ep.order_id === order.id);
+        return {
+          ...order,
+          email_payments: emailPayment ? {
+            payment_confirmed: emailPayment.payment_confirmed || false,
+            email_sent_at: emailPayment.email_sent_at
+          } : undefined
+        };
+      });
+
+      console.log('Orders with email data:', ordersWithEmailData.length);
+      setOrders(ordersWithEmailData);
+
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching orders:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load orders",
+        variant: "destructive"
+      });
     } finally {
       setOrdersLoading(false);
     }
@@ -135,6 +159,8 @@ export const useAgentDashboard = () => {
 
   const handleApprovePayment = async (orderId: string) => {
     try {
+      console.log('Approving payment for order:', orderId);
+      
       // Get order details first
       const { data: orderData, error: orderError } = await supabase
         .from('orders')

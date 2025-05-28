@@ -65,29 +65,65 @@ serve(async (req) => {
       body: JSON.stringify(checkoutPayload)
     })
 
-    const yocoData = await yocoResponse.json()
-    console.log('Yoco response:', yocoData)
+    console.log('Yoco response status:', yocoResponse.status)
+    console.log('Yoco response headers:', Object.fromEntries(yocoResponse.headers.entries()))
+
+    const responseText = await yocoResponse.text()
+    console.log('Yoco raw response:', responseText)
 
     if (!yocoResponse.ok) {
-      console.error('Yoco checkout creation failed:', yocoData)
+      console.error('Yoco checkout creation failed with status:', yocoResponse.status)
+      console.error('Response body:', responseText)
+      
       return new Response(JSON.stringify({ 
         error: 'Failed to create checkout session',
-        details: yocoData 
+        status: yocoResponse.status,
+        details: responseText.substring(0, 500) // Limit error details
       }), {
         status: yocoResponse.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
+    let yocoData
+    try {
+      yocoData = JSON.parse(responseText)
+    } catch (parseError) {
+      console.error('Failed to parse Yoco response as JSON:', parseError)
+      console.error('Response was:', responseText.substring(0, 200))
+      
+      return new Response(JSON.stringify({ 
+        error: 'Invalid response from payment provider',
+        details: 'Response was not valid JSON'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    console.log('Parsed Yoco data:', yocoData)
+
     // Return the checkout URL
+    const checkoutUrl = yocoData.redirectUrl || yocoData.url
+    if (!checkoutUrl) {
+      console.error('No checkout URL found in response:', yocoData)
+      return new Response(JSON.stringify({ 
+        error: 'No checkout URL received from payment provider',
+        details: yocoData 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
     return new Response(JSON.stringify({
       success: true,
-      checkoutUrl: yocoData.redirectUrl || yocoData.url,
+      checkoutUrl: checkoutUrl,
       checkoutId: yocoData.id
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
-   // console.log("response from yoco", yocoData, yocoResponse);
+
   } catch (error) {
     console.error('Simple Yoco pay error:', error)
     return new Response(JSON.stringify({ 

@@ -113,12 +113,28 @@ export const useOrderSubmit = () => {
           .single();
 
         if (orderError) {
+          console.error('Order creation error:', orderError);
           throw new Error(`Failed to create order: ${orderError.message}`);
+        }
+
+        console.log('Order created successfully:', order);
+
+        // Create email payment record
+        const { error: emailPaymentError } = await supabase
+          .from('email_payments')
+          .insert({
+            order_id: order.id,
+            email_sent_at: new Date().toISOString(),
+            payment_confirmed: false
+          });
+
+        if (emailPaymentError) {
+          console.error('Email payment record error:', emailPaymentError);
         }
 
         // Create order items
         for (const item of storeItems) {
-          await supabase
+          const { error: itemError } = await supabase
             .from('order_items')
             .insert({
               order_id: order.id,
@@ -127,6 +143,10 @@ export const useOrderSubmit = () => {
               unit_price: item.price,
               total_price: item.price * item.quantity
             });
+
+          if (itemError) {
+            console.error('Order item creation error:', itemError);
+          }
         }
 
         // Send immediate notification emails to all parties using Resend
