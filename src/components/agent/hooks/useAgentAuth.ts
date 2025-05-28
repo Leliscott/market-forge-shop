@@ -19,16 +19,6 @@ export const useAgentAuth = () => {
     try {
       console.log('Agent login attempt:', data.email);
 
-      // Only allow master agent email
-      if (data.email !== 'tshomela23rd@gmail.com') {
-        toast({
-          title: "Access Denied",
-          description: "Only the master agent is authorized to access this portal",
-          variant: "destructive"
-        });
-        return;
-      }
-
       // Validate secret key against MASTER_KEY from Supabase secrets
       const { data: secretValidation, error: secretError } = await supabase.functions.invoke('validate-master-key', {
         body: { secretKey: data.secretKey }
@@ -43,33 +33,47 @@ export const useAgentAuth = () => {
         return;
       }
 
-      // Check if master agent exists in the system
+      // Generate a unique agent ID based on email
+      const agentId = `AGENT_${data.email.split('@')[0].toUpperCase()}`;
+
+      // Check if agent exists in the system
       const { data: agentData, error: agentError } = await supabase
         .from('agents')
         .select('*')
         .eq('email', data.email)
         .single();
 
-      if (agentError || !agentData) {
-        // Create master agent if doesn't exist
+      if (agentError && agentError.code === 'PGRST116') {
+        // Agent doesn't exist, create new agent record
         const { data: newAgent, error: createError } = await supabase
           .from('agents')
           .insert({
             email: data.email,
-            agent_id: 'MASTER_AGENT',
+            agent_id: agentId,
             cellphone: 'N/A'
           })
           .select()
           .single();
 
         if (createError) {
+          console.error('Error creating agent:', createError);
           toast({
             title: "Error",
-            description: "Failed to create master agent record",
+            description: "Failed to create agent record",
             variant: "destructive"
           });
           return;
         }
+
+        console.log('New agent created:', newAgent);
+      } else if (agentError) {
+        console.error('Error checking agent:', agentError);
+        toast({
+          title: "Error",
+          description: "Failed to verify agent status",
+          variant: "destructive"
+        });
+        return;
       }
 
       // Update last login
@@ -78,16 +82,16 @@ export const useAgentAuth = () => {
         .update({ last_login: new Date().toISOString() })
         .eq('email', data.email);
 
-      // Store master agent session
+      // Store agent session
       localStorage.setItem('agentSession', JSON.stringify({
         email: data.email,
-        agentId: 'MASTER_AGENT',
+        agentId: agentId,
         isMaster: true,
         loginTime: new Date().toISOString()
       }));
 
       toast({
-        title: "Master Agent Access Granted",
+        title: "Agent Access Granted",
         description: "Welcome to the Agent Portal",
       });
       

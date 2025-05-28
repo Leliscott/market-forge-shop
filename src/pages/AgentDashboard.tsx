@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,7 +58,7 @@ const AgentDashboard = () => {
   } = useAgentDashboard();
 
   useEffect(() => {
-    // Check agent session - only allow master agent
+    // Check agent session - allow any agent with valid session
     const agentSession = localStorage.getItem('agentSession');
     if (!agentSession) {
       window.location.href = '/';
@@ -67,7 +66,7 @@ const AgentDashboard = () => {
     }
 
     const session = JSON.parse(agentSession);
-    if (session.email !== 'tshomela23rd@gmail.com' || !session.isMaster) {
+    if (!session.isMaster) {
       localStorage.removeItem('agentSession');
       window.location.href = '/';
       return;
@@ -84,7 +83,7 @@ const AgentDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleApprove = async (requestId: string) => {
+  async function handleApprove(requestId: string) {
     if (!currentAgent) {
       toast({
         title: "Error",
@@ -137,9 +136,9 @@ const AgentDashboard = () => {
         variant: "destructive"
       });
     }
-  };
+  }
   
-  const handleReject = async (requestId: string) => {
+  async function handleReject(requestId: string) {
     if (!currentAgent) {
       toast({
         title: "Error",
@@ -178,14 +177,14 @@ const AgentDashboard = () => {
         variant: "destructive"
       });
     }
-  };
+  }
 
   if (loading && ordersLoading && secretKeysLoading) {
     return (
       <div className="flex flex-col min-h-screen">
         <DashboardHeader currentAgent={currentAgent} />
         <main className="flex-1 container mx-auto px-4 py-8">
-          <div className="text-center">Loading Master Agent Dashboard...</div>
+          <div className="text-center">Loading Agent Dashboard...</div>
         </main>
       </div>
     );
