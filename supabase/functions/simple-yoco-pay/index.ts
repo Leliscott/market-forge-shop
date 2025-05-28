@@ -87,7 +87,7 @@ serve(async (req) => {
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
-    console.log("response from yoco", yocoData, yocoResponse;
+    console.log("response from yoco", yocoData, yocoResponse);
   } catch (error) {
     console.error('Simple Yoco pay error:', error)
     return new Response(JSON.stringify({ 
