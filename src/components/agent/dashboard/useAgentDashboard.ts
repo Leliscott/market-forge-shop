@@ -23,10 +23,13 @@ interface Order {
   created_at: string;
   payment_method: string;
   status: string;
-  email_payments?: {
-    payment_confirmed: boolean;
-    email_sent_at: string;
-  };
+  payment_status: string;
+  customer_details: any;
+  shipping_address: any;
+  billing_address: any;
+  items: any[];
+  seller_contact: string;
+  yoco_checkout_id?: string;
 }
 
 interface SecretKeyRequest {
@@ -50,6 +53,7 @@ export const useAgentDashboard = () => {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [secretKeysLoading, setSecretKeysLoading] = useState(true);
   const [currentAgent, setCurrentAgent] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchVerificationRequests = async () => {
     setLoading(true);
@@ -76,12 +80,11 @@ export const useAgentDashboard = () => {
     }
   };
 
-  const fetchEmailOrders = async () => {
+  const fetchOrders = async () => {
     setOrdersLoading(true);
     try {
-      console.log('Fetching email orders...');
+      console.log('Fetching all orders...');
       
-      // Fetch all orders first
       const { data: allOrders, error: ordersError } = await supabase
         .from('orders')
         .select('*')
@@ -92,33 +95,8 @@ export const useAgentDashboard = () => {
         throw ordersError;
       }
 
-      console.log('All orders found:', allOrders?.length || 0);
-
-      // Fetch email payments separately
-      const { data: emailPayments, error: emailError } = await supabase
-        .from('email_payments')
-        .select('*');
-
-      if (emailError) {
-        console.error('Error fetching email payments:', emailError);
-      }
-
-      console.log('Email payments found:', emailPayments?.length || 0);
-
-      // Combine the data
-      const ordersWithEmailData = (allOrders || []).map(order => {
-        const emailPayment = emailPayments?.find(ep => ep.order_id === order.id);
-        return {
-          ...order,
-          email_payments: emailPayment ? {
-            payment_confirmed: emailPayment.payment_confirmed || false,
-            email_sent_at: emailPayment.email_sent_at
-          } : undefined
-        };
-      });
-
-      console.log('Orders with email data:', ordersWithEmailData.length);
-      setOrders(ordersWithEmailData);
+      console.log('Orders found:', allOrders?.length || 0);
+      setOrders(allOrders || []);
 
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -157,102 +135,32 @@ export const useAgentDashboard = () => {
     }
   };
 
-  const handleApprovePayment = async (orderId: string) => {
+  const handleMarkOrderDelivered = async (orderId: string) => {
     try {
-      console.log('Approving payment for order:', orderId);
+      console.log('Marking order as delivered:', orderId);
       
-      // Get order details first
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .single();
-
-      if (orderError) throw orderError;
-
-      // Get customer profile separately using user_id from order
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('id', orderData.user_id)
-        .single();
-
-      if (profileError) {
-        console.error('Profile not found:', profileError);
-        // Fallback: proceed without customer email
-      }
-
-      const customerEmail = profileData?.email;
-
-      // Update email payment as confirmed
+      // Update order status and payment status
       const { error } = await supabase
-        .from('email_payments')
+        .from('orders')
         .update({
-          payment_confirmed: true,
-          confirmed_at: new Date().toISOString(),
-          confirmed_by: currentAgent?.agentId
+          status: 'delivered',
+          payment_status: 'completed'
         })
-        .eq('order_id', orderId);
+        .eq('id', orderId);
 
       if (error) throw error;
 
-      // Update order status
-      await supabase
-        .from('orders')
-        .update({ status: 'paid' })
-        .eq('id', orderId);
-
-      // Send approval notifications using Resend SMTP
-      await supabase.functions.invoke('send-order-notifications', {
-        body: {
-          orderId: orderId,
-          type: 'approved',
-          customerEmail: customerEmail,
-          sellerEmail: orderData?.seller_contact,
-          masterAgentEmails: ['tshomela23rd@gmail.com', 'lee424066@gmail.com'],
-          orderDetails: {
-            total: orderData?.total_amount,
-            items: orderData?.items,
-            storeName: orderData?.store_name
-          }
-        }
-      });
-
       toast({
-        title: "Payment Approved",
-        description: "Order payment confirmed and notifications sent via Resend SMTP",
+        title: "Order Updated",
+        description: "Order marked as delivered and seller account updated",
       });
       
-      fetchEmailOrders();
+      fetchOrders();
     } catch (error: any) {
-      console.error('Error approving payment:', error);
+      console.error('Error updating order:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to approve payment",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleRejectPayment = async (orderId: string) => {
-    try {
-      // Update order status to failed
-      await supabase
-        .from('orders')
-        .update({ status: 'failed' })
-        .eq('id', orderId);
-
-      toast({
-        title: "Payment Rejected",
-        description: "Order has been marked as failed",
-      });
-      
-      fetchEmailOrders();
-    } catch (error: any) {
-      console.error('Error rejecting payment:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to reject payment",
+        description: error.message || "Failed to update order",
         variant: "destructive"
       });
     }
@@ -260,7 +168,6 @@ export const useAgentDashboard = () => {
 
   const handleApproveSecretKey = async (requestId: string, email: string, secret: string) => {
     try {
-      // Update request status
       await supabase
         .from('secret_key_requests')
         .update({
@@ -270,7 +177,6 @@ export const useAgentDashboard = () => {
         })
         .eq('id', requestId);
 
-      // Add secret to agent_secrets table
       await supabase
         .from('agent_secrets')
         .insert({
@@ -322,20 +228,34 @@ export const useAgentDashboard = () => {
     }
   };
 
+  // Filter data based on search term
+  const filteredOrders = orders.filter(order => 
+    order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.store_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.customer_details?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.customer_details?.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredRequests = requests.filter(request =>
+    request.merchant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    request.owner_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return {
-    requests,
-    orders,
+    requests: filteredRequests,
+    orders: filteredOrders,
     secretKeyRequests,
     loading,
     ordersLoading,
     secretKeysLoading,
     currentAgent,
+    searchTerm,
+    setSearchTerm,
     setCurrentAgent,
     fetchVerificationRequests,
-    fetchEmailOrders,
+    fetchOrders,
     fetchSecretKeyRequests,
-    handleApprovePayment,
-    handleRejectPayment,
+    handleMarkOrderDelivered,
     handleApproveSecretKey,
     handleRejectSecretKey
   };

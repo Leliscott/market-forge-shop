@@ -527,6 +527,7 @@ export type Database = {
         Row: {
           billing_address: Json | null
           created_at: string
+          customer_details: Json | null
           delivery_charge: number | null
           delivery_service_id: string | null
           email_payment_id: string | null
@@ -545,10 +546,13 @@ export type Database = {
           total_amount: number
           updated_at: string
           user_id: string
+          yoco_checkout_id: string | null
+          yoco_payment_status: string | null
         }
         Insert: {
           billing_address?: Json | null
           created_at?: string
+          customer_details?: Json | null
           delivery_charge?: number | null
           delivery_service_id?: string | null
           email_payment_id?: string | null
@@ -567,10 +571,13 @@ export type Database = {
           total_amount: number
           updated_at?: string
           user_id: string
+          yoco_checkout_id?: string | null
+          yoco_payment_status?: string | null
         }
         Update: {
           billing_address?: Json | null
           created_at?: string
+          customer_details?: Json | null
           delivery_charge?: number | null
           delivery_service_id?: string | null
           email_payment_id?: string | null
@@ -589,6 +596,8 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           user_id?: string
+          yoco_checkout_id?: string | null
+          yoco_payment_status?: string | null
         }
         Relationships: [
           {

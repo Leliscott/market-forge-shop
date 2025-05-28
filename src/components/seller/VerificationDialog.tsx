@@ -41,10 +41,10 @@ const VerificationDialog: React.FC<VerificationDialogProps> = ({
   const uploadFile = async (file: File, path: string): Promise<string> => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `${path}/${fileName}`;
+    const filePath = `${user?.id}/${path}/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
-      .from('verification-documents')
+      .from('merchant-verifications')
       .upload(filePath, file);
 
     if (uploadError) {
@@ -52,7 +52,7 @@ const VerificationDialog: React.FC<VerificationDialogProps> = ({
     }
 
     const { data } = supabase.storage
-      .from('verification-documents')
+      .from('merchant-verifications')
       .getPublicUrl(filePath);
 
     return data.publicUrl;

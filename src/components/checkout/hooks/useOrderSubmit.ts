@@ -26,7 +26,7 @@ export const useOrderSubmit = () => {
   ) => {
     if (isProcessing) return;
     
-    console.log('=== STARTING EMAIL PAYMENT ORDER ===');
+    console.log('=== STARTING YOCO PAYMENT ORDER ===');
     console.log('Final total:', finalTotal);
     console.log('Items:', items);
     console.log('User:', user?.id);
@@ -62,8 +62,8 @@ export const useOrderSubmit = () => {
         return acc;
       }, {} as Record<string, typeof items>);
 
-      toast.info("Processing Order", {
-        description: "Creating your order and sending for agent approval...",
+      toast.info("Creating Order", {
+        description: "Setting up your order for payment...",
       });
 
       // Create orders for each store
@@ -91,7 +91,7 @@ export const useOrderSubmit = () => {
           quantity: item.quantity
         }));
 
-        // Create order with pending status for agent approval
+        // Create order with Yoco payment method
         const { data: order, error: orderError } = await supabase
           .from('orders')
           .insert({
@@ -104,10 +104,17 @@ export const useOrderSubmit = () => {
             delivery_service_id: selectedDelivery?.id,
             delivery_charge: deliveryCharge,
             items: itemsForStorage,
-            payment_method: 'email',
-            status: 'pending', // Pending agent approval
+            payment_method: 'yoco',
+            status: 'pending',
+            payment_status: 'pending',
             store_name: store?.name || 'Unknown Store',
-            seller_contact: store?.contact_email
+            seller_contact: store?.contact_email,
+            customer_details: {
+              name: profile.name,
+              email: user.email || profile.email,
+              shipping_address: shippingAddress,
+              billing_address: billingAddress
+            }
           })
           .select()
           .single();
@@ -118,23 +125,6 @@ export const useOrderSubmit = () => {
         }
 
         console.log('Order created successfully:', order);
-
-        // Generate payment token for email payments
-        const paymentToken = `pay_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-        
-        // Create email payment record with required payment_link_token
-        const { error: emailPaymentError } = await supabase
-          .from('email_payments')
-          .insert({
-            order_id: order.id,
-            email_sent_at: new Date().toISOString(),
-            payment_confirmed: false,
-            payment_link_token: paymentToken
-          });
-
-        if (emailPaymentError) {
-          console.error('Email payment record error:', emailPaymentError);
-        }
 
         // Create order items
         for (const item of storeItems) {
@@ -153,50 +143,44 @@ export const useOrderSubmit = () => {
           }
         }
 
-        // Send immediate notification emails to all parties using Resend
-        const customerEmail = user.email || profile.email;
-        
-        try {
-          const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-payment-email', {
-            body: {
-              orderId: order.id,
-              customerEmail: customerEmail,
-              orderDetails: {
-                items: storeItems,
-                total: orderTotal,
-                storeName: store?.name || 'Unknown Store',
-                deliveryCharge: deliveryCharge
-              }
-            }
-          });
-
-          if (emailError) {
-            console.error('Email sending failed:', emailError);
-            toast.warning("Order Created", {
-              description: "Order created but email notification failed. Agent has been notified.",
-            });
-          } else {
-            console.log('Payment email sent successfully:', emailResult);
-          }
-        } catch (emailSendError) {
-          console.error('Email function error:', emailSendError);
-        }
-
         createdOrders.push(order);
       }
 
-      console.log('=== ORDERS CREATED AND SUBMITTED TO AGENT ===');
-      console.log('Created orders:', createdOrders);
-
-      // Clear cart after successful order creation
-      clearCart();
+      // Now initiate Yoco payment for the first order (can be enhanced for multi-store)
+      const primaryOrder = createdOrders[0];
       
-      toast.success("Order Submitted Successfully!", {
-        description: `${createdOrders.length} order(s) submitted to agent for approval. You'll receive email confirmation shortly.`,
+      // Create Yoco checkout session
+      const { data: yocoResponse, error: yocoError } = await supabase.functions.invoke('simple-yoco-pay', {
+        body: {
+          amount: finalTotal,
+          paymentId: primaryOrder.id,
+          successUrl: `${window.location.origin}/orders?payment=success&order_id=${primaryOrder.id}`,
+          cancelUrl: `${window.location.origin}/cart`,
+          failureUrl: `${window.location.origin}/checkout?payment=failed`
+        }
       });
 
-      // Redirect to orders page
-      window.location.href = `/orders?payment=email&order_count=${createdOrders.length}&status=pending`;
+      if (yocoError || !yocoResponse?.success) {
+        console.error('Yoco payment creation failed:', yocoError);
+        throw new Error('Failed to create payment session');
+      }
+
+      // Update order with Yoco checkout ID
+      await supabase
+        .from('orders')
+        .update({
+          yoco_checkout_id: yocoResponse.checkoutId,
+          yoco_payment_status: 'pending'
+        })
+        .eq('id', primaryOrder.id);
+
+      console.log('=== REDIRECTING TO YOCO PAYMENT ===');
+      
+      // Clear cart before redirect
+      clearCart();
+      
+      // Redirect to Yoco payment
+      window.location.href = yocoResponse.checkoutUrl;
 
     } catch (error: any) {
       console.error('Order creation failed:', error);

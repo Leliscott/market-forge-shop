@@ -1,10 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import DashboardStats from '@/components/agent/DashboardStats';
 import VerificationDialog from '@/components/agent/VerificationDialog';
 import DashboardHeader from '@/components/agent/dashboard/DashboardHeader';
-import PendingOrdersAlert from '@/components/agent/dashboard/PendingOrdersAlert';
 import DashboardTabs from '@/components/agent/dashboard/DashboardTabs';
 import { useAgentDashboard } from '@/components/agent/dashboard/useAgentDashboard';
 
@@ -20,24 +22,9 @@ interface VerificationRequest {
   owner_id: string;
 }
 
-interface Order {
-  id: string;
-  user_id: string;
-  store_name: string;
-  total_amount: number;
-  created_at: string;
-  payment_method: string;
-  status: string;
-  email_payments?: {
-    payment_confirmed: boolean;
-    email_sent_at: string;
-  };
-}
-
 const AgentDashboard = () => {
   const { toast } = useToast();
   const [viewingRequest, setViewingRequest] = useState<VerificationRequest | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const {
     requests,
@@ -47,18 +34,19 @@ const AgentDashboard = () => {
     ordersLoading,
     secretKeysLoading,
     currentAgent,
+    searchTerm,
+    setSearchTerm,
     setCurrentAgent,
     fetchVerificationRequests,
-    fetchEmailOrders,
+    fetchOrders,
     fetchSecretKeyRequests,
-    handleApprovePayment,
-    handleRejectPayment,
+    handleMarkOrderDelivered,
     handleApproveSecretKey,
     handleRejectSecretKey
   } = useAgentDashboard();
 
   useEffect(() => {
-    // Check agent session - allow any agent with valid session
+    // Check agent session
     const agentSession = localStorage.getItem('agentSession');
     if (!agentSession) {
       window.location.href = '/';
@@ -75,11 +63,11 @@ const AgentDashboard = () => {
     setCurrentAgent(session);
     
     fetchVerificationRequests();
-    fetchEmailOrders();
+    fetchOrders();
     fetchSecretKeyRequests();
 
-    // Auto-refresh pending orders every 30 seconds
-    const interval = setInterval(fetchEmailOrders, 30000);
+    // Auto-refresh orders every 30 seconds
+    const interval = setInterval(fetchOrders, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -195,7 +183,18 @@ const AgentDashboard = () => {
       <DashboardHeader currentAgent={currentAgent} />
       
       <main className="flex-1 container mx-auto px-4 py-8">
-        <PendingOrdersAlert orders={orders} />
+        {/* Search Bar */}
+        <div className="mb-6">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search customers, sellers, orders..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
 
         <DashboardStats agentId={currentAgent?.agentId} />
         
@@ -205,9 +204,8 @@ const AgentDashboard = () => {
           requests={requests}
           ordersLoading={ordersLoading}
           secretKeysLoading={secretKeysLoading}
-          onApprovePayment={handleApprovePayment}
-          onRejectPayment={handleRejectPayment}
-          onViewOrderDetails={setSelectedOrder}
+          onMarkOrderDelivered={handleMarkOrderDelivered}
+          onViewOrderDetails={() => {}}
           onApproveSecretKey={handleApproveSecretKey}
           onRejectSecretKey={handleRejectSecretKey}
           onViewRequest={setViewingRequest}

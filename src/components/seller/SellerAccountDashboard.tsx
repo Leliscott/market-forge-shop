@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { DollarSign, TrendingUp, CreditCard, Download } from 'lucide-react';
+import { DollarSign, TrendingUp, CreditCard, Download, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,7 +13,7 @@ import WithdrawalDialog from './WithdrawalDialog';
 const MINIMUM_WITHDRAWAL = 15; // R15 minimum withdrawal
 
 const SellerAccountDashboard: React.FC = () => {
-  const { account, financials, withdrawals, isLoading } = useSellerAccount();
+  const { account, financials, withdrawals, isLoading, fetchSellerAccount } = useSellerAccount();
   const [showWithdrawalDialog, setShowWithdrawalDialog] = useState(false);
 
   const getStatusBadgeColor = (status: string) => {
@@ -133,30 +133,40 @@ const SellerAccountDashboard: React.FC = () => {
         </Card>
       </div>
 
-      {/* Withdrawal Button */}
+      {/* Account Management */}
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Account Management</h2>
-        <div className="flex flex-col items-end">
+        <div className="flex items-center gap-2">
           <Button 
-            onClick={() => setShowWithdrawalDialog(true)}
-            disabled={!canWithdraw}
+            variant="outline"
+            onClick={fetchSellerAccount}
+            size="sm"
           >
-            Request Withdrawal
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
           </Button>
-          {!canWithdraw && safeAccount.available_balance > 0 && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Minimum withdrawal: {formatCurrency(MINIMUM_WITHDRAWAL)}
-            </p>
-          )}
-          {safeAccount.available_balance === 0 && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Complete orders to earn money for withdrawals
-            </p>
-          )}
+          <div className="flex flex-col items-end">
+            <Button 
+              onClick={() => setShowWithdrawalDialog(true)}
+              disabled={!canWithdraw}
+            >
+              Request Withdrawal
+            </Button>
+            {!canWithdraw && safeAccount.available_balance > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Minimum withdrawal: {formatCurrency(MINIMUM_WITHDRAWAL)}
+              </p>
+            )}
+            {safeAccount.available_balance === 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Complete orders to earn money for withdrawals
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* VAT and Fee Information */}
+      {/* Fee Structure Information */}
       <Card>
         <CardHeader>
           <CardTitle>Fee Structure Information</CardTitle>
@@ -186,32 +196,34 @@ const SellerAccountDashboard: React.FC = () => {
         </CardHeader>
         <CardContent>
           {withdrawals && withdrawals.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Bank</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {withdrawals.slice(0, 5).map((withdrawal) => (
-                  <TableRow key={withdrawal.id}>
-                    <TableCell>
-                      {new Date(withdrawal.requested_at).toLocaleDateString('en-ZA')}
-                    </TableCell>
-                    <TableCell>{formatCurrency(withdrawal.amount)}</TableCell>
-                    <TableCell>{withdrawal.bank_name}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusBadgeColor(withdrawal.status)}>
-                        {withdrawal.status}
-                      </Badge>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Bank</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {withdrawals.slice(0, 5).map((withdrawal) => (
+                    <TableRow key={withdrawal.id}>
+                      <TableCell>
+                        {new Date(withdrawal.requested_at).toLocaleDateString('en-ZA')}
+                      </TableCell>
+                      <TableCell>{formatCurrency(withdrawal.amount)}</TableCell>
+                      <TableCell>{withdrawal.bank_name}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusBadgeColor(withdrawal.status)}>
+                          {withdrawal.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               No withdrawals yet
@@ -227,36 +239,38 @@ const SellerAccountDashboard: React.FC = () => {
         </CardHeader>
         <CardContent>
           {financials && financials.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Gross Amount</TableHead>
-                  <TableHead>VAT (15%)</TableHead>
-                  <TableHead>Marketplace Fee (9%)</TableHead>
-                  <TableHead>Your Profit</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {financials.slice(0, 10).map((financial) => (
-                  <TableRow key={financial.id}>
-                    <TableCell>
-                      {new Date(financial.created_at).toLocaleDateString('en-ZA')}
-                    </TableCell>
-                    <TableCell>{formatCurrency(financial.gross_amount)}</TableCell>
-                    <TableCell className="text-red-600">
-                      -{formatCurrency(financial.vat_amount)}
-                    </TableCell>
-                    <TableCell className="text-orange-600">
-                      -{formatCurrency(financial.marketplace_fee)}
-                    </TableCell>
-                    <TableCell className="text-green-600 font-medium">
-                      {formatCurrency(financial.seller_profit)}
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Gross Amount</TableHead>
+                    <TableHead>VAT (15%)</TableHead>
+                    <TableHead>Marketplace Fee (9%)</TableHead>
+                    <TableHead>Your Profit</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {financials.slice(0, 10).map((financial) => (
+                    <TableRow key={financial.id}>
+                      <TableCell>
+                        {new Date(financial.created_at).toLocaleDateString('en-ZA')}
+                      </TableCell>
+                      <TableCell>{formatCurrency(financial.gross_amount)}</TableCell>
+                      <TableCell className="text-red-600">
+                        -{formatCurrency(financial.vat_amount)}
+                      </TableCell>
+                      <TableCell className="text-orange-600">
+                        -{formatCurrency(financial.marketplace_fee)}
+                      </TableCell>
+                      <TableCell className="text-green-600 font-medium">
+                        {formatCurrency(financial.seller_profit)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <div className="mb-2">No completed orders yet</div>
