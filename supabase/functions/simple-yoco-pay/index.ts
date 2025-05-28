@@ -56,7 +56,7 @@ serve(async (req) => {
 
     console.log('Creating Yoco checkout session:', checkoutPayload)
 
-    const yocoResponse = await fetch('https://online.yoco.com/v1/checkouts/', {
+    const yocoResponse = await fetch('https://payments.yoco.com/api/checkouts', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${yocoSecretKey}`,
