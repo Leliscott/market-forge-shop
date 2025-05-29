@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 
 interface VerificationRequest {
   id: string;
@@ -27,7 +28,7 @@ interface Order {
   customer_details: any;
   shipping_address: any;
   billing_address: any;
-  items: any[];
+  items: any; // Changed from any[] to any to match Database Json type
   seller_contact: string;
   yoco_checkout_id?: string;
 }
@@ -96,7 +97,26 @@ export const useAgentDashboard = () => {
       }
 
       console.log('Orders found:', allOrders?.length || 0);
-      setOrders(allOrders || []);
+      
+      // Convert the database types to our Order interface
+      const typedOrders: Order[] = (allOrders || []).map(order => ({
+        id: order.id,
+        user_id: order.user_id,
+        store_name: order.store_name || '',
+        total_amount: order.total_amount,
+        created_at: order.created_at,
+        payment_method: order.payment_method || '',
+        status: order.status,
+        payment_status: order.payment_status || '',
+        customer_details: order.customer_details,
+        shipping_address: order.shipping_address,
+        billing_address: order.billing_address,
+        items: order.items,
+        seller_contact: order.seller_contact || '',
+        yoco_checkout_id: order.yoco_checkout_id || undefined
+      }));
+
+      setOrders(typedOrders);
 
     } catch (error) {
       console.error('Error fetching orders:', error);

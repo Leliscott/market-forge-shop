@@ -14,10 +14,13 @@ interface Order {
   created_at: string;
   payment_method: string;
   status: string;
-  email_payments?: {
-    payment_confirmed: boolean;
-    email_sent_at: string;
-  };
+  payment_status: string;
+  customer_details: any;
+  shipping_address: any;
+  billing_address: any;
+  items: any;
+  seller_contact: string;
+  yoco_checkout_id?: string;
 }
 
 interface SecretKeyRequest {
@@ -50,8 +53,7 @@ interface DashboardTabsProps {
   requests: VerificationRequest[];
   ordersLoading: boolean;
   secretKeysLoading: boolean;
-  onApprovePayment: (orderId: string) => void;
-  onRejectPayment: (orderId: string) => void;
+  onMarkOrderDelivered: (orderId: string) => void;
   onViewOrderDetails: (order: Order) => void;
   onApproveSecretKey: (requestId: string, email: string, secret: string) => void;
   onRejectSecretKey: (requestId: string) => void;
@@ -64,17 +66,12 @@ const DashboardTabs: React.FC<DashboardTabsProps> = ({
   requests,
   ordersLoading,
   secretKeysLoading,
-  onApprovePayment,
-  onRejectPayment,
+  onMarkOrderDelivered,
   onViewOrderDetails,
   onApproveSecretKey,
   onRejectSecretKey,
   onViewRequest
 }) => {
-  const pendingOrders = orders.filter(order => 
-    order.payment_method === 'email' && !order.email_payments?.payment_confirmed
-  );
-
   const filteredRequests = (status: string) => {
     return requests.filter(req => status === 'all' || req.status === status);
   };
@@ -82,13 +79,8 @@ const DashboardTabs: React.FC<DashboardTabsProps> = ({
   return (
     <Tabs defaultValue="orders" className="space-y-4">
       <TabsList>
-        <TabsTrigger value="orders" className="relative">
-          Email Orders
-          {pendingOrders.length > 0 && (
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              {pendingOrders.length}
-            </span>
-          )}
+        <TabsTrigger value="orders">
+          All Orders ({orders.length})
         </TabsTrigger>
         <TabsTrigger value="secret-keys">
           Secret Key Requests ({secretKeyRequests.filter(r => r.status === 'pending').length})
@@ -102,23 +94,22 @@ const DashboardTabs: React.FC<DashboardTabsProps> = ({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              Email Payment Orders 
-              {pendingOrders.length > 0 && (
-                <span className="bg-red-100 text-red-800 text-sm px-2 py-1 rounded-full">
-                  {pendingOrders.length} Pending
-                </span>
-              )}
+              All Orders 
+              <span className="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full">
+                {orders.length} Total
+              </span>
             </CardTitle>
             <CardDescription>
-              Review and approve email payment orders. All notifications sent via Resend SMTP.
+              View and manage all customer orders with full details
             </CardDescription>
           </CardHeader>
           <CardContent>
             <OrderApprovalTable 
               orders={orders}
-              onApprove={onApprovePayment}
-              onReject={onRejectPayment}
+              onApprove={() => {}} // Not used for Yoco orders
+              onReject={() => {}} // Not used for Yoco orders
               onViewDetails={onViewOrderDetails}
+              onMarkDelivered={onMarkOrderDelivered}
               loading={ordersLoading}
             />
           </CardContent>
