@@ -33,7 +33,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   billingAddress, 
   selectedDelivery 
 }) => {
-  const { items, totalPrice } = useCart();
+  const { items } = useCart();
   const { profile } = useAuth();
   const { isProcessing, handleCompleteOrder } = useOrderSubmit();
   const { hasAcceptedTerms, validateCustomerTerms } = useTermsValidation();
@@ -43,7 +43,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
     subtotalExcludingVAT,
     vatAmount,
     finalTotal
-  } = useOrderCalculations(totalPrice, selectedDelivery);
+  } = useOrderCalculations(items, selectedDelivery);
 
   const { isReadyToProcess, validationIssues } = useValidation({
     hasAcceptedTerms,

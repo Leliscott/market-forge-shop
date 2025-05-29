@@ -18,14 +18,14 @@ const FastCheckout: React.FC<FastCheckoutProps> = ({
   shippingAddress,
   selectedDelivery 
 }) => {
-  const { items, totalPrice } = useCart();
+  const { items } = useCart();
   const { isProcessing, handleCompleteOrder } = useOrderSubmit();
   const { hasAcceptedTerms } = useTermsValidation();
   
   const {
     deliveryCharge,
     finalTotal
-  } = useOrderCalculations(totalPrice, selectedDelivery);
+  } = useOrderCalculations(items, selectedDelivery);
 
   // Only check terms acceptance and cart items
   const isReadyToProcess = hasAcceptedTerms && items.length > 0;

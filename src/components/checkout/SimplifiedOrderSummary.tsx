@@ -25,14 +25,14 @@ const SimplifiedOrderSummary: React.FC<SimplifiedOrderSummaryProps> = ({
   shippingAddress,
   selectedDelivery 
 }) => {
-  const { items, totalPrice } = useCart();
+  const { items } = useCart();
   
   const {
     deliveryCharge,
     subtotalExcludingVAT,
     vatAmount,
     finalTotal
-  } = useOrderCalculations(totalPrice, selectedDelivery);
+  } = useOrderCalculations(items, selectedDelivery);
 
   return (
     <div className="space-y-6">
