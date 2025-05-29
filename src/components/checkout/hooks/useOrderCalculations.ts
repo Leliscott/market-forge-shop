@@ -1,4 +1,6 @@
 
+import { useState, useEffect } from 'react';
+
 interface DeliveryService {
   id: string;
   service_name: string;
@@ -8,31 +10,35 @@ interface DeliveryService {
 
 interface CartItem {
   id: string;
+  productId: string;
+  storeId: string;
   name: string;
   price: number;
+  image: string;
   quantity: number;
-  productId: string;
-  image?: string;
 }
 
 export const useOrderCalculations = (
-  totalPrice: number,
-  selectedDelivery?: DeliveryService | null
+  items: CartItem[],
+  selectedDelivery: DeliveryService | null
 ) => {
-  // Calculate delivery charge
-  const deliveryCharge = selectedDelivery ? selectedDelivery.charge_amount : 0;
+  const [subtotal, setSubtotal] = useState(0);
+  const [deliveryCharge, setDeliveryCharge] = useState(0);
+  const [finalTotal, setFinalTotal] = useState(0);
 
-  // Calculate VAT and final total with VAT included
-  const vatRate = 0.15; // 15% VAT
-  const subtotalExcludingVAT = totalPrice / (1 + vatRate);
-  const vatAmount = totalPrice - subtotalExcludingVAT;
-  const finalTotal = totalPrice + deliveryCharge; // Add delivery charge to total
+  useEffect(() => {
+    const newSubtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const newDeliveryCharge = selectedDelivery?.charge_amount || 0;
+    const newFinalTotal = newSubtotal + newDeliveryCharge;
+
+    setSubtotal(newSubtotal);
+    setDeliveryCharge(newDeliveryCharge);
+    setFinalTotal(newFinalTotal);
+  }, [items, selectedDelivery]);
 
   return {
+    subtotal,
     deliveryCharge,
-    vatRate,
-    subtotalExcludingVAT,
-    vatAmount,
     finalTotal
   };
 };
