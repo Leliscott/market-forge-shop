@@ -1,16 +1,14 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Mail, TestTube } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { toast } from 'sonner';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import QuickShippingForm from '@/components/checkout/QuickShippingForm';
 import SimplifiedOrderSummary from '@/components/checkout/SimplifiedOrderSummary';
 import { useCart } from '@/context/CartContext';
-import { supabase } from '@/integrations/supabase/client';
 
 interface DeliveryService {
   id: string;
@@ -23,35 +21,6 @@ const SimplifiedCheckout = () => {
   const { items } = useCart();
   const [shippingAddress, setShippingAddress] = useState(null);
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryService | null>(null);
-  const [isTestingEmail, setIsTestingEmail] = useState(false);
-
-  const testEmailSystem = async () => {
-    setIsTestingEmail(true);
-    try {
-      console.log('Testing email system...');
-      
-      const { data, error } = await supabase.functions.invoke('test-email', {
-        body: {}
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      console.log('Test email result:', data);
-      
-      toast.success("Test Email Sent!", {
-        description: "Check the console logs and your email for the test message.",
-      });
-    } catch (error: any) {
-      console.error('Test email failed:', error);
-      toast.error("Test Email Failed", {
-        description: error.message || "Failed to send test email. Check console for details.",
-      });
-    } finally {
-      setIsTestingEmail(false);
-    }
-  };
 
   if (items.length === 0) {
     return (
@@ -83,32 +52,11 @@ const SimplifiedCheckout = () => {
                 <ArrowLeft className="w-4 h-4" /> Back to cart
               </Link>
             </Button>
-            
-            {/* Test Email Button */}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={testEmailSystem}
-              disabled={isTestingEmail}
-              className="flex items-center gap-2"
-            >
-              {isTestingEmail ? (
-                <>
-                  <TestTube className="w-4 h-4 animate-spin" />
-                  Testing...
-                </>
-              ) : (
-                <>
-                  <Mail className="w-4 h-4" />
-                  Test Email System
-                </>
-              )}
-            </Button>
           </div>
           
           <div className="mb-8">
             <h1 className="text-3xl font-bold">Quick Checkout</h1>
-            <p className="text-gray-600 mt-2">Complete your order in just a few steps</p>
+            <p className="text-gray-600 mt-2">Complete your order with secure Yoco payment</p>
           </div>
           
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">

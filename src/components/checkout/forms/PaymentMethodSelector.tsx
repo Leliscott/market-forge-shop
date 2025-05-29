@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { CreditCard, Mail } from 'lucide-react';
+import { CreditCard } from 'lucide-react';
 
 const PaymentMethodSelector: React.FC = () => {
   return (
@@ -28,29 +28,9 @@ const PaymentMethodSelector: React.FC = () => {
             Available
           </div>
         </div>
-      </div>
-
-      {/* Email Payment - Available */}
-      <div className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50 shadow-sm">
-        <div className="flex items-center space-x-3">
-          <div className="flex-shrink-0">
-            <div className="h-8 w-8 bg-blue-600 rounded flex items-center justify-center">
-              <Mail className="h-4 w-4 text-white" />
-            </div>
-          </div>
-          <div className="flex-1">
-            <p className="font-medium text-blue-800">Email Payment</p>
-            <p className="text-sm text-blue-700">
-              Receive payment instructions via email
-            </p>
-          </div>
-          <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
-            Available
-          </div>
-        </div>
-        <div className="mt-3 text-xs text-blue-600 bg-blue-100 p-2 rounded">
-          <strong>How it works:</strong> After placing your order, you'll receive an email with payment instructions. 
-          Your order will be tracked and processed once payment is confirmed by our agents.
+        <div className="mt-3 text-xs text-green-600 bg-green-100 p-2 rounded">
+          <strong>Secure Payment:</strong> Your payment is processed securely through Yoco's payment gateway. 
+          All major credit and debit cards are accepted.
         </div>
       </div>
     </div>

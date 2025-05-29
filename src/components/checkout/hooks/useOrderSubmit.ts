@@ -3,7 +3,6 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
-import { useOrderCalculations } from './useOrderCalculations';
 import { useOrderCreation } from './useOrderCreation';
 import { useYocoPayment } from './useYocoPayment';
 

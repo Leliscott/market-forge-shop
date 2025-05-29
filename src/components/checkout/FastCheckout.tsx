@@ -30,7 +30,7 @@ const FastCheckout: React.FC<FastCheckoutProps> = ({
   // Only check terms acceptance and cart items
   const isReadyToProcess = hasAcceptedTerms && items.length > 0;
 
-  const onEmailPayment = () => {
+  const onYocoPayment = () => {
     handleCompleteOrder(
       finalTotal,
       shippingAddress || {}, // Use empty object if no shipping address
@@ -70,7 +70,7 @@ const FastCheckout: React.FC<FastCheckoutProps> = ({
         isReadyToProcess={isReadyToProcess}
         isProcessing={isProcessing}
         finalTotal={finalTotal}
-        onEmailPayment={onEmailPayment}
+        onYocoPayment={onYocoPayment}
       />
     </div>
   );

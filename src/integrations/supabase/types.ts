@@ -236,54 +236,6 @@ export type Database = {
           },
         ]
       }
-      email_payments: {
-        Row: {
-          confirmed_at: string | null
-          confirmed_by: string | null
-          created_at: string | null
-          email_sent_at: string | null
-          id: string
-          order_id: string
-          payment_confirmed: boolean | null
-          payment_link_token: string
-        }
-        Insert: {
-          confirmed_at?: string | null
-          confirmed_by?: string | null
-          created_at?: string | null
-          email_sent_at?: string | null
-          id?: string
-          order_id: string
-          payment_confirmed?: boolean | null
-          payment_link_token: string
-        }
-        Update: {
-          confirmed_at?: string | null
-          confirmed_by?: string | null
-          created_at?: string | null
-          email_sent_at?: string | null
-          id?: string
-          order_id?: string
-          payment_confirmed?: boolean | null
-          payment_link_token?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "email_payments_confirmed_by_fkey"
-            columns: ["confirmed_by"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "email_payments_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       inventory_logs: {
         Row: {
           action_type: string
@@ -530,7 +482,6 @@ export type Database = {
           customer_details: Json | null
           delivery_charge: number | null
           delivery_service_id: string | null
-          email_payment_id: string | null
           id: string
           items: Json | null
           paid_amount: number | null
@@ -547,7 +498,6 @@ export type Database = {
           updated_at: string
           user_id: string
           yoco_checkout_id: string | null
-          yoco_payment_status: string | null
         }
         Insert: {
           billing_address?: Json | null
@@ -555,7 +505,6 @@ export type Database = {
           customer_details?: Json | null
           delivery_charge?: number | null
           delivery_service_id?: string | null
-          email_payment_id?: string | null
           id?: string
           items?: Json | null
           paid_amount?: number | null
@@ -572,7 +521,6 @@ export type Database = {
           updated_at?: string
           user_id: string
           yoco_checkout_id?: string | null
-          yoco_payment_status?: string | null
         }
         Update: {
           billing_address?: Json | null
@@ -580,7 +528,6 @@ export type Database = {
           customer_details?: Json | null
           delivery_charge?: number | null
           delivery_service_id?: string | null
-          email_payment_id?: string | null
           id?: string
           items?: Json | null
           paid_amount?: number | null
@@ -597,7 +544,6 @@ export type Database = {
           updated_at?: string
           user_id?: string
           yoco_checkout_id?: string | null
-          yoco_payment_status?: string | null
         }
         Relationships: [
           {
@@ -605,13 +551,6 @@ export type Database = {
             columns: ["delivery_service_id"]
             isOneToOne: false
             referencedRelation: "delivery_services"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_email_payment_id_fkey"
-            columns: ["email_payment_id"]
-            isOneToOne: false
-            referencedRelation: "email_payments"
             referencedColumns: ["id"]
           },
           {

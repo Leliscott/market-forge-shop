@@ -65,7 +65,7 @@ export const useOrderCreation = () => {
         quantity: item.quantity
       }));
 
-      // Create order with Yoco payment method
+      // Create order with Yoco payment method only
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({

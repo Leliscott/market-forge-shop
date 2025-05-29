@@ -36,7 +36,7 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
       isReadyToProcess={isReadyToProcess}
       isProcessing={isProcessing}
       finalTotal={finalTotal}
-      onEmailPayment={onCompleteOrder}
+      onYocoPayment={onCompleteOrder}
     />
   );
 };
