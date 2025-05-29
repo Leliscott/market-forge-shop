@@ -28,8 +28,7 @@ export const useOrderCreation = () => {
     shippingAddress: any,
     billingAddress: any,
     selectedDelivery: DeliveryService | null,
-    deliveryCharge: number,
-    orderId: string
+    deliveryCharge: number
   ) => {
     // Group items by store for multi-merchant support
     const itemsByStore = items.reduce((acc, item) => {
@@ -65,11 +64,10 @@ export const useOrderCreation = () => {
         quantity: item.quantity
       }));
 
-      // Create order with Yoco payment method only
+      // Create order with auto-generated UUID
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
-          id: `${orderId}_${storeId.slice(-8)}`,
           user_id: user.id,
           store_id: storeId,
           total_amount: orderTotal,

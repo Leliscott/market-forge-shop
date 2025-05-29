@@ -33,7 +33,6 @@ export const useOrderSubmit = () => {
     console.log('=== STARTING YOCO PAYMENT ORDER ===');
     console.log('Final total:', finalTotal);
     console.log('Items:', items);
-    console.log('User:', user?.id);
 
     if (!user || !profile) {
       toast.error("Authentication Required", {
@@ -52,10 +51,6 @@ export const useOrderSubmit = () => {
     setIsProcessing(true);
 
     try {
-      // Generate order ID
-      const orderId = `order_${Date.now()}_${user.id.slice(-8)}`;
-      console.log('Generated order ID:', orderId);
-
       toast.info("Creating Order", {
         description: "Setting up your order for payment...",
       });
@@ -68,12 +63,12 @@ export const useOrderSubmit = () => {
         shippingAddress,
         billingAddress,
         selectedDelivery,
-        deliveryCharge,
-        orderId
+        deliveryCharge
       );
 
-      // Now initiate Yoco payment for the first order
+      // Use the first order for payment
       const primaryOrder = createdOrders[0];
+      console.log('Primary order created:', primaryOrder.id);
       
       // Create Yoco checkout session
       const yocoResponse = await createYocoPayment(finalTotal, primaryOrder.id);
