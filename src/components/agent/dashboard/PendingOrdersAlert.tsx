@@ -5,9 +5,7 @@ import { AlertCircle } from 'lucide-react';
 
 interface Order {
   id: string;
-  email_payments?: {
-    payment_confirmed: boolean;
-  };
+  payment_status: string;
 }
 
 interface PendingOrdersAlertProps {
@@ -16,7 +14,7 @@ interface PendingOrdersAlertProps {
 
 const PendingOrdersAlert: React.FC<PendingOrdersAlertProps> = ({ orders }) => {
   const pendingOrders = orders.filter(order => 
-    order.email_payments && !order.email_payments.payment_confirmed
+    order.payment_status === 'pending'
   );
 
   if (pendingOrders.length === 0) return null;
@@ -26,10 +24,10 @@ const PendingOrdersAlert: React.FC<PendingOrdersAlertProps> = ({ orders }) => {
       <AlertCircle className="h-4 w-4 text-red-600" />
       <AlertDescription>
         <span className="font-medium text-red-800">
-          {pendingOrders.length} order(s) awaiting your approval!
+          {pendingOrders.length} order(s) with pending payments!
         </span>
         <span className="text-red-700 block mt-1">
-          New email payment orders require immediate review and approval.
+          Orders are awaiting Yoco payment confirmation.
         </span>
       </AlertDescription>
     </Alert>

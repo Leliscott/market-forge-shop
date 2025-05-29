@@ -65,13 +65,13 @@ export const OrderDetailsDialog: React.FC<OrderDetailsDialogProps> = ({
             <div>
               <h3 className="font-medium mb-2">Payment Information</h3>
               <div className="border rounded-md p-4">
-                <p>Payment Method: PayFast</p>
+                <p>Payment Method: Yoco (Card Payment)</p>
                 <p>Total Amount: R{order.total_amount.toFixed(2)}</p>
                 {order.payment_date && (
                   <p>Paid on: {new Date(order.payment_date).toLocaleDateString('en-ZA')}</p>
                 )}
                 <p className="text-sm text-muted-foreground mt-2">
-                  Merchant: SecureMarket (Pty) Ltd
+                  Secure payment powered by Yoco
                 </p>
               </div>
             </div>
