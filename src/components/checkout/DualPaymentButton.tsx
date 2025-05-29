@@ -3,7 +3,6 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { CreditCard } from 'lucide-react';
 import { formatCurrency } from '@/utils/constants';
-import { supabase } from '@/integrations/supabase/client';
 
 interface DualPaymentButtonProps {
   isReadyToProcess: boolean;
@@ -34,7 +33,7 @@ const DualPaymentButton: React.FC<DualPaymentButtonProps> = ({
         className="w-full h-12 bg-blue-600 hover:bg-blue-700"
       >
         <CreditCard className="w-5 h-5 mr-2" />
-        {isProcessing ? 'Processing...' : `Pay ${formatCurrency(finalTotal)} with Card`}
+        {isProcessing ? 'Processing...' : `Pay ${formatCurrency(finalTotal)} with Yoco`}
       </Button>
       
       <p className="text-xs text-center text-gray-500">
