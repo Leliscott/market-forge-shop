@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.5';
-import sgMail from "https://esm.sh/@sendgrid/mail@7.7.0";
+import * as sgMail from "https://esm.sh/@sendgrid/mail@7.7.0?bundle";
+
 
 const sendGridApiKey = Deno.env.get("SENDGRID_API_KEY")!;
 sgMail.setApiKey(sendGridApiKey);
