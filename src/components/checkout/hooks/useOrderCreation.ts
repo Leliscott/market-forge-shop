@@ -2,7 +2,6 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useEmailNotifications } from '@/hooks/useEmailNotifications';
 
 interface DeliveryService {
   id: string;
@@ -22,8 +21,6 @@ interface CartItem {
 }
 
 export const useOrderCreation = () => {
-  const { sendOrderConfirmation, sendSellerNotification } = useEmailNotifications();
-
   const createOrdersForStores = useCallback(async (
     items: CartItem[],
     user: any,
@@ -101,44 +98,6 @@ export const useOrderCreation = () => {
 
       console.log('Order created successfully:', order);
 
-      // Send order confirmation email to customer
-      try {
-        const emailSent = await sendOrderConfirmation(user.email || profile.email, {
-          orderId: order.id.slice(0, 8),
-          customerName: profile.name,
-          storeName: store?.name || 'Unknown Store',
-          total: orderTotal
-        });
-        
-        if (emailSent) {
-          console.log('Customer email sent successfully');
-        } else {
-          console.log('Customer email failed to send');
-        }
-      } catch (emailError) {
-        console.log('Customer email error:', emailError);
-      }
-
-      // Send notification to seller if email available
-      if (store?.contact_email) {
-        try {
-          const emailSent = await sendSellerNotification(store.contact_email, {
-            orderId: order.id.slice(0, 8),
-            customerName: profile.name,
-            total: orderTotal,
-            itemsCount: storeItems.length
-          });
-          
-          if (emailSent) {
-            console.log('Seller email sent successfully');
-          } else {
-            console.log('Seller email failed to send');
-          }
-        } catch (emailError) {
-          console.log('Seller email error:', emailError);
-        }
-      }
-
       // Create order items
       for (const item of storeItems) {
         const { error: itemError } = await supabase
@@ -160,7 +119,7 @@ export const useOrderCreation = () => {
     }
 
     return createdOrders;
-  }, [sendOrderConfirmation, sendSellerNotification]);
+  }, []);
 
   return { createOrdersForStores };
 };
