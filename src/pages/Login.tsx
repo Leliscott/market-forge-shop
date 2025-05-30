@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -13,6 +12,7 @@ import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
+import { ResponsiveContainer } from '@/components/layout/ResponsiveContainer';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -85,120 +85,122 @@ const Login = () => {
     <div className="flex flex-col min-h-screen">
       <Header showSearch={false} />
       
-      <main className="flex-1 flex items-center justify-center py-12 px-4">
-        <div className="w-full max-w-md space-y-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold tracking-tight">
-              {resetPasswordMode ? 'Reset Password' : 'Welcome back'}
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {resetPasswordMode 
-                ? 'Enter your email to receive a password reset link' 
-                : 'Sign in to your account to continue'
-              }
-            </p>
-          </div>
-          
-          {resetEmailSent && (
-            <Alert>
-              <AlertDescription>
-                We've sent password reset instructions to your email address.
-                Please check your inbox.
-              </AlertDescription>
-            </Alert>
-          )}
-          
-          {!resetEmailSent && (
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter your email" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                {!resetPasswordMode && (
+      <main className="flex-1 flex items-center justify-center py-4 sm:py-12">
+        <ResponsiveContainer>
+          <div className="w-full max-w-md mx-auto space-y-6 sm:space-y-8">
+            <div className="text-center">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
+                {resetPasswordMode ? 'Reset Password' : 'Welcome back'}
+              </h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {resetPasswordMode 
+                  ? 'Enter your email to receive a password reset link' 
+                  : 'Sign in to your account to continue'
+                }
+              </p>
+            </div>
+            
+            {resetEmailSent && (
+              <Alert>
+                <AlertDescription>
+                  We've sent password reset instructions to your email address.
+                  Please check your inbox.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {!resetEmailSent && (
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
                   <FormField
                     control={form.control}
-                    name="password"
+                    name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <PasswordInput placeholder="••••••••" {...field} />
+                          <Input placeholder="Enter your email" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                )}
-                
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading 
-                    ? resetPasswordMode ? 'Sending...' : 'Signing in...' 
-                    : resetPasswordMode ? 'Send Reset Link' : 'Sign In'
-                  }
-                </Button>
-                
-                <div className="text-center text-sm">
-                  {resetPasswordMode ? (
-                    <button 
-                      type="button"
-                      onClick={() => setResetPasswordMode(false)} 
-                      className="text-primary hover:underline"
-                    >
-                      Back to Login
-                    </button>
-                  ) : (
-                    <button 
-                      type="button"
-                      onClick={() => setResetPasswordMode(true)} 
-                      className="text-primary hover:underline"
-                    >
-                      Forgot your password?
-                    </button>
+                  
+                  {!resetPasswordMode && (
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <PasswordInput placeholder="••••••••" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   )}
-                </div>
-              </form>
-            </Form>
-          )}
-          
-          {!resetPasswordMode && !resetEmailSent && (
-            <div className="mt-4 text-center text-sm">
-              <p className="text-muted-foreground">
-                Don't have an account?{' '}
-                <Link to="/register" className="font-medium text-primary hover:underline">
-                  Sign up
-                </Link>
-              </p>
-            </div>
-          )}
-
-          {/* Demo accounts info - keep for testing */}
-          <div className="pt-6 border-t mt-6">
-            <p className="text-sm text-center font-medium text-muted-foreground mb-3">
-              Demo Accounts
-            </p>
-            <div className="space-y-3">
-              <div className="rounded-md bg-muted p-3 text-sm">
-                <p><strong>Seller:</strong> seller@example.com</p>
-                <p><strong>Password:</strong> password</p>
+                  
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading 
+                      ? resetPasswordMode ? 'Sending...' : 'Signing in...' 
+                      : resetPasswordMode ? 'Send Reset Link' : 'Sign In'
+                    }
+                  </Button>
+                  
+                  <div className="text-center text-sm">
+                    {resetPasswordMode ? (
+                      <button 
+                        type="button"
+                        onClick={() => setResetPasswordMode(false)} 
+                        className="text-primary hover:underline"
+                      >
+                        Back to Login
+                      </button>
+                    ) : (
+                      <button 
+                        type="button"
+                        onClick={() => setResetPasswordMode(true)} 
+                        className="text-primary hover:underline"
+                      >
+                        Forgot your password?
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </Form>
+            )}
+            
+            {!resetPasswordMode && !resetEmailSent && (
+              <div className="mt-4 text-center text-sm">
+                <p className="text-muted-foreground">
+                  Don't have an account?{' '}
+                  <Link to="/register" className="font-medium text-primary hover:underline">
+                    Sign up
+                  </Link>
+                </p>
               </div>
-              <div className="rounded-md bg-muted p-3 text-sm">
-                <p><strong>Buyer:</strong> buyer@example.com</p>
-                <p><strong>Password:</strong> password</p>
+            )}
+
+            {/* Demo accounts info */}
+            <div className="pt-4 sm:pt-6 border-t mt-4 sm:mt-6">
+              <p className="text-sm text-center font-medium text-muted-foreground mb-3">
+                Demo Accounts
+              </p>
+              <div className="space-y-2 sm:space-y-3">
+                <div className="rounded-md bg-muted p-2 sm:p-3 text-xs sm:text-sm">
+                  <p><strong>Seller:</strong> seller@example.com</p>
+                  <p><strong>Password:</strong> password</p>
+                </div>
+                <div className="rounded-md bg-muted p-2 sm:p-3 text-xs sm:text-sm">
+                  <p><strong>Buyer:</strong> buyer@example.com</p>
+                  <p><strong>Password:</strong> password</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </ResponsiveContainer>
       </main>
       
       <Footer />

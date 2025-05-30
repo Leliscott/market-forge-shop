@@ -8,6 +8,7 @@ import ProductsLoadingState from '@/components/products/ProductsLoadingState';
 import ProductsNoStoreState from '@/components/products/ProductsNoStoreState';
 import { useProductManagement } from '@/hooks/useProductManagement';
 import { useAuth } from '@/context/AuthContext';
+import { ResponsiveContainer } from '@/components/layout/ResponsiveContainer';
 
 const ManageProducts: React.FC = () => {
   const { userStore } = useAuth();
@@ -26,14 +27,14 @@ const ManageProducts: React.FC = () => {
       <Header />
       
       <main className="flex-1">
-        <div className="container px-4 py-8 mx-auto">
+        <ResponsiveContainer>
           <ProductsPageHeader />
           <ProductsContent
             products={products}
             isLoading={isLoading}
             onDeleteProduct={deleteProduct}
           />
-        </div>
+        </ResponsiveContainer>
       </main>
       
       <Footer />
