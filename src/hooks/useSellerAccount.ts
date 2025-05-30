@@ -50,52 +50,21 @@ export const useSellerAccount = () => {
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const createSellerAccount = async (storeId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('seller_accounts')
-        .insert({
-          store_id: storeId,
-          total_earnings: 0,
-          available_balance: 0,
-          pending_balance: 0,
-          total_withdrawn: 0
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error creating seller account:', error);
-      throw error;
-    }
-  };
-
   const fetchSellerAccount = async () => {
     if (!userStore) return;
 
     try {
       setIsLoading(true);
       
-      // Try to fetch existing seller account
+      // Fetch seller account
       const { data: accountData, error: accountError } = await supabase
         .from('seller_accounts')
         .select('*')
         .eq('store_id', userStore.id)
-        .maybeSingle();
+        .single();
 
-      let finalAccountData = accountData;
-
-      // If no account exists, create one
-      if (!accountData && !accountError) {
-        console.log('No seller account found, creating one...');
-        finalAccountData = await createSellerAccount(userStore.id);
-      } else if (accountError) {
-        throw accountError;
-      }
-
-      setAccount(finalAccountData);
+      if (accountError) throw accountError;
+      setAccount(accountData);
 
       // Fetch order financials
       const { data: financialsData, error: financialsError } = await supabase
