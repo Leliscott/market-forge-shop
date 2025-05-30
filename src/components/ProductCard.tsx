@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { ShoppingCart, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useCart } from '@/context/CartContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from '@/integrations/supabase/client';
@@ -58,7 +59,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, storeView = false })
   };
 
   return (
-    <Card className="overflow-hidden product-card">
+    <Card className="overflow-hidden product-card relative">
       <div className="relative">
         <Link to={`/product/${product.id}`} className="block">
           <div className="overflow-hidden aspect-square">
@@ -80,19 +81,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, storeView = false })
         )}
         
         {isVerified && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="absolute bottom-2 right-2 bg-white rounded-full p-0.5">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Verified Merchant Product</p>
-                <p className="text-xs text-muted-foreground">This seller has been verified by our agents</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="absolute top-2 left-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge className="bg-green-500 hover:bg-green-600 text-white border-green-500">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Verified
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="font-medium">Verified Merchant</p>
+                  <p className="text-xs text-muted-foreground">This seller has been verified by our agents</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         )}
       </div>
       

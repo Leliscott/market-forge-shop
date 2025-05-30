@@ -27,7 +27,11 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const { type, to, data }: EmailRequest = await req.json();
-    console.log(`Sending ${type} email to ${to}`);
+    console.log(`Processing ${type} email request for ${to}`);
+
+    if (!to || !to.includes('@')) {
+      throw new Error('Invalid email address provided');
+    }
 
     let emailContent = '';
     let subject = '';
@@ -36,8 +40,8 @@ const handler = async (req: Request): Promise<Response> => {
       case 'welcome':
         subject = 'Welcome to ShopMarket!';
         emailContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #2563eb;">Welcome to ShopMarket! 🎉</h1>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #2563eb; text-align: center;">Welcome to ShopMarket! 🎉</h1>
             <p>Hi ${data?.name || 'there'},</p>
             <p>Thank you for joining our marketplace! You can now start ${data?.role === 'seller' ? 'selling your products' : 'shopping amazing products'} on our platform.</p>
             <p>Get started by exploring our features and connecting with the community.</p>
@@ -48,41 +52,43 @@ const handler = async (req: Request): Promise<Response> => {
         break;
 
       case 'order_confirmation':
-        subject = `Order Confirmation - ${data?.orderId}`;
+        subject = `Order Confirmation - #${data?.orderId}`;
         emailContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #16a34a;">Order Confirmed! 🛍️</h1>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #16a34a; text-align: center;">Order Confirmed! 🛍️</h1>
             <p>Hi ${data?.customerName},</p>
             <p>Your order has been successfully placed and payment confirmed.</p>
             <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3>Order Details:</h3>
-              <p><strong>Order ID:</strong> ${data?.orderId}</p>
+              <p><strong>Order ID:</strong> #${data?.orderId}</p>
               <p><strong>Store:</strong> ${data?.storeName}</p>
               <p><strong>Total Amount:</strong> R${data?.total}</p>
               <p><strong>Payment Status:</strong> <span style="color: #16a34a;">Confirmed ✅</span></p>
             </div>
             <p>Your order is now being processed and will be shipped soon.</p>
             <p>Thank you for shopping with us!</p>
+            <p>Best regards,<br>The ShopMarket Team</p>
           </div>
         `;
         break;
 
       case 'order_seller_notification':
-        subject = `New Order Received - ${data?.orderId}`;
+        subject = `New Order Received - #${data?.orderId}`;
         emailContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #2563eb;">New Order Alert! 📦</h1>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #2563eb; text-align: center;">New Order Alert! 📦</h1>
             <p>Hi there,</p>
             <p>You have received a new order with confirmed payment.</p>
             <div style="background-color: #dbeafe; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3>Order Details:</h3>
-              <p><strong>Order ID:</strong> ${data?.orderId}</p>
+              <p><strong>Order ID:</strong> #${data?.orderId}</p>
               <p><strong>Customer:</strong> ${data?.customerName}</p>
               <p><strong>Total Amount:</strong> R${data?.total}</p>
               <p><strong>Items:</strong> ${data?.itemsCount} item(s)</p>
             </div>
             <p>Please prepare this order for shipping as soon as possible.</p>
             <p>You can view full order details in your seller dashboard.</p>
+            <p>Best regards,<br>The ShopMarket Team</p>
           </div>
         `;
         break;
@@ -90,8 +96,8 @@ const handler = async (req: Request): Promise<Response> => {
       case 'password_reset':
         subject = 'Password Reset Request';
         emailContent = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1 style="color: #dc2626;">Password Reset Request 🔐</h1>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #dc2626; text-align: center;">Password Reset Request 🔐</h1>
             <p>Hi there,</p>
             <p>We received a request to reset your password for your ShopMarket account.</p>
             <p>If you requested this change, please check your email for the password reset link from our system.</p>
@@ -105,6 +111,8 @@ const handler = async (req: Request): Promise<Response> => {
         throw new Error(`Unknown email type: ${type}`);
     }
 
+    console.log(`Sending ${type} email to ${to} with subject: ${subject}`);
+
     const emailResponse = await resend.emails.send({
       from: "ShopMarket <noreply@shop4ll.co.za>",
       to: [to],
@@ -112,7 +120,22 @@ const handler = async (req: Request): Promise<Response> => {
       html: emailContent,
     });
 
-    console.log(`${type} email sent successfully to ${to}`);
+    console.log(`${type} email sent successfully to ${to}. Response:`, emailResponse);
+
+    // Log the email in the database
+    try {
+      await supabase
+        .from('email_notifications')
+        .insert({
+          email_type: type,
+          recipient_email: to,
+          subject: subject,
+          content: emailContent,
+          status: 'sent'
+        });
+    } catch (logError) {
+      console.error('Failed to log email in database:', logError);
+    }
 
     return new Response(
       JSON.stringify({ 
@@ -129,7 +152,10 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error('Error in dyn-email-handler:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        success: false
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },

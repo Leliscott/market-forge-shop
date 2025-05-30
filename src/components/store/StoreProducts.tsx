@@ -30,7 +30,7 @@ const StoreProducts: React.FC<StoreProductsProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="animate-pulse">
             <div className="bg-gray-200 aspect-square rounded-lg mb-4"></div>
@@ -70,7 +70,7 @@ const StoreProducts: React.FC<StoreProductsProps> = ({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
       {products.map(product => (
         <ProductCard key={product.id} product={product} storeView={true} />
       ))}

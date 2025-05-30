@@ -35,9 +35,14 @@ const VerificationDialog: React.FC<VerificationDialogProps> = ({
     return new Date(dateString).toLocaleDateString('en-ZA');
   };
 
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    console.error('Image failed to load:', e.currentTarget.src);
+    e.currentTarget.style.display = 'none';
+  };
+
   return (
     <Dialog open={!!request} onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Review Merchant Verification</DialogTitle>
           <DialogDescription>
@@ -46,51 +51,67 @@ const VerificationDialog: React.FC<VerificationDialogProps> = ({
         </DialogHeader>
         
         <div className="grid gap-6 py-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h3 className="font-medium mb-2">Merchant Details</h3>
-              <p><strong>Store Name:</strong> {request.merchant_name}</p>
-              <p><strong>Owner Name:</strong> {request.owner_name}</p>
-              <p><strong>Submission Date:</strong> {formatDate(request.submission_date)}</p>
-              <p><strong>Status:</strong> {request.status}</p>
+              <h3 className="font-medium mb-4">Merchant Details</h3>
+              <div className="space-y-2">
+                <p><strong>Store Name:</strong> {request.merchant_name}</p>
+                <p><strong>Owner Name:</strong> {request.owner_name}</p>
+                <p><strong>Submission Date:</strong> {formatDate(request.submission_date)}</p>
+                <p><strong>Status:</strong> 
+                  <span className={`ml-2 px-2 py-1 rounded text-sm ${
+                    request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    request.status === 'approved' ? 'bg-green-100 text-green-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                  </span>
+                </p>
+              </div>
             </div>
             
             <div>
-              <h3 className="font-medium mb-2">Verification Documents</h3>
-              <div className="space-y-2">
+              <h3 className="font-medium mb-4">Verification Documents</h3>
+              <div className="space-y-4">
                 <div>
-                  <p className="mb-1">South African ID Document:</p>
-                  <img 
-                    src={request.id_document_url} 
-                    alt="ID Document" 
-                    className="h-40 w-full object-cover rounded-md border" 
-                    onError={(e) => {
-                      e.currentTarget.src = '/placeholder.svg';
-                    }}
-                  />
+                  <p className="mb-2 font-medium">South African ID Document:</p>
+                  <div className="border rounded-md overflow-hidden">
+                    <img 
+                      src={request.id_document_url} 
+                      alt="ID Document" 
+                      className="w-full h-48 object-contain bg-gray-50" 
+                      onError={handleImageError}
+                      crossOrigin="anonymous"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">URL: {request.id_document_url}</p>
                 </div>
+                
                 <div>
-                  <p className="mb-1">Selfie with ID:</p>
-                  <img 
-                    src={request.selfie_url} 
-                    alt="Selfie with ID" 
-                    className="h-40 w-full object-cover rounded-md border" 
-                    onError={(e) => {
-                      e.currentTarget.src = '/placeholder.svg';
-                    }}
-                  />
+                  <p className="mb-2 font-medium">Selfie with ID:</p>
+                  <div className="border rounded-md overflow-hidden">
+                    <img 
+                      src={request.selfie_url} 
+                      alt="Selfie with ID" 
+                      className="w-full h-48 object-contain bg-gray-50" 
+                      onError={handleImageError}
+                      crossOrigin="anonymous"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">URL: {request.selfie_url}</p>
                 </div>
               </div>
             </div>
           </div>
           
-          <div className="bg-muted p-3 rounded-md text-sm">
-            <h3 className="font-medium mb-1">Verification Guidelines</h3>
+          <div className="bg-muted p-4 rounded-md text-sm">
+            <h3 className="font-medium mb-2">Verification Guidelines</h3>
             <ul className="list-disc pl-5 space-y-1">
               <li>Ensure the ID document is clearly visible and not expired</li>
               <li>The selfie should clearly show the merchant's face alongside their ID</li>
               <li>Verify that the name on the ID matches the registered owner name</li>
-              <li>Check that the ID number format follows South African ID standards</li>
+              <li>Check that the ID number format follows South African ID standards (13 digits)</li>
+              <li>Ensure both images are authentic and not digitally manipulated</li>
             </ul>
           </div>
         </div>
@@ -101,16 +122,18 @@ const VerificationDialog: React.FC<VerificationDialogProps> = ({
               <Button
                 variant="destructive"
                 onClick={() => onReject(request.id)}
+                className="flex items-center gap-2"
               >
-                <UserX className="w-4 h-4 mr-1" />
-                Reject
+                <UserX className="w-4 h-4" />
+                Reject Verification
               </Button>
               
               <Button 
                 onClick={() => onApprove(request.id)}
+                className="flex items-center gap-2"
               >
-                <CheckCheck className="w-4 h-4 mr-1" />
-                Approve
+                <CheckCheck className="w-4 h-4" />
+                Approve Verification
               </Button>
             </>
           )}
