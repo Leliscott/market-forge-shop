@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -97,6 +96,44 @@ export const useOrderCreation = () => {
       }
 
       console.log('Order created successfully:', order);
+
+      // Send order confirmation email to customer
+      try {
+        await supabase.functions.invoke('dyn-email-handler', {
+          body: { 
+            type: 'order_confirmation', 
+            to: user.email || profile.email,
+            data: {
+              orderId: order.id.slice(0, 8),
+              customerName: profile.name,
+              storeName: store?.name || 'Unknown Store',
+              total: orderTotal.toFixed(2)
+            }
+          }
+        });
+      } catch (emailError) {
+        console.log('Customer email failed:', emailError);
+      }
+
+      // Send notification to seller if email available
+      if (store?.contact_email) {
+        try {
+          await supabase.functions.invoke('dyn-email-handler', {
+            body: { 
+              type: 'order_seller_notification', 
+              to: store.contact_email,
+              data: {
+                orderId: order.id.slice(0, 8),
+                customerName: profile.name,
+                total: orderTotal.toFixed(2),
+                itemsCount: storeItems.length
+              }
+            }
+          });
+        } catch (emailError) {
+          console.log('Seller email failed:', emailError);
+        }
+      }
 
       // Create order items
       for (const item of storeItems) {

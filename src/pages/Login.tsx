@@ -50,6 +50,18 @@ const Login = () => {
             message: error.message 
           });
         } else {
+          // Send password reset notification
+          try {
+            await supabase.functions.invoke('dyn-email-handler', {
+              body: { 
+                type: 'password_reset', 
+                to: data.email 
+              }
+            });
+          } catch (emailError) {
+            console.log('Password reset notification failed:', emailError);
+          }
+          
           setResetEmailSent(true);
         }
       } catch (error: any) {

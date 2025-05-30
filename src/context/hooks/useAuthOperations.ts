@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
@@ -82,6 +83,20 @@ export const useAuthOperations = () => {
           variant: "destructive"
         });
         return false;
+      }
+
+      // Send welcome email
+      try {
+        await supabase.functions.invoke('dyn-email-handler', {
+          body: { 
+            type: 'welcome', 
+            to: email, 
+            data: { name, role } 
+          }
+        });
+      } catch (emailError) {
+        console.log('Welcome email failed:', emailError);
+        // Don't fail registration if email fails
       }
 
       toast({
