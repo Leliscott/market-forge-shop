@@ -1,9 +1,9 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.5';
-import { Resend } from "npm:resend@2.0.0";
+import sgMail from "https://esm.sh/@sendgrid/mail@7.7.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const sendGridApiKey = Deno.env.get("SENDGRID_API_KEY")!;
+sgMail.setApiKey(sendGridApiKey);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -113,23 +113,23 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Sending ${type} email to ${to} with subject: ${subject}`);
 
-    const emailResponse = await resend.emails.send({
+    const msg = {
+      to,
       from: "ShopMarket <noreply@shop4ll.co.za>",
-      to: [to],
-      subject: subject,
+      subject,
       html: emailContent,
-    });
+    };
 
+    const emailResponse = await sgMail.send(msg);
     console.log(`${type} email sent successfully to ${to}. Response:`, emailResponse);
 
-    // Log the email in the database
     try {
       await supabase
         .from('email_notifications')
         .insert({
           email_type: type,
           recipient_email: to,
-          subject: subject,
+          subject,
           content: emailContent,
           status: 'sent'
         });
@@ -141,7 +141,7 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         success: true, 
         message: `${type} email sent successfully`,
-        emailId: emailResponse.data?.id
+        emailId: emailResponse?.[0]?.headers?.['x-message-id'] || null,
       }),
       {
         status: 200,
