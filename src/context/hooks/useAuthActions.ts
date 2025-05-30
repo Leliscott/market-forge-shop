@@ -13,6 +13,7 @@ interface UseAuthActionsProps {
   setUserStore: (store: Store | null) => void;
   setIsAuthenticated: (auth: boolean) => void;
   setSession: (session: any) => void;
+  profile: Profile | null;
 }
 
 export const useAuthActions = ({
@@ -21,7 +22,8 @@ export const useAuthActions = ({
   setProfile,
   setUserStore,
   setIsAuthenticated,
-  setSession
+  setSession,
+  profile
 }: UseAuthActionsProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -165,8 +167,8 @@ export const useAuthActions = ({
     }
 
     const success = await updateUserProfile(user.id, profileData, toast);
-    if (success) {
-      setProfile(prev => prev ? { ...prev, ...profileData } : null);
+    if (success && profile) {
+      setProfile({ ...profile, ...profileData });
     }
     return success;
   };
