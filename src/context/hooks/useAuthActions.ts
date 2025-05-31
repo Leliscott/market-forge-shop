@@ -85,7 +85,7 @@ export const useAuthActions = ({
             name,
             role
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`
+          emailRedirectTo: `${window.location.origin}/login`
         }
       });
 
@@ -107,7 +107,7 @@ export const useAuthActions = ({
 
       toast({
         title: "Registration successful",
-        description: "Please check your email to confirm your account.",
+        description: "Please check your email to confirm your account, then return to the login page.",
       });
       return true;
     } catch (error: any) {

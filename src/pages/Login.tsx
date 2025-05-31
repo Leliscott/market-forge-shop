@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -13,6 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { ResponsiveContainer } from '@/components/layout/ResponsiveContainer';
+import { useToast } from '@/components/ui/use-toast';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -24,6 +26,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [resetPasswordMode, setResetPasswordMode] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
@@ -38,6 +41,7 @@ const Login = () => {
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
+    
     if (resetPasswordMode) {
       try {
         const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
@@ -45,12 +49,13 @@ const Login = () => {
         });
         
         if (error) {
-          form.setError('email', { 
-            type: 'manual', 
-            message: error.message 
+          toast({
+            title: "Password reset failed",
+            description: error.message,
+            variant: "destructive"
           });
         } else {
-          // Send password reset notification
+          // Send password reset notification email
           try {
             await supabase.functions.invoke('dyn-email-handler', {
               body: { 
@@ -63,11 +68,16 @@ const Login = () => {
           }
           
           setResetEmailSent(true);
+          toast({
+            title: "Reset link sent",
+            description: "Check your email for password reset instructions.",
+          });
         }
       } catch (error: any) {
-        form.setError('email', { 
-          type: 'manual', 
-          message: error.message || "An error occurred" 
+        toast({
+          title: "Password reset error",
+          description: error.message || "An error occurred",
+          variant: "destructive"
         });
       }
       setIsLoading(false);
@@ -104,7 +114,7 @@ const Login = () => {
               <Alert>
                 <AlertDescription>
                   We've sent password reset instructions to your email address.
-                  Please check your inbox.
+                  Please check your inbox and click the link to reset your password.
                 </AlertDescription>
               </Alert>
             )}
@@ -144,7 +154,7 @@ const Login = () => {
                   
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading 
-                      ? resetPasswordMode ? 'Sending...' : 'Signing in...' 
+                      ? resetPasswordMode ? 'Sending Reset Link...' : 'Signing in...' 
                       : resetPasswordMode ? 'Send Reset Link' : 'Sign In'
                     }
                   </Button>
@@ -153,7 +163,10 @@ const Login = () => {
                     {resetPasswordMode ? (
                       <button 
                         type="button"
-                        onClick={() => setResetPasswordMode(false)} 
+                        onClick={() => {
+                          setResetPasswordMode(false);
+                          setResetEmailSent(false);
+                        }} 
                         className="text-primary hover:underline"
                       >
                         Back to Login
@@ -184,21 +197,23 @@ const Login = () => {
             )}
 
             {/* Demo accounts info */}
-            <div className="pt-4 sm:pt-6 border-t mt-4 sm:mt-6">
-              <p className="text-sm text-center font-medium text-muted-foreground mb-3">
-                Demo Accounts
-              </p>
-              <div className="space-y-2 sm:space-y-3">
-                <div className="rounded-md bg-muted p-2 sm:p-3 text-xs sm:text-sm">
-                  <p><strong>Seller:</strong> seller@example.com</p>
-                  <p><strong>Password:</strong> password</p>
-                </div>
-                <div className="rounded-md bg-muted p-2 sm:p-3 text-xs sm:text-sm">
-                  <p><strong>Buyer:</strong> buyer@example.com</p>
-                  <p><strong>Password:</strong> password</p>
+            {!resetPasswordMode && !resetEmailSent && (
+              <div className="pt-4 sm:pt-6 border-t mt-4 sm:mt-6">
+                <p className="text-sm text-center font-medium text-muted-foreground mb-3">
+                  Demo Accounts
+                </p>
+                <div className="space-y-2 sm:space-y-3">
+                  <div className="rounded-md bg-muted p-2 sm:p-3 text-xs sm:text-sm">
+                    <p><strong>Seller:</strong> seller@example.com</p>
+                    <p><strong>Password:</strong> password</p>
+                  </div>
+                  <div className="rounded-md bg-muted p-2 sm:p-3 text-xs sm:text-sm">
+                    <p><strong>Buyer:</strong> buyer@example.com</p>
+                    <p><strong>Password:</strong> password</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </ResponsiveContainer>
       </main>
