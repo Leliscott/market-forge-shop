@@ -164,8 +164,8 @@ const Login = () => {
                       <button 
                         type="button"
                         onClick={() => {
-                          setResetPasswordMode(false);
-                          setResetEmailSent(false);
+                          setResetPasswordMode(true);
+                          setResetEmailSent(true);
                         }} 
                         className="text-primary hover:underline"
                       >
