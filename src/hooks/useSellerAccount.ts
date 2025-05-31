@@ -1,46 +1,22 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/context/AuthContext';
-
-interface SellerAccount {
-  id: string;
-  store_id: string;
-  total_earnings: number;
-  available_balance: number;
-  pending_balance: number;
-  total_withdrawn: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface OrderFinancial {
-  id: string;
-  order_id: string;
-  store_id: string;
-  gross_amount: number;
-  vat_amount: number;
-  net_amount: number;
-  marketplace_fee: number;
-  seller_profit: number;
-  created_at: string;
-}
-
-interface Withdrawal {
-  id: string;
-  store_id: string;
-  seller_id: string;
-  amount: number;
-  bank_name: string;
-  account_holder_name: string;
-  account_number: string;
-  branch_code: string;
-  status: string;
-  requested_at: string;
-  processed_at?: string;
-  notes?: string;
-}
+import { 
+  SellerAccount, 
+  OrderFinancial, 
+  Withdrawal, 
+  WithdrawalData 
+} from './seller/useSellerAccountTypes';
+import {
+  createSellerAccount,
+  fetchSellerAccountData,
+  fetchOrderFinancials,
+  fetchWithdrawals,
+  submitWithdrawalRequest,
+  updateSellerAccountBalance,
+  sendWithdrawalNotification
+} from './seller/useSellerAccountApi';
 
 export const useSellerAccount = () => {
   const { userStore } = useAuth();
@@ -49,35 +25,6 @@ export const useSellerAccount = () => {
   const [financials, setFinancials] = useState<OrderFinancial[]>([]);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  const createSellerAccount = async (storeId: string) => {
-    try {
-      console.log('Creating seller account for store:', storeId);
-      
-      const { data, error } = await supabase
-        .from('seller_accounts')
-        .insert({
-          store_id: storeId,
-          total_earnings: 0,
-          available_balance: 0,
-          pending_balance: 0,
-          total_withdrawn: 0
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating seller account:', error);
-        throw error;
-      }
-      
-      console.log('Seller account created successfully:', data);
-      return data;
-    } catch (error) {
-      console.error('Failed to create seller account:', error);
-      throw error;
-    }
-  };
 
   const fetchSellerAccount = async () => {
     if (!userStore?.id) {
@@ -88,24 +35,12 @@ export const useSellerAccount = () => {
 
     try {
       setIsLoading(true);
-      console.log('Fetching seller account for store:', userStore.id);
       
       // Try to fetch existing seller account
-      const { data: accountData, error: accountError } = await supabase
-        .from('seller_accounts')
-        .select('*')
-        .eq('store_id', userStore.id)
-        .maybeSingle();
-
-      if (accountError) {
-        console.error('Error fetching seller account:', accountError);
-        throw accountError;
-      }
-
-      let finalAccountData = accountData;
+      let finalAccountData = await fetchSellerAccountData(userStore.id);
 
       // If no account exists, create one
-      if (!accountData) {
+      if (!finalAccountData) {
         console.log('No seller account found, creating one...');
         try {
           finalAccountData = await createSellerAccount(userStore.id);
@@ -127,30 +62,20 @@ export const useSellerAccount = () => {
 
       setAccount(finalAccountData);
 
-      // Fetch order financials
-      const { data: financialsData, error: financialsError } = await supabase
-        .from('order_financials')
-        .select('*')
-        .eq('store_id', userStore.id)
-        .order('created_at', { ascending: false });
-
-      if (financialsError) {
-        console.error('Error fetching financials:', financialsError);
-      } else {
-        setFinancials(financialsData || []);
-      }
-
-      // Fetch withdrawals
-      const { data: withdrawalsData, error: withdrawalsError } = await supabase
-        .from('withdrawals')
-        .select('*')
-        .eq('store_id', userStore.id)
-        .order('requested_at', { ascending: false });
-
-      if (withdrawalsError) {
-        console.error('Error fetching withdrawals:', withdrawalsError);
-      } else {
-        setWithdrawals(withdrawalsData || []);
+      // Fetch related data
+      try {
+        const [financialsData, withdrawalsData] = await Promise.all([
+          fetchOrderFinancials(userStore.id),
+          fetchWithdrawals(userStore.id)
+        ]);
+        
+        setFinancials(financialsData);
+        setWithdrawals(withdrawalsData);
+      } catch (error) {
+        console.error('Error fetching related data:', error);
+        // Continue with empty arrays if fetching fails
+        setFinancials([]);
+        setWithdrawals([]);
       }
 
     } catch (error: any) {
@@ -165,54 +90,29 @@ export const useSellerAccount = () => {
     }
   };
 
-  const requestWithdrawal = async (withdrawalData: {
-    amount: number;
-    bank_name: string;
-    account_holder_name: string;
-    account_number: string;
-    branch_code: string;
-  }) => {
+  const requestWithdrawal = async (withdrawalData: WithdrawalData) => {
     if (!userStore || !account) return;
 
     try {
-      const { error } = await supabase
-        .from('withdrawals')
-        .insert({
-          store_id: userStore.id,
-          seller_id: userStore.owner_id,
-          ...withdrawalData
-        });
+      await submitWithdrawalRequest(userStore.id, userStore.owner_id, withdrawalData);
+      await updateSellerAccountBalance(
+        userStore.id,
+        account.available_balance,
+        account.pending_balance,
+        withdrawalData.amount
+      );
 
-      if (error) throw error;
-
-      // Update pending balance
-      const { error: updateError } = await supabase
-        .from('seller_accounts')
-        .update({
-          available_balance: account.available_balance - withdrawalData.amount,
-          pending_balance: account.pending_balance + withdrawalData.amount
-        })
-        .eq('store_id', userStore.id);
-
-      if (updateError) throw updateError;
-
-      // Send email notification via edge function
-      const { error: emailError } = await supabase.functions.invoke('send-withdrawal-request', {
-        body: {
-          store_id: userStore.id,
-          store_name: userStore.name,
-          withdrawal_data: withdrawalData,
-          seller_stats: {
-            total_earnings: account.total_earnings,
-            total_withdrawn: account.total_withdrawn,
-            current_balance: account.available_balance
-          }
+      // Send email notification
+      await sendWithdrawalNotification(
+        userStore.id,
+        userStore.name,
+        withdrawalData,
+        {
+          total_earnings: account.total_earnings,
+          total_withdrawn: account.total_withdrawn,
+          current_balance: account.available_balance
         }
-      });
-
-      if (emailError) {
-        console.warn('Email notification failed:', emailError);
-      }
+      );
 
       toast({
         title: "Success",
@@ -245,3 +145,6 @@ export const useSellerAccount = () => {
     fetchSellerAccount
   };
 };
+
+// Re-export types for backward compatibility
+export type { SellerAccount, OrderFinancial, Withdrawal, WithdrawalData };
