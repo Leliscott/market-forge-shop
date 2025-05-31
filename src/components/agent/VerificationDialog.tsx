@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { UserX, CheckCheck } from 'lucide-react';
+import { UserX, CheckCheck, ExternalLink } from 'lucide-react';
 
 interface VerificationRequest {
   id: string;
@@ -37,8 +37,63 @@ const VerificationDialog: React.FC<VerificationDialogProps> = ({
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     console.error('Image failed to load:', e.currentTarget.src);
-    e.currentTarget.style.display = 'none';
+    const target = e.currentTarget;
+    target.style.display = 'none';
+    
+    // Show fallback message
+    const fallback = target.nextElementSibling as HTMLElement;
+    if (fallback && fallback.classList.contains('image-fallback')) {
+      fallback.style.display = 'block';
+    }
   };
+
+  const openImageInNewTab = (imageUrl: string) => {
+    window.open(imageUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const ImageViewer = ({ src, alt, label }: { src: string; alt: string; label: string }) => (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <p className="font-medium">{label}:</p>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => openImageInNewTab(src)}
+          className="flex items-center gap-1"
+        >
+          <ExternalLink className="w-3 h-3" />
+          Open
+        </Button>
+      </div>
+      <div className="border rounded-md overflow-hidden bg-gray-50 relative">
+        <img 
+          src={src} 
+          alt={alt} 
+          className="w-full h-48 object-contain cursor-pointer hover:opacity-80 transition-opacity" 
+          onError={handleImageError}
+          onClick={() => openImageInNewTab(src)}
+          referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
+        />
+        <div 
+          className="image-fallback hidden absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-500 text-sm"
+        >
+          <div className="text-center">
+            <p>Image failed to load</p>
+            <Button
+              variant="link"
+              size="sm"
+              onClick={() => openImageInNewTab(src)}
+              className="text-blue-600 underline"
+            >
+              Try opening in new tab
+            </Button>
+          </div>
+        </div>
+      </div>
+      <p className="text-xs text-gray-500 mt-1 break-all">URL: {src}</p>
+    </div>
+  );
 
   return (
     <Dialog open={!!request} onOpenChange={open => !open && onClose()}>
@@ -73,33 +128,17 @@ const VerificationDialog: React.FC<VerificationDialogProps> = ({
             <div>
               <h3 className="font-medium mb-4">Verification Documents</h3>
               <div className="space-y-4">
-                <div>
-                  <p className="mb-2 font-medium">South African ID Document:</p>
-                  <div className="border rounded-md overflow-hidden">
-                    <img 
-                      src={request.id_document_url} 
-                      alt="ID Document" 
-                      className="w-full h-48 object-contain bg-gray-50" 
-                      onError={handleImageError}
-                      crossOrigin="anonymous"
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">URL: {request.id_document_url}</p>
-                </div>
+                <ImageViewer
+                  src={request.id_document_url}
+                  alt="South African ID Document"
+                  label="South African ID Document"
+                />
                 
-                <div>
-                  <p className="mb-2 font-medium">Selfie with ID:</p>
-                  <div className="border rounded-md overflow-hidden">
-                    <img 
-                      src={request.selfie_url} 
-                      alt="Selfie with ID" 
-                      className="w-full h-48 object-contain bg-gray-50" 
-                      onError={handleImageError}
-                      crossOrigin="anonymous"
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">URL: {request.selfie_url}</p>
-                </div>
+                <ImageViewer
+                  src={request.selfie_url}
+                  alt="Selfie with ID"
+                  label="Selfie with ID"
+                />
               </div>
             </div>
           </div>

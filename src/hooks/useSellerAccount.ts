@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -51,6 +52,8 @@ export const useSellerAccount = () => {
 
   const createSellerAccount = async (storeId: string) => {
     try {
+      console.log('Creating seller account for store:', storeId);
+      
       const { data, error } = await supabase
         .from('seller_accounts')
         .insert({
@@ -63,19 +66,29 @@ export const useSellerAccount = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating seller account:', error);
+        throw error;
+      }
+      
+      console.log('Seller account created successfully:', data);
       return data;
     } catch (error) {
-      console.error('Error creating seller account:', error);
+      console.error('Failed to create seller account:', error);
       throw error;
     }
   };
 
   const fetchSellerAccount = async () => {
-    if (!userStore) return;
+    if (!userStore?.id) {
+      console.log('No userStore available');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       setIsLoading(true);
+      console.log('Fetching seller account for store:', userStore.id);
       
       // Try to fetch existing seller account
       const { data: accountData, error: accountError } = await supabase
@@ -84,14 +97,32 @@ export const useSellerAccount = () => {
         .eq('store_id', userStore.id)
         .maybeSingle();
 
+      if (accountError) {
+        console.error('Error fetching seller account:', accountError);
+        throw accountError;
+      }
+
       let finalAccountData = accountData;
 
       // If no account exists, create one
-      if (!accountData && !accountError) {
+      if (!accountData) {
         console.log('No seller account found, creating one...');
-        finalAccountData = await createSellerAccount(userStore.id);
-      } else if (accountError) {
-        throw accountError;
+        try {
+          finalAccountData = await createSellerAccount(userStore.id);
+        } catch (createError) {
+          console.error('Failed to create seller account:', createError);
+          // Set default values if creation fails
+          finalAccountData = {
+            id: '',
+            store_id: userStore.id,
+            total_earnings: 0,
+            available_balance: 0,
+            pending_balance: 0,
+            total_withdrawn: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+        }
       }
 
       setAccount(finalAccountData);
@@ -103,8 +134,11 @@ export const useSellerAccount = () => {
         .eq('store_id', userStore.id)
         .order('created_at', { ascending: false });
 
-      if (financialsError) throw financialsError;
-      setFinancials(financialsData || []);
+      if (financialsError) {
+        console.error('Error fetching financials:', financialsError);
+      } else {
+        setFinancials(financialsData || []);
+      }
 
       // Fetch withdrawals
       const { data: withdrawalsData, error: withdrawalsError } = await supabase
@@ -113,14 +147,17 @@ export const useSellerAccount = () => {
         .eq('store_id', userStore.id)
         .order('requested_at', { ascending: false });
 
-      if (withdrawalsError) throw withdrawalsError;
-      setWithdrawals(withdrawalsData || []);
+      if (withdrawalsError) {
+        console.error('Error fetching withdrawals:', withdrawalsError);
+      } else {
+        setWithdrawals(withdrawalsData || []);
+      }
 
     } catch (error: any) {
-      console.error('Error fetching seller account:', error);
+      console.error('Error in fetchSellerAccount:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch account information",
+        description: "Failed to fetch account information. Please try again.",
         variant: "destructive"
       });
     } finally {

@@ -39,23 +39,54 @@ const VerificationDialog: React.FC<VerificationDialogProps> = ({
   };
 
   const uploadFile = async (file: File, path: string): Promise<string> => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `${user?.id}/${path}/${fileName}`;
+    try {
+      console.log(`Uploading file to ${path}:`, file.name);
+      
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `${user?.id}/${path}/${fileName}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from('merchant-verifications')
-      .upload(filePath, file);
+      // Ensure the bucket exists (this is safe to call multiple times)
+      const { error: bucketError } = await supabase.storage
+        .from('merchant-verifications')
+        .list('', { limit: 1 });
 
-    if (uploadError) {
-      throw uploadError;
+      if (bucketError && bucketError.message.includes('The resource was not found')) {
+        console.log('Creating merchant-verifications bucket...');
+        const { error: createBucketError } = await supabase.storage
+          .createBucket('merchant-verifications', {
+            public: true,
+            allowedMimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+            fileSizeLimit: 5242880 // 5MB
+          });
+        
+        if (createBucketError) {
+          console.warn('Could not create bucket (might already exist):', createBucketError);
+        }
+      }
+
+      const { error: uploadError } = await supabase.storage
+        .from('merchant-verifications')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage
+        .from('merchant-verifications')
+        .getPublicUrl(filePath);
+
+      console.log('File uploaded successfully:', data.publicUrl);
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Error in uploadFile:', error);
+      throw error;
     }
-
-    const { data } = supabase.storage
-      .from('merchant-verifications')
-      .getPublicUrl(filePath);
-
-    return data.publicUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,9 +104,13 @@ const VerificationDialog: React.FC<VerificationDialogProps> = ({
     setIsSubmitting(true);
 
     try {
+      console.log('Starting verification submission...');
+      
       // Upload documents
       const idDocumentUrl = await uploadFile(formData.idDocument, 'id-documents');
       const selfieUrl = await uploadFile(formData.selfieWithId, 'selfies');
+
+      console.log('Documents uploaded successfully');
 
       // Submit verification request
       const { error } = await supabase
@@ -90,7 +125,12 @@ const VerificationDialog: React.FC<VerificationDialogProps> = ({
           status: 'pending'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database insert error:', error);
+        throw error;
+      }
+
+      console.log('Verification request submitted successfully');
 
       toast({
         title: "Verification Submitted",
