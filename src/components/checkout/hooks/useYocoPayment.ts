@@ -1,34 +1,41 @@
 
 import { useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useYocoPaymentFlow } from '@/hooks/useYocoPaymentFlow';
 
 export const useYocoPayment = () => {
+  const { initiatePaymentFlow } = useYocoPaymentFlow();
+
   const createYocoPayment = useCallback(async (
     finalTotal: number,
-    primaryOrderId: string
+    primaryOrderId: string,
+    customerEmail?: string,
+    customerName?: string,
+    storeName?: string,
+    sellerEmail?: string,
+    itemsCount?: number
   ) => {
-    const { data: yocoResponse, error: yocoError } = await supabase.functions.invoke('simple-yoco-pay', {
-      body: {
-        amount: finalTotal,
-        paymentId: primaryOrderId,
-        successUrl: `${window.location.origin}/orders?payment=success&order_id=${primaryOrderId}`,
-        cancelUrl: `${window.location.origin}/cart`,
-        failureUrl: `${window.location.origin}/checkout?payment=failed`
-      }
+    const response = await initiatePaymentFlow({
+      amount: finalTotal,
+      paymentId: primaryOrderId,
+      successUrl: `${window.location.origin}/orders?payment=success&order_id=${primaryOrderId}`,
+      cancelUrl: `${window.location.origin}/cart`,
+      failureUrl: `${window.location.origin}/checkout?payment=failed`,
+      customerEmail,
+      customerName,
+      storeName,
+      sellerEmail,
+      itemsCount
     });
 
-    if (yocoError || !yocoResponse?.success) {
-      console.error('Yoco payment creation failed:', yocoError);
-      throw new Error('Failed to create payment session');
-    }
-
-    return yocoResponse;
-  }, []);
+    return response;
+  }, [initiatePaymentFlow]);
 
   const updateOrderWithYocoId = useCallback(async (
     orderId: string,
     checkoutId: string
   ) => {
+    const { supabase } = await import('@/integrations/supabase/client');
+    
     await supabase
       .from('orders')
       .update({

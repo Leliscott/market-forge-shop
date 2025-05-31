@@ -15,15 +15,15 @@ interface YocoPaymentRequest {
   failureUrl: string
 }
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { 
-      headers: corsHeaders,
-      status: 200
-    })
-  }
+export interface YocoPaymentResponse {
+  success: boolean
+  checkoutUrl?: string
+  checkoutId?: string
+  error?: string
+  details?: any
+}
 
+const createYocoPayment = async (req: Request): Promise<YocoPaymentResponse> => {
   try {
     console.log('=== SIMPLE YOCO PAY FUNCTION STARTED ===')
     
@@ -35,10 +35,10 @@ serve(async (req) => {
     const yocoSecretKey = Deno.env.get('YOCO_SECRET_KEY')
     if (!yocoSecretKey) {
       console.error('YOCO_SECRET_KEY not found in environment')
-      return new Response(JSON.stringify({ error: 'Payment configuration error' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+      return {
+        success: false,
+        error: 'Payment configuration error'
+      }
     }
 
     // Create checkout session with Yoco
@@ -75,14 +75,11 @@ serve(async (req) => {
       console.error('Yoco checkout creation failed with status:', yocoResponse.status)
       console.error('Response body:', responseText)
       
-      return new Response(JSON.stringify({ 
+      return {
+        success: false,
         error: 'Failed to create checkout session',
-        status: yocoResponse.status,
-        details: responseText.substring(0, 500) // Limit error details
-      }), {
-        status: yocoResponse.status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+        details: responseText.substring(0, 500)
+      }
     }
 
     let yocoData
@@ -92,13 +89,11 @@ serve(async (req) => {
       console.error('Failed to parse Yoco response as JSON:', parseError)
       console.error('Response was:', responseText.substring(0, 200))
       
-      return new Response(JSON.stringify({ 
+      return {
+        success: false,
         error: 'Invalid response from payment provider',
         details: 'Response was not valid JSON'
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+      }
     }
 
     console.log('Parsed Yoco data:', yocoData)
@@ -107,31 +102,44 @@ serve(async (req) => {
     const checkoutUrl = yocoData.redirectUrl || yocoData.url
     if (!checkoutUrl) {
       console.error('No checkout URL found in response:', yocoData)
-      return new Response(JSON.stringify({ 
+      return {
+        success: false,
         error: 'No checkout URL received from payment provider',
-        details: yocoData 
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+        details: yocoData
+      }
     }
 
-    return new Response(JSON.stringify({
+    return {
       success: true,
       checkoutUrl: checkoutUrl,
       checkoutId: yocoData.id
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
+    }
 
   } catch (error) {
     console.error('Simple Yoco pay error:', error)
-    return new Response(JSON.stringify({ 
+    return {
+      success: false,
       error: 'Internal server error',
-      details: error.message 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      details: error.message
+    }
+  }
+}
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { 
+      headers: corsHeaders,
+      status: 200
     })
   }
+
+  const result = await createYocoPayment(req)
+  
+  return new Response(JSON.stringify(result), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    status: result.success ? 200 : 500
+  })
 })
+
+export { createYocoPayment }
