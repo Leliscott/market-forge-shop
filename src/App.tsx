@@ -1,4 +1,3 @@
-
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -33,6 +32,7 @@ const TermsAndConditions = lazy(() => import('@/pages/TermsAndConditions'));
 const AgentDashboard = lazy(() => import('@/pages/AgentDashboard'));
 const AuthCallback = lazy(() => import('@/pages/AuthCallback'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
+const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 
 const queryClient = new QueryClient();
 
@@ -50,6 +50,7 @@ function App() {
                       <Route path="/" element={<Index />} />
                       <Route path="/login" element={<Login />} />
                       <Route path="/register" element={<Register />} />
+                      <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/profile" element={<UserProfile />} />
                       <Route path="/marketplace" element={<Marketplace />} />
                       <Route path="/product/:id" element={<ProductDetail />} />
